@@ -9,7 +9,12 @@
        data says who the department is for (head.json's `aud`; built by
        scripts/build-department-slices.mjs, never guessed). It is a
        full-view switch: the whole page re-renders for that audience;
-     - the jump bar: Por tipo / Por marca / Por tienda / Explorar todo;
+     - the view switch: Todo / Por tipo / Por marca / Por tienda /
+       Explorar todo. Like the audience switch it REPLACES the view in
+       place, under the bar (#443 c.6635829511, Danny: "clicking a pill
+       changes the full screen from the top"): never an anchor jump, never
+       a landing mid-section, and the shopper's scroll does not move.
+       «Todo», or the active pill tapped again, brings the department back;
      - the three axes, big-card rails per type, brand and store
        (/.netlify/functions/department?axis=...), fetched as they near
        the screen;
@@ -36,7 +41,12 @@
     + '.dh-aud button small{font-weight:600;color:#6B7487;margin-left:6px;font-size:12px}'
     + '.dh-aud button[aria-pressed="true"]{background:#0A1F44;color:#fff;border-color:#0A1F44}'
     + '.dh-aud button[aria-pressed="true"] small{color:#C9D2E6}'
-    + '.dh-jump a{flex:0 0 auto;height:40px;padding:0 18px;border-radius:999px;border:1px solid #E4E6EC;background:#fff;color:#0A1F44;font-size:14px;font-weight:800;line-height:38px;text-decoration:none;white-space:nowrap}'
+    + '.dh-jump button{flex:0 0 auto;height:40px;padding:0 18px;border-radius:999px;border:1px solid #E4E6EC;background:#fff;color:#0A1F44;font:800 14px/38px inherit;font-family:inherit;white-space:nowrap;cursor:pointer}'
+    + '.dh-jump button[aria-pressed="true"]{background:#0A1F44;color:#fff;border-color:#0A1F44}'
+    /* A view is the page: the department's carousels step aside, and only the chosen section shows. */
+    + 'html[data-dview] #salesTop,html[data-dview] #rails,html[data-dview] #perfumesLead,html[data-dview] #lens,html[data-dview] #emptyState{display:none!important}'
+    + 'html[data-dview] #dhAxes > .dh-sec:not(.dh-on){display:none!important}'
+    + '.dh-tally{margin:4px 20px 0;color:#6B7487;font-size:14px;font-weight:600}'
     + '.dh-sec{max-width:1240px;margin:0 auto;padding:22px 0 6px;scroll-margin-top:12px}'
     + '.dh-sec > h2{margin:0 20px 2px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6B7487}'
     + '.dh-sec .dh-note{margin:6px 20px 0;color:#6B7487;font-size:14px}'
@@ -58,9 +68,10 @@
   var hero = document.getElementById('deptHero');
   var bar = document.createElement('div'); bar.className = 'dh-bar'; bar.id = 'dhBar';
   bar.innerHTML = '<nav class="dh-aud" id="dhAud" aria-label="Para quién" hidden></nav>'
-    + '<nav class="dh-jump" id="dhJump" aria-label="Secciones">'
-    + AXES.map(function(a){ return '<a href="#dh-' + a[0] + '">' + a[1] + '</a>'; }).join('')
-    + '<a href="#dh-explorar">Explorar todo</a></nav>';
+    + '<nav class="dh-jump" id="dhJump" aria-label="Ver el departamento">'
+    + '<button type="button" data-view="" aria-pressed="true">Todo</button>'
+    + AXES.map(function(a){ return '<button type="button" data-view="' + a[0] + '" aria-pressed="false">' + a[1] + '</button>'; }).join('')
+    + '<button type="button" data-view="explorar" aria-pressed="false">Explorar todo</button></nav>';
   if (hero && hero.parentNode) hero.parentNode.insertBefore(bar, hero.nextSibling);
   /* Explorar todo carries the words and the store filter now: the old
      toolbar (a search box over the rails and a wall of store chips) goes,
@@ -73,7 +84,7 @@
   var main = document.getElementById('rails');
   var wrap = document.createElement('div'); wrap.id = 'dhAxes';
   wrap.innerHTML = AXES.map(function(a){
-    return '<section class="dh-sec dh-axis" id="dh-' + a[0] + '" data-axis="' + a[0] + '" aria-label="' + a[1] + '"><h2>' + a[1] + '</h2><div class="dh-rails"></div></section>';
+    return '<section class="dh-sec dh-axis" id="dh-' + a[0] + '" data-axis="' + a[0] + '" aria-label="' + a[1] + '"><h2>' + a[1] + '</h2><p class="dh-tally" hidden></p><div class="dh-rails"></div></section>';
   }).join('')
     + '<section class="dh-sec" id="dh-explorar" aria-label="Explorar todo"><h2>Explorar todo</h2>'
     + '<div class="dh-ex"><input class="dh-q" id="dhQ" type="search" placeholder="Buscar en este departamento…" aria-label="Buscar en Explorar todo" autocomplete="off">'
@@ -91,6 +102,7 @@
   }
 
   /* ---------- stats chips ---------- */
+  var LAST_HEAD = null;
   function paintStats(head){
     var s = head && head.stats;
     var hi = hero && hero.querySelector('.hero-in');
@@ -141,29 +153,37 @@
       + '<div class="rail">' + (r.cards || []).map(D.cardHTML).join('')
       + (big ? '<a class="rail-next" href="' + href + '">Ver todo<span>' + num(r.count) + ' productos</span></a>' : '') + '</div></section>';
   }
-  function loadAxis(sec){
-    if (sec.getAttribute('data-for') === String(D.audience()) ) return;
+  var TALLY = { tipo: ['tipo', 'tipos'], marca: ['marca', 'marcas'], tienda: ['tienda', 'tiendas'] };
+  function loadAxis(sec, done){
+    done = done || function(){};
+    if (sec.getAttribute('data-for') === String(D.audience())){ if (!sec.querySelector('.dh-note')) done(); else sec._dhDone = done; return; }
     sec.setAttribute('data-for', String(D.audience()));
-    var box = sec.querySelector('.dh-rails'), seq = AXIS_SEQ;
+    var box = sec.querySelector('.dh-rails'), seq = AXIS_SEQ, tally = sec.querySelector('.dh-tally');
+    sec._dhDone = done;
     box.innerHTML = '<p class="dh-note">Cargando…</p>';
+    function finish(){ var f = sec._dhDone; sec._dhDone = null; if (f) f(); }
     D.getJSON(api('&axis=' + sec.getAttribute('data-axis'))).then(function(data){
       if (seq !== AXIS_SEQ) return;
       var rails = (data && data.rails) || [];
-      if (!rails.length){ sec.hidden = true; markJump(); return; }
+      if (!rails.length){ sec.hidden = true; markJump(); finish(); if (VIEW === sec.getAttribute('data-axis')) setView(''); return; }
       sec.hidden = false; markJump();
+      var w = TALLY[sec.getAttribute('data-axis')];
+      if (tally && w){ tally.textContent = num(rails.length) + ' ' + (rails.length === 1 ? w[0] : w[1]); tally.hidden = false; }
       box.innerHTML = rails.map(railHTML).join('');
       D.watchPhotos(box);
+      finish();
     }).catch(function(){
       if (seq !== AXIS_SEQ) return;
       sec.removeAttribute('data-for');
       box.innerHTML = '<p class="dh-note">No pudimos cargar esta sección. <button type="button" class="btn dh-retry">Reintentar</button></p>';
+      finish();
     });
   }
   function markJump(){
     var j = document.getElementById('dhJump');
     AXES.forEach(function(a){
-      var link = j.querySelector('a[href="#dh-' + a[0] + '"]'), sec = document.getElementById('dh-' + a[0]);
-      if (link && sec) link.hidden = sec.hidden;
+      var b = j.querySelector('button[data-view="' + a[0] + '"]'), sec = document.getElementById('dh-' + a[0]);
+      if (b && sec) b.hidden = sec.hidden;
     });
   }
   wrap.addEventListener('click', function(e){
@@ -178,14 +198,37 @@
       else loadAxis(e.target);
     });
   }, { rootMargin: '900px 0px' }) : null;
-  /* A jump link loads its section at once (it may be far below). */
+  /* ---------- the view switch (#443 c.6635829511) ----------
+     A view replaces what is under the bar: the department's carousels
+     (and a hub pill's lens) step aside, the chosen section shows alone,
+     loaded at once, from its start. The scroll stays where the shopper
+     had it (D.keepPlace holds the page's height while it loads). */
+  var VIEW = '';
+  function setView(v){
+    if (v === VIEW) v = '';
+    D.closeLens();
+    var release = D.keepPlace(bar);
+    VIEW = v;
+    var root = document.documentElement;
+    if (v) root.setAttribute('data-dview', v); else root.removeAttribute('data-dview');
+    Array.prototype.forEach.call(document.querySelectorAll('#dhJump button[data-view]'), function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-view') === v)); });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.dh-sec'), function(sec){ sec.classList.toggle('dh-on', !!v && sec.id === 'dh-' + v); });
+    if (!v){ release(); return; }
+    var sec = document.getElementById('dh-' + v);
+    if (sec && sec.classList.contains('dh-axis')) loadAxis(sec, release);
+    else if (EX.drawnFor !== String(D.audience())) runExplore(0, release);
+    else release();
+  }
   document.getElementById('dhJump').addEventListener('click', function(e){
-    var a = e.target.closest('a[href^="#dh-"]');
-    if (!a) return;
-    var sec = document.getElementById(a.getAttribute('href').slice(1));
-    if (!sec) return;
-    if (sec.classList.contains('dh-axis')) loadAxis(sec);
-    else if (EX.drawnFor !== String(D.audience())) runExplore(0);
+    var b = e.target.closest('button[data-view]');
+    if (b) setView(b.getAttribute('data-view'));
+  });
+  /* A hub pill (a filter) is the page now: the view switch goes back to «Todo». */
+  if (D.onLens) D.onLens(function(l){
+    if (l && VIEW){ VIEW = ''; document.documentElement.removeAttribute('data-dview'); Array.prototype.forEach.call(document.querySelectorAll('#dhJump button[data-view]'), function(b){ b.setAttribute('aria-pressed', String(!b.getAttribute('data-view'))); }); wrap.querySelectorAll('.dh-on').forEach(function(x){ x.classList.remove('dh-on'); }); }
+    /* The hero's counts are the lens's own while it is open. */
+    if (l && l.stats) paintStats({ stats: l.stats });
+    else if (!l) paintStats(LAST_HEAD);
   });
 
   /* ---------- Explorar todo ---------- */
@@ -203,8 +246,9 @@
     if (cur && !seen) h += '<option value="' + esc(cur) + '" selected>' + esc(cur) + ' (0)</option>';
     sel.innerHTML = h;
   }
-  function runExplore(page){
+  function runExplore(page, done){
     var seq = ++EX.seq;
+    var fin = function(){ var f = done; done = null; if (f) f(); };
     EX.page = page;
     EX.drawnFor = String(D.audience());
     var u = api('&explore=1' + (EX.t ? '&t=' + encodeURIComponent(EX.t) : '') + (EX.b ? '&b=' + encodeURIComponent(EX.b) : '')
@@ -235,9 +279,11 @@
       if (page){ var first = grid.querySelectorAll('.card')[before]; if (first && grid.scrollTo) grid.scrollTo({ left: Math.max(0, first.offsetLeft - grid.offsetLeft - 8), behavior: 'smooth' }); }
       else if (grid.scrollTo) grid.scrollTo({ left: 0 });
       D.watchPhotos(grid);
+      fin();
     }).catch(function(){
       if (seq !== EX.seq) return;
       countEl.textContent = 'No pudimos cargar los productos. Revisa tu conexión e inténtalo de nuevo.';
+      fin();
     });
   }
   tEl.addEventListener('change', function(){ EX.t = tEl.value; runExplore(0); });
@@ -259,7 +305,8 @@
       AUD = [];
       D.getJSON(D.slices + 'head.json').then(function(full){ AUD = full.aud || []; paintAud(); }).catch(function(){});
     }
-    paintStats(head);
+    LAST_HEAD = head;
+    if (!(D.lensActive && D.lensActive())) paintStats(head);
     paintAud();
     /* A new audience redraws the axes and Explorar todo for it. */
     var cur = String(D.audience());
@@ -267,12 +314,14 @@
       LAST_U = cur; AXIS_SEQ++;
       Array.prototype.forEach.call(wrap.querySelectorAll('.dh-axis'), function(sec){
         sec.removeAttribute('data-for'); sec.hidden = false;
-        if (IO) { IO.unobserve(sec); IO.observe(sec); } else loadAxis(sec);
+        if (VIEW === sec.getAttribute('data-axis')) loadAxis(sec);
+        else if (IO) { IO.unobserve(sec); IO.observe(sec); } else loadAxis(sec);
       });
       markJump();
       var ex = document.getElementById('dh-explorar');
       EX.drawnFor = null;
-      if (IO){ IO.unobserve(ex); IO.observe(ex); } else runExplore(0);
+      if (VIEW === 'explorar') runExplore(0);
+      else if (IO){ IO.unobserve(ex); IO.observe(ex); } else runExplore(0);
     }
   });
 })();

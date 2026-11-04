@@ -397,9 +397,28 @@ async function tiendaRows(key, roots) {
   const s = T.loadStore(key, roots || undefined);
   if (!s) return null;
   const F = loadFacts(roots);
+  /* The store's own audience per row (build-store-slices: the title, the
+     store's facet, its bucket; a silent adult wearable is unisex). */
+  const AUD_CODE = { m: "men", w: "women", k: "kids", u: "unisex" };
+  const shoes = Array.isArray(s.shoes) ? new Set(s.shoes) : null;
   return (s.rows || []).map((r, i) => {
     const own = T.typeOfRow(s, r, i, roots || undefined);
-    const fx = withFacts(F, s.store || key, r[0], own && own !== "Más productos" ? { k: lensSlug(own), label: own } : null);
+    const ownT = own && own !== "Más productos" ? { k: lensSlug(own), label: own } : null;
+    const fx = withFacts(F, s.store || key, r[0], ownT);
+    /* LABEL-TRUE (#443 c.6635296341): the department's type is the store's
+       own type field -- a blind «Accesorios» stamp at the surf shops --
+       so it yields to the store page's aisle when it is a catch-all or
+       contradicts it (a Vans shoe is not «Accesorios»). */
+    const aisle = T.aisleOfRow(s, i, roots || undefined);
+    const aisleT = aisle && !/^(Más|Ofertas)\b/.test(aisle.title) ? { k: lensSlug(aisle.title), label: aisle.title } : null;
+    if (fx.t && fx.t.k !== "otros" && aisle && !T.typeAgrees(fx.t.label, aisle.key, aisle.title)) fx.t = ownT || aisleT || { k: "otros", label: "Más productos" };
+    /* A row the store files as a shoe is never another type's shoe. */
+    if (shoes && fx.t) {
+      const shoe = shoes.has(i), shoeLabel = T.SHOE_TYPE_RX.test(fx.t.label);
+      if (shoe && !shoeLabel) fx.t = ownT && T.SHOE_TYPE_RX.test(ownT.label) ? ownT : { k: "zapatos", label: "Zapatos" };
+      else if (!shoe && shoeLabel && !(aisle && /^t-zapatos(~|$)/.test(aisle.key))) fx.t = ownT && !T.SHOE_TYPE_RX.test(ownT.label) ? ownT : aisleT && !T.SHOE_TYPE_RX.test(aisleT.label) ? aisleT : { k: "otros", label: "Más productos" };
+    }
+    if (!fx.u && s.aud && AUD_CODE[s.aud[i]]) fx.u = AUD_CODE[s.aud[i]];
     return { x: T.cardOfRow(r), title: r[0], brand: r[1], retailer: s.store || key, usd: finalUsd(r[2], s.store || key), sale: r[4] || 0, image: r[5] || "", ...fx };
   });
 }

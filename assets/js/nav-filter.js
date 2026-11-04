@@ -148,8 +148,37 @@
     var url = urlOf(S);
     try { history.pushState({ nf: 1 }, '', url); } catch(e){}
     LAST_Q = location.search;
+    hold();
     run(0);
   }
+  /* A PILL NEVER MOVES THE SHOPPER (#443 c.6635829511). The swap hides
+     the page's own carousels and the results load after it: the page
+     keeps its height meanwhile (the browser cannot pull the scroll up),
+     the scroll stays where the shopper had it, and -- only if the bar
+     sits above the screen -- the view starts at its top. */
+  var HOLD = null;
+  function hold(){
+    if (HOLD) HOLD(true);
+    var root = document.documentElement, y = window.pageYOffset || root.scrollTop || 0, moved = false, done = false;
+    function user(){ moved = true; }
+    var evs = ['wheel', 'touchmove', 'keydown'];
+    evs.forEach(function(ev){ window.addEventListener(ev, user, { passive: true }); });
+    root.style.minHeight = root.scrollHeight + 'px';
+    function pin(){ if (!moved && Math.abs((window.pageYOffset || 0) - y) > 1) window.scrollTo(0, y); }
+    if (window.requestAnimationFrame) requestAnimationFrame(pin);
+    var t = setTimeout(function(){ if (HOLD === me) letGo(); }, 10000);
+    var me = HOLD = function(superseded){
+      if (done) return;
+      done = true; clearTimeout(t);
+      evs.forEach(function(ev){ window.removeEventListener(ev, user); });
+      if (superseded) return;
+      pin();
+      root.style.minHeight = '';
+      var r = box.getBoundingClientRect();
+      if (r.top < 0 && !moved) window.scrollBy(0, r.top);
+    };
+  }
+  function letGo(){ var h = HOLD; HOLD = null; if (h) h(); }
   /* A jump link's #hash is a popstate too: only a new query re-reads. */
   var LAST_Q = location.search;
   window.addEventListener('popstate', function(){ if (location.search === LAST_Q) return; LAST_Q = location.search; S = read(); run(0); });
@@ -181,9 +210,11 @@
       if (seq !== SEQ) return;
       DATA = d;
       paint(page, on);
+      if (!page) letGo();
       if (keep && OPEN) refreshPanel();
     }).catch(function(){
       if (seq !== SEQ) return;
+      letGo();
       countEl.hidden = false;
       countEl.textContent = 'No pudimos cargar los productos. Revisa tu conexión e inténtalo de nuevo.';
     });

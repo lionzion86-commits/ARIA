@@ -98,7 +98,8 @@ check("the separation ruling: every other pill and shelf is NEW only; Computador
   for (const r of head.rails) if (r.title !== "Reacondicionados") for (const c of r.cards || []) assert.ok(!c.k, `${r.title}: ${c.t}`);
   assert.ok(head.rails.find((r) => r.title === "Chromebooks").door, "the Chromebooks shelf's door");
   assert.ok(head.rails.find((r) => r.title === "Computadoras y tablets").door, "the Computadoras shelf's door");
-  assert.match(readFileSync(ROOT + "departamento.html", "utf8"), /data-to-refurb/);
+  /* The door is a real link to Reacondicionados' own page, never an in-page jump (#443 c.6635829511). */
+  assert.match(readFileSync(ROOT + "departamento.html", "utf8"), /<a href="departamento\.html\?dept=reacondicionados">' \+ esc\(r\.door\)/);
 });
 
 check("Chromebooks: new devices only, no accessory that merely names one", () => {

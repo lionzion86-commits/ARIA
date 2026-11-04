@@ -122,8 +122,13 @@ body[data-aud="m"] .sec-w, body[data-aud="w"] .sec-m{display:none}
 .sec-w .jump{background:rgba(255,247,250,.94)}
 .jump-in{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
 .jump-in::-webkit-scrollbar{display:none}
-.jump a{flex:0 0 auto;text-decoration:none;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);background:var(--panel)}
-.jump a:hover{border-color:var(--accent);color:var(--accent)}
+.jump button{flex:0 0 auto;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);background:var(--panel);cursor:pointer;font-family:inherit}
+.jump button:hover{border-color:var(--accent);color:var(--accent)}
+.jump button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+/* THE VIEW SWITCH (#443 c.6635829511): Por tipo / marca / tienda /
+   Explorar todo replace the section's view in place, like the doors --
+   never an anchor jump. «Todo» shows every axis again. */
+.sec[data-view] .axis:not(.on),.sec[data-view] .explore:not(.on){display:none}
 
 /* Axis + carousel */
 .axis{padding:30px 0 6px}
@@ -200,6 +205,7 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
@@ -256,6 +262,14 @@ html{scroll-padding-top:76px}
 @media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
 </style>
 <script src="/assets/js/nav-menu.js" defer></script>
+<style id="aria-mosaic-css">
+/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */
+:root{--aria-mosaic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D8C08A'%3E%3Cuse href='%23t' x='120' y='10'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='100' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3Cuse href='%23t' x='110' y='110'/%3E%3Cuse href='%23t' x='80' y='120'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3Cuse href='%23t' x='150' y='90'/%3E%3Cuse href='%23t' x='100' y='100'/%3E%3Cuse href='%23t' x='150' y='110'/%3E%3Cuse href='%23t' x='60' y='120'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='120'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='100' y='0'/%3E%3Cuse href='%23t' x='120' y='0'/%3E%3Cuse href='%23t' x='120' y='150'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='110' y='60'/%3E%3Cuse href='%23t' x='130' y='70'/%3E%3Cuse href='%23t' x='150' y='80'/%3E%3Cuse href='%23t' x='120' y='140'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='150' y='40'/%3E%3Cuse href='%23t' x='150' y='50'/%3E%3Cuse href='%23t' x='160' y='50'/%3E%3Cuse href='%23t' x='120' y='60'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='70' y='100'/%3E%3Cuse href='%23t' x='50' y='140'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='150' y='150'/%3E%3Cuse href='%23t' x='130' y='160'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='140' y='120'/%3E%3Cuse href='%23t' x='20' y='160'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Crect width='100' height='100' fill='%23CEDAE8'/%3E%3Cg fill='%23DEE9F6'%3E%3Cuse href='%23t' x='0' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='80' y='10'/%3E%3Cuse href='%23t' x='30' y='20'/%3E%3Cuse href='%23t' x='60' y='20'/%3E%3Cuse href='%23t' x='0' y='30'/%3E%3Cuse href='%23t' x='80' y='30'/%3E%3Cuse href='%23t' x='60' y='40'/%3E%3Cuse href='%23t' x='30' y='50'/%3E%3Cuse href='%23t' x='80' y='50'/%3E%3Cuse href='%23t' x='40' y='60'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='70'/%3E%3Cuse href='%23t' x='30' y='80'/%3E%3Cuse href='%23t' x='70' y='80'/%3E%3Cuse href='%23t' x='0' y='90'/%3E%3Cuse href='%23t' x='80' y='90'/%3E%3C/g%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='10' y='0'/%3E%3Cuse href='%23t' x='30' y='10'/%3E%3Cuse href='%23t' x='40' y='20'/%3E%3Cuse href='%23t' x='20' y='30'/%3E%3Cuse href='%23t' x='70' y='30'/%3E%3Cuse href='%23t' x='10' y='40'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='20' y='50'/%3E%3Cuse href='%23t' x='30' y='60'/%3E%3Cuse href='%23t' x='70' y='60'/%3E%3Cuse href='%23t' x='40' y='80'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='20' y='0'/%3E%3Cuse href='%23t' x='80' y='0'/%3E%3Cuse href='%23t' x='0' y='10'/%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='10' y='20'/%3E%3Cuse href='%23t' x='70' y='20'/%3E%3Cuse href='%23t' x='60' y='30'/%3E%3Cuse href='%23t' x='0' y='40'/%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='90' y='50'/%3E%3Cuse href='%23t' x='20' y='60'/%3E%3Cuse href='%23t' x='80' y='60'/%3E%3Cuse href='%23t' x='10' y='70'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='50' y='70'/%3E%3Cuse href='%23t' x='30' y='90'/%3E%3Cuse href='%23t' x='50' y='90'/%3E%3Cuse href='%23t' x='90' y='90'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='30' y='0'/%3E%3Cuse href='%23t' x='70' y='10'/%3E%3Cuse href='%23t' x='90' y='10'/%3E%3Cuse href='%23t' x='50' y='20'/%3E%3Cuse href='%23t' x='10' y='30'/%3E%3Cuse href='%23t' x='20' y='40'/%3E%3Cuse href='%23t' x='60' y='50'/%3E%3Cuse href='%23t' x='10' y='60'/%3E%3Cuse href='%23t' x='50' y='60'/%3E%3Cuse href='%23t' x='90' y='60'/%3E%3Cuse href='%23t' x='10' y='90'/%3E%3Cuse href='%23t' x='70' y='90'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='40' y='0'/%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='0' y='20'/%3E%3Cuse href='%23t' x='40' y='30'/%3E%3Cuse href='%23t' x='80' y='40'/%3E%3Cuse href='%23t' x='40' y='50'/%3E%3Cuse href='%23t' x='40' y='70'/%3E%3Cuse href='%23t' x='80' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='10' y='10'/%3E%3Cuse href='%23t' x='80' y='20'/%3E%3Cuse href='%23t' x='90' y='30'/%3E%3Cuse href='%23t' x='70' y='40'/%3E%3Cuse href='%23t' x='0' y='50'/%3E%3Cuse href='%23t' x='50' y='50'/%3E%3Cuse href='%23t' x='60' y='70'/%3E%3Cuse href='%23t' x='0' y='80'/%3E%3Cuse href='%23t' x='80' y='80'/%3E%3Cuse href='%23t' x='20' y='90'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='50' y='10'/%3E%3Cuse href='%23t' x='30' y='30'/%3E%3Cuse href='%23t' x='50' y='40'/%3E%3Cuse href='%23t' x='0' y='70'/%3E%3Cuse href='%23t' x='20' y='80'/%3E%3Cuse href='%23t' x='60' y='80'/%3E%3Cuse href='%23t' x='90' y='80'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='40' y='10'/%3E%3Cuse href='%23t' x='20' y='20'/%3E%3Cuse href='%23t' x='90' y='20'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='40' y='40'/%3E%3Cuse href='%23t' x='90' y='40'/%3E%3Cuse href='%23t' x='10' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='20' y='70'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='10' y='80'/%3E%3Cuse href='%23t' x='50' y='80'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3C/g%3E%3C/svg%3E")}
+.ariaMosaic{background-color:#CEDAE8 !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:130px 130px,170px 170px,100px 100px !important;background-position:0 0 !important}
+html body .sec-w{background-color:#CEDAE8;background-image:var(--aria-mosaic);background-repeat:repeat;background-size:130px 130px,170px 170px,100px 100px;background-position:0 0}
+html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .explore .lead,html body .sec-w .count,html body .sec-w .state{color:#4A2236}
+/* aria-mosaic:end */
+</style>
 </head>
 <body>
 
@@ -295,12 +309,13 @@ html{scroll-padding-top:76px}
       <div class="hero-stats" id="w-stats" hidden></div>
     </div>
   </div>
-  <nav class="jump" aria-label="Secciones de Mujer" id="w-jump" hidden>
+  <nav class="jump" aria-label="Atajos de Mujer" id="w-jump" hidden>
     <div class="wrap jump-in">
-      <a href="#w-tipo">Por tipo</a>
-      <a href="#w-marca">Por marca</a>
-      <a href="#w-tienda">Por tienda</a>
-      <a href="#w-explorar">Explorar todo</a>
+      <button type="button" data-view="" aria-pressed="true">Todo</button>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="marca" aria-pressed="false">Por marca</button>
+      <button type="button" data-view="tienda" aria-pressed="false">Por tienda</button>
+      <button type="button" data-view="explorar" aria-pressed="false">Explorar todo</button>
     </div>
   </nav>
   <div class="state" id="w-loading">
@@ -351,12 +366,13 @@ html{scroll-padding-top:76px}
       <div class="hero-stats" id="m-stats" hidden></div>
     </div>
   </div>
-  <nav class="jump" aria-label="Secciones de Hombre" id="m-jump" hidden>
+  <nav class="jump" aria-label="Atajos de Hombre" id="m-jump" hidden>
     <div class="wrap jump-in">
-      <a href="#m-tipo">Por tipo</a>
-      <a href="#m-marca">Por marca</a>
-      <a href="#m-tienda">Por tienda</a>
-      <a href="#m-explorar">Explorar todo</a>
+      <button type="button" data-view="" aria-pressed="true">Todo</button>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="marca" aria-pressed="false">Por marca</button>
+      <button type="button" data-view="tienda" aria-pressed="false">Por tienda</button>
+      <button type="button" data-view="explorar" aria-pressed="false">Explorar todo</button>
     </div>
   </nav>
   <div class="state" id="m-loading">
@@ -755,7 +771,8 @@ html{scroll-padding-top:76px}
       if (parts[0] === 'brand') el('fBrand').value = parts[1];
       if (parts[0] === 'store') el('fStore').value = cfg.GROUP_STORES['group:' + parts[1]] ? 'group:' + parts[1] : parts[1];
       S.applyFilters();
-      el('explorar').scrollIntoView({ behavior:'smooth', block:'start' });
+      /* A rail's «Ver todo» opens Explorar todo as the section's view, from its top. */
+      setView(el('jump'), 'explorar', true);
     };
     S.repaintGrid = function(){
       var keep = S.SHOWN; S.SHOWN = 0; el('grid').innerHTML = '';
@@ -914,10 +931,35 @@ html{scroll-padding-top:76px}
     window.scrollTo(0, 0);
     if (window.ariaRefreshRails) window.ariaRefreshRails();
   });
+  /* A view replaces the section's axes in place. The scroll stays where
+     the shopper had it; only when the (sticky) bar is stuck over the
+     section does the new view start right under it -- its top, never its
+     middle (#443 c.6635829511). */
+  function setView(jump, v, force){
+    var sec = jump && jump.closest('.sec');
+    if (!sec) return;
+    if (!force && v === (sec.getAttribute('data-view') || '')) v = '';
+    if (v) sec.setAttribute('data-view', v); else sec.removeAttribute('data-view');
+    var P = sec.getAttribute('data-section') === 'hombre' ? 'm' : 'w';
+    ['tipo', 'marca', 'tienda', 'explorar'].forEach(function(k){ var x = document.getElementById(P + '-' + k); if (x) x.classList.toggle('on', k === v); });
+    var bs = jump.querySelectorAll('button[data-view]');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', String(bs[i].getAttribute('data-view') === v));
+    var main = document.getElementById(P + '-main'), jb = jump.getBoundingClientRect();
+    var top = main ? main.getBoundingClientRect().top : jb.bottom;
+    if (top < jb.bottom - 1) window.scrollBy(0, top - jb.bottom);
+    if (window.ariaRefreshRails) window.ariaRefreshRails();
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.jump button[data-view]');
+    if (b) setView(b.closest('.jump'), b.getAttribute('data-view'));
+  });
   function honourHash(){
     var h = location.hash.replace('#', '');
+    /* An old axis address (#w-marca) opens that view, from the section's top. */
+    var ax = /^([wm])-(tipo|marca|tienda|explorar)$/.exec(h);
+    if (ax){ setView(document.getElementById(ax[1] + '-jump'), ax[2], true); h = ax[1] === 'm' ? 'hombre' : 'mujer'; }
     var target = h && document.getElementById(h);
-    if (target && (h === 'hombre' || h === 'mujer' || /^[wm]-/.test(h))) target.scrollIntoView({ block:'start' });
+    if (target && (h === 'hombre' || h === 'mujer')) target.scrollIntoView({ block:'start' });
   }
 
   function start(){

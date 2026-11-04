@@ -19,8 +19,8 @@
      department through window.AriaDept; no emoji, no link out.
    BROWSER (headless Chromium, iPhone 390x844, endpoint answered locally)
    - Zapatos: stats chips, Todo / Mujer / Hombre / Niños; Mujer re-renders
-     the page (stats, URL ?para=women, no Hombre aisle); the jump bar's
-     Por marca draws big-card rails; Explorar todo narrows on a brand;
+     the page (stats, URL ?para=women, no Hombre aisle); the view switch's
+     Por marca draws big-card rails in place (#443 c.6635829511); Explorar todo narrows on a brand;
    - Gym Rat: no switch; an axis rail's Ver todo opens Explorar todo on it.
 
    RUNNING IT
@@ -179,11 +179,11 @@ if (chromium) {
     assert.match(page.url(), /para=women/);
     const titles = await page.$$eval("#rails .rail-sec h2, #salesTop h2", (hs) => hs.map((h) => h.textContent));
     assert.ok(!titles.some((t) => /Hombre$/.test(t)), "a Hombre aisle under Mujer: " + titles.join(", "));
-    await page.click('#dhJump a[href="#dh-marca"]');
+    await page.click('#dhJump button[data-view="marca"]');
     await page.waitForSelector("#dh-marca .rail .card", { timeout: 15000 });
     const w = await page.$eval("#dh-marca .rail .card", (c) => c.offsetWidth);
     assert.ok(w >= 232, `axis card ${w}px is not the big card`);
-    await page.click('#dhJump a[href="#dh-explorar"]');
+    await page.click('#dhJump button[data-view="explorar"]');
     await page.waitForSelector("#dhGrid .card", { timeout: 15000 });
     const a = await ex();
     await page.selectOption("#dhB", { index: 1 });
@@ -201,7 +201,7 @@ if (chromium) {
     await page.goto(base + "/departamento.html?dept=gym_rat", { waitUntil: "load" });
     await page.waitForSelector("#dhStats:not([hidden])", { timeout: 15000 });
     assert.equal(await page.isHidden("#dhAud"), true);
-    await page.click('#dhJump a[href="#dh-tipo"]');
+    await page.click('#dhJump button[data-view="tipo"]');
     await page.waitForSelector("#dh-tipo a.ver-todo", { timeout: 15000 });
     const title = await page.$eval("#dh-tipo a.ver-todo", (a) => a.closest(".rail-sec").querySelector("h2").textContent);
     await page.click("#dh-tipo a.ver-todo");

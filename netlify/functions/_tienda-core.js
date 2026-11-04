@@ -169,15 +169,18 @@ function storeAisles(s, roots) {
       const ix = JSON.parse(readFileSync(p, "utf8"));
       const titles = new Map();
       for (const r of ix.rails || []) {
+        /* A themed store's department rails (d-<dept>: DSW's «Medias y
+           accesorios») answer the filter bar's agreement test only. */
+        if (/^d-/.test(r.key || "") && r.key !== "d-mas") { titles.set(r.key, [r.title, false, r.key, true]); continue; }
         if (!/^t-/.test(r.key || "")) continue;
-        titles.set(r.key, [r.title, false]);
+        titles.set(r.key, [r.title, false, r.key]);
         /* A sub-carousel keeps its audience (Zapatillas Mujer, Zapatillas Niños). */
-        for (const sub of r.subs || []) titles.set(sub.k, [sub.t + (sub.a ? " " + sub.a : ""), true]);
+        for (const sub of r.subs || []) titles.set(sub.k, [sub.t + (sub.a ? " " + sub.a : ""), true, sub.k]);
       }
       for (const [key, idx] of Object.entries(s.rails || {})) {
         const t = titles.get(key);
         if (!t) continue;
-        for (const i of idx) { const had = out.get(i); if (!had || (t[1] && !had[1])) out.set(i, t); }
+        for (const i of idx) { const had = out.get(i); if (!had || (had[3] && !t[3]) || (t[1] && !had[1] && !t[3])) out.set(i, t); }
       }
       break;
     } catch { /* try the next */ }
@@ -190,11 +193,43 @@ function storeAisles(s, roots) {
 const SMALL_WORDS_RX = / (Y|E|O|De|Del|La|Las|Los|El|Para|Con|En|Sin|Por)(?=[ )])/g;
 export const tidyLabel = (t) => String(t || "").replace(SMALL_WORDS_RX, (m) => m.toLowerCase()).replace(/\((\p{Ll})/u, (m) => m);
 const slugOf = (t) => foldText(t).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "otros";
+/* LABEL-TRUE «VER TODO» (#443 c.6635296341, the full store audit): the
+   department's type is the store's own type field, and at the surf shops
+   that field is a blind stamp -- Parrot's Vans shoes opened as
+   «Accesorios» (74) and «Accesorios de Skate» (19) inside its own Zapatos
+   rail. A catch-all stamp never names a carousel when the store page has
+   filed the product in an aisle, and a type never contradicts that aisle
+   (a shoe type outside Zapatos, a non-shoe type inside it). */
+export const CATCHALL_TYPE_RX = /^(accesorios(\s+de\s+.+)?|repuestos\s+y\s+accesorios\b.*|más\s+productos|otros)$/i;
+export const SHOE_TYPE_RX = /^(zapat|calzado|sandalias|botas|botines|chimpunes|pantuflas|mocasines|tacones|vestir\b|guantes y botines)/i;
+export function typeAgrees(label, aisleKey, aisleTitle = "") {
+  const t = String(label || "").trim();
+  if (!aisleKey) return true;
+  if (CATCHALL_TYPE_RX.test(t)) return false;
+  const shoeAisle = /^t-zapatos(~|$)/.test(aisleKey) || (/^d-/.test(aisleKey) && (SHOE_TYPE_RX.test(aisleTitle) || /^más zapatos/i.test(aisleTitle)));
+  const shoeType = SHOE_TYPE_RX.test(t);
+  return shoeType === shoeAisle || (shoeAisle && /^guantes y botines$/i.test(t));
+}
+/** The store-page rail (t-<family>, or its sub-carousel) a row sits in, or "". */
+export function aisleOfRow(s, i, roots) {
+  const a = storeAisles(s, roots).get(i);
+  return a ? { key: a[2], title: a[0] } : null;
+}
 export function typeOfRow(s, r, i, roots) {
-  const aisle = storeAisles(s, roots).get(i);
+  const a0 = storeAisles(s, roots).get(i);
+  const aisle = a0 && !a0[3] ? a0 : undefined;
   if (aisle && aisle[1]) return aisle[0];
   const t = r[6] ? deptTypes(r[6], roots).get(s.store + "\u0000" + r[0]) : "";
-  if (t) return tidyLabel(t);
+  const tail = !aisle || /^Más\b/.test(aisle[0]);
+  /* The rows the store files as shoes (fn.shoes): a shoe never opens under
+     another type's name, nor a non-shoe under a shoe's. */
+  if (t && s.shoes) {
+    const shoe = (s._shoes || (s._shoes = new Set(s.shoes))).has(i);
+    const shoeLabel = SHOE_TYPE_RX.test(String(t).trim());
+    if (shoe && !shoeLabel) return aisle && SHOE_TYPE_RX.test(aisle[0]) ? aisle[0] : "Zapatos";
+    if (!shoe && shoeLabel && !(aisle && /^t-zapatos(~|$)/.test(aisle[2]))) return aisle && !tail ? aisle[0] : "Más productos";
+  }
+  if (t && (!aisle || (tail ? !CATCHALL_TYPE_RX.test(String(t).trim()) : typeAgrees(t, aisle[2], aisle[0])))) return tidyLabel(t);
   if (aisle && !/^Más\b/.test(aisle[0])) return aisle[0];
   return "Más productos";
 }
@@ -242,7 +277,11 @@ export function answer(qs, roots) {
   const sq = saleQuery(q);
   const sort = SORTS.includes(qs.sort) ? qs.sort : sq.sale ? "discount" : "relevance";
   let list = rows;
-  if (d || g || c) list = list.filter((r) => (!d || r[6] === d) && (!g || r[7] === g) && (!c || r[8] === c));
+  /* A chip with its own membership (an audience pill, a type pill that
+     keeps only its type: build-store-slices' chip lists) opens exactly
+     what it counts. */
+  const member = d && s.chips && Array.isArray(s.chips[d]) ? new Set(s.chips[d].map((i) => rows[i])) : null;
+  if (d || g || c) list = list.filter((r) => (!d || (member ? member.has(r) : r[6] === d)) && (!g || r[7] === g) && (!c || r[8] === c));
   if (sq.sale) list = list.filter((r) => r[4] > 0 && r[3] > r[2]);
   if (sq.rest) list = searchRows(list, sq.rest);
   list = sortRows(list, sort);
