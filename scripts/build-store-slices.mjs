@@ -277,7 +277,7 @@ export function tiendaStores(root = ROOT) {
 /* The storefront rules, as tienda.html declares them. */
 export const STORE_RULES = ["realImage", "DEPT_CHIP_LABELS", "deptChipLabel", "discountPct", "saleTier", "saleSort",
   "normItem", "PRODUCT_TYPES", "TYPE_RES", "typeKeywordBlocked", "productTypeOf",
-  "GENDER_LABELS", "GENDER_ORDER", "FACET_MIN", "facetLabel", "typeFacets", "buildFacets"];
+  "GENDER_LABELS", "GENDER_ORDER", "FACET_MIN", "facetLabel", "MOMS_TYPE_LABELS", "typeFacets", "buildFacets"];
 export function loadStoreRules(root = ROOT) {
   const win = {};
   vm.runInNewContext(readFileSync(join(root, "product-type.js"), "utf8"), { window: win });
