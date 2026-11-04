@@ -379,6 +379,7 @@ function recordToItem(r){
     name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
     image: r.image || "", url: /^https?:\/\/[^\s\/?#]+/i.test(String(r.url || "").trim()) ? String(r.url).trim() : "", retailer: r.retailer || "",
     description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
+    sizesOut: Array.isArray(r.sizesOut) ? r.sizesOut : [],
     images: unpackImages(r.images, r.image),
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "", sizesPending: r.sizesPending === true,
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
@@ -910,6 +911,10 @@ function normalizeItem(it, retailerKey){
       /* `sizes` is where the variant-truth merge writes (#411);
          availableSizes is the older scrape field. Never invented. */
       sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
+      /* The rest of the store's own run, sold out there (sizesOut, #443
+         one-size shoes): shown marked agotada, never sold (soldOutSizes
+         decides at the picker). */
+      sizesOut: Array.isArray(it.sizesOut) ? it.sizesOut.filter(function(s){ return typeof s === "string" && s.trim(); }) : [],
       images: images,
       /* Where the size list came from (#411 provenance), as the
          catalogue record says it: a tier (scrape / verified / live /
@@ -1047,6 +1052,7 @@ function variantProduct(base, x){
   q.image = x.image || "";
   q.images = unpackImages(x.images, x.image);
   q.sizes = Array.isArray(x.sizes) ? x.sizes : [];
+  q.sizesOut = Array.isArray(x.sizesOut) ? x.sizesOut : [];
   q.sizesPending = x.sizesPending === true;
   q.sizesTier = x.sizesTier || "";
   q.sizesSource = x.sizesSource || "";
@@ -1653,6 +1659,38 @@ function isAccessoryTitle(title){
   // "Faux Suede Handbag, Cognac": the colour after the first comma.
   return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
+/* THE STORE'S SOLD-OUT SIZES (#443, Danny's QA on #648: a shoe showing
+   one size). A store that lists its whole run with most of it sold out
+   (SNIPES' disabled size buttons) hands us those sizes as `sizesOut`.
+   The picker shows them in the run, disabled and marked agotada, so the
+   page says what the store says; they are never in `sizes`, so the cart,
+   checkout and the order endpoint can never take one. Strings only, one
+   copy each, none that is also in stock. */
+function soldOutSizes(list, inStock){
+  if (!Array.isArray(list) || !list.length) return [];
+  var have = {}, out = [];
+  (inStock || []).forEach(function(s){ have[String(s).trim().toUpperCase()] = 1; });
+  truthfulSizes(list.filter(function(v){ return typeof v === 'string' || typeof v === 'number'; })).forEach(function(s){
+    if (!have[s.toUpperCase()]) out.push(s);
+  });
+  return out;
+}
+/* "1 de 13 tallas disponible en la tienda; las demás están agotadas." */
+function soldOutNote(nIn, nOut){
+  var total = nIn + nOut;
+  return nIn + ' de ' + total + ' tallas ' + (nIn === 1 ? 'disponible' : 'disponibles') + ' en la tienda; ' + (nOut === 1 ? 'la otra está agotada.' : 'las demás están agotadas.');
+}
+/* The picker's options: the in-stock sizes, and the sold-out ones in
+   their place in the run, disabled. */
+function sizeOptionsHtml(sizes, out){
+  var gone = {};
+  out.forEach(function(s){ gone[s] = 1; });
+  return sortSizes(sizes.concat(out)).map(function(s){
+    return gone[s]
+      ? '<option value="" disabled data-agotada="1">' + esc(s) + ' (agotada)</option>'
+      : '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+  }).join('');
+}
 
 var toastTimer = null;
 function toast(msg){
@@ -1741,10 +1779,12 @@ function buildBuyBox(p){
   var sizeHtml = '';
   if (wantsSize){
     var measure = sizeIsMeasure(sizes);
+    var out = soldOutSizes(p.sizesOut, sizes);
     var optsHtml = '<option value="" disabled selected>' + (measure ? 'Selecciona un tamaño' : 'Selecciona una talla') + '</option>'
-      + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
+      + sizeOptionsHtml(sizes, out);
     sizeHtml = '<label class="size-label" for="size-select">' + (measure ? 'Tamaño' : 'Talla') + '</label>'
-      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>';
+      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>'
+      + (out.length ? '<p class="size-note" id="size-out-note">' + esc(soldOutNote(sizes.length, out.length)) + '</p>' : '');
   }
   box.innerHTML = sizeHtml
     + '<button id="add-cart-btn" class="btn btn-add" type="button">Agregar al carrito</button>'
