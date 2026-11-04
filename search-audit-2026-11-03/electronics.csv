@@ -1,0 +1,208 @@
+term,variant_of,expected_intent,what_leads,verdict,notes
+iPhone,iphone,iPhone phones,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 408, shown: 408); pool holds 39 core items the ranking never surfaces"
+iphone,iphone,iPhone phones,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 408, shown: 408); pool holds 39 core items the ranking never surfaces"
+IPHONE,iphone,iPhone phones,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 408, shown: 408); pool holds 39 core items the ranking never surfaces"
+iphone 15,iphone,iPhone phones,[bestbuy] Speck - Presidio2 Grip Case with MagSafe for Apple iPhone 15 Pro Max - Black ($21.22) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+iphone 16,iphone,iPhone phones,[bestbuy] UAG - Monarch Pro Series Case with Magsafe for Apple iPhone 16 Pro Max - Carbon Fiber ($45.1) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+iphone 16 pro,iphone,iPhone phones,[bestbuy] UAG - Monarch Pro Series Case with Magsafe for Apple iPhone 16 Pro Max - Carbon Fiber ($45.1) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 43, shown: 43); pool holds 39 core items the ranking never surfaces"
+iphone 15 pro max,iphone,iPhone phones,[bestbuy] Speck - Presidio2 Grip Case with MagSafe for Apple iPhone 15 Pro Max - Black ($21.22) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+iphone 17,iphone,iPhone phones,[bestbuy] ZAGG - Crystal Palace Snap MagSafe Compatible Case w/ Kickstand for Apple iPhone 17 - Clea ($30.5) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 136, shown: 136); pool holds 39 core items the ranking never surfaces"
+iphone 13,iphone,iPhone phones,[bestbuy] OtterBox - Defender Series Pro Hard Shell for Apple iPhone 13 Pro Max and iPhone 12 Pro Ma ($34.48) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 25, shown: 25); pool holds 39 core items the ranking never surfaces"
+iphone 12,iphone,iPhone phones,[bestbuy] OtterBox - Defender Series Pro Hard Shell for Apple iPhone 13 Pro Max and iPhone 12 Pro Ma ($34.48) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 19, shown: 19); pool holds 39 core items the ranking never surfaces"
+apple iphone,iphone,iPhone phones,[bestbuy] Apple - iPhone Air MagSafe Battery ($78.28) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 45, shown: 45); pool holds 39 core items the ranking never surfaces"
+aifon,iphone,iPhone phones,[mainland] Aicon White Gold Round Earrings 5mm ($26.52) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 20, shown: 20); pool holds 39 core items the ranking never surfaces"
+iphne,iphone,iPhone phones,[walmart] Apple iPhone 11 Pro Max Space Gray 256GB GSM Unlocked ($373.24) <CORE>,WEAK,core leads but only 1/5 of top five are core
+celular,celular,cell phones,[bestbuy] Lively® - Jitterbug Flip2 Cell Phone for Seniors - Red ($53.06) <CORE>,WEAK,core leads but only 2/5 of top five are core
+celulares,celular,cell phones,[bestbuy] Lively® - Jitterbug Flip2 Cell Phone for Seniors - Red ($53.06) <CORE>,WEAK,core leads but only 2/5 of top five are core
+celular samsung,celular,cell phones,"[walmart] Restored Samsung Galaxy A16 5G Unlocked Cell Phone, 128GB, 4GB RAM, Blue Black ($148.78) <CORE>",PASS,brand pattern fired: Samsung
+celulares baratos,celular,cell phones,— (no results),FAIL,dead end: 0 catalog results; site suggests “cell phone”; pool still holds 106 core items
+celuar,celular,cell phones,[macys] Enameled Cast Iron 6-Quart Dutch Oven ($89.56) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 4, shown: 4); pool holds 106 core items the ranking never surfaces"
+telefono,celular,cell phones,[kohls] Nine West Kiersten Chain Phone Clutch Crossbody Bag ($29.1) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+teléfono,celular,cell phones,[kohls] Nine West Kiersten Chain Phone Clutch Crossbody Bag ($29.1) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+telefono celular,celular,cell phones,[bestbuy] Lively® - Jitterbug Flip2 Cell Phone for Seniors - Red ($53.06) <CORE>,WEAK,core leads but only 2/5 of top five are core
+smartphone,celular,cell phones,[brandsmart] Marine AM/FM Player with Wireless Smartphone Connection & HD Screen ($211.98) <CORE>,WEAK,core leads but only 1/5 of top five are core
+smartphones,celular,cell phones,[brandsmart] Marine AM/FM Player with Wireless Smartphone Connection & HD Screen ($211.98) <CORE>,WEAK,core leads but only 1/5 of top five are core
+movil,celular,cell phones,[bestbuy] Lively® - Jitterbug Flip2 Cell Phone for Seniors - Red ($53.06) <CORE>,WEAK,core leads but only 2/5 of top five are core
+Samsung,samsung,Samsung devices,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <CORE>,PASS,brand pattern fired: Samsung
+samsung,samsung,Samsung devices,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <CORE>,PASS,brand pattern fired: Samsung
+Samsung Galaxy,samsung,Samsung devices,[bestbuy] Samsung - Galaxy S26 Silicone Magnet Case - Blue Violet ($23.21) <CORE>,PASS,brand pattern fired: Samsung
+galaxy,samsung,Samsung devices,[prosoccer] adidas 2024-25 LA Galaxy Women's Stadium Home Jersey ($53.07) <CORE>,PASS,
+Galaxy S24,samsung,Samsung devices,[brandsmart] Forme Protective for Samsung Galaxy S24 - Eternal Spring ($26.23) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 8, shown: 8); pool holds 353 core items the ranking never surfaces"
+galaxy s25,samsung,Samsung devices,[bestbuy] UAG - Plasma XTE w/Magnet for Galaxy S25 Ultra - Black/Orange ($46.42) <UNRELATED>,WEAK,unrelated product leads
+samsung galaxy s24,samsung,Samsung devices,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <CORE>,PASS,brand pattern fired: Samsung
+sansung,samsung,Samsung devices,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <CORE>,PASS,brand pattern fired: Samsung
+Google Pixel,pixel,Google Pixel phones,"[walmart] Google Pixel Watch 41mm Smartwatch with WiFi, GPS, BT and Heart Rate Monitor in Bulk Packa ($158.68) <ADJACENT>",FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 1 core items the ranking never surfaces"
+pixel,pixel,Google Pixel phones,[alphalete] Amplify Ultra-High Rise Legging - Pixel Pink ($27.07) <UNRELATED>,FAIL,unrelated product leads
+Pixel 9,pixel,Google Pixel phones,[walmart] FREEDOMTECH USB C to USB Adapter Type C OTG (4-Pack) USB C Male to USB 3.0 A Female Connec ($10.53) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 1 core items the ranking never surfaces"
+pixel 8,pixel,Google Pixel phones,[walmart] FREEDOMTECH USB C to USB Adapter Type C OTG (4-Pack) USB C Male to USB 3.0 A Female Connec ($10.53) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 1 core items the ranking never surfaces"
+pixcel,pixel,Google Pixel phones,"[costco] PURCELL Pixcell Biom Glow Barrier Serum, 3.38 fl oz ($57.04) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 1 core items the ranking never surfaces query auto-corrected to “pixcell”"
+TCL,tcl,TCL devices,"[bestbuy] TCL - S45H S Class 2.0 Channel Sound Bar with Dolby Atmos, DTS Virtual:X, and Bluetooth Mu ($106.13) <CORE>",PASS,brand pattern fired: TCL
+tcl,tcl,TCL devices,"[bestbuy] TCL - S45H S Class 2.0 Channel Sound Bar with Dolby Atmos, DTS Virtual:X, and Bluetooth Mu ($106.13) <CORE>",PASS,brand pattern fired: TCL
+tcl celular,tcl,TCL devices,"[walmart] TCL 60 XE NXTPAPER 5G Cell Phone, AT&T, T-Mobile & Verizon Unlocked Android Smartphone, 8G ($241.79) <CORE>",WEAK,core leads but only 1/5 of top five are core
+Motorola,motorola,Motorola phones,[bestbuy] Motorola - razr ultra 2025 512GB (Unlocked) - PANTONE Scarab ($915.91) <CORE>,PASS,brand pattern fired: Motorola
+moto g,motorola,Motorola phones,[revzilla] Motoz Terrapactor MXI Tires ($57.04) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 12, shown: 12); pool holds 27 core items the ranking never surfaces"
+Xiaomi,xiaomi,Xiaomi phones,"[walmart] XIAOMI Redmi Watch 6 Smart Watch, 2.07'' AMOLED, GPS, Heart Rate/Sleep/Stress Tracking, 15 ($117.68) <CORE>",WEAK,core leads but only 1/5 of top five are core
+redmi,xiaomi,Xiaomi phones,"[walmart] XIAOMI Redmi Watch 6 Smart Watch, 2.07'' AMOLED, GPS, Heart Rate/Sleep/Stress Tracking, 15 ($117.68) <CORE>",WEAK,core leads but only 1/5 of top five are core
+Honor,honor,Honor phones,[ariaperfumes] Lattafa Badee Al Oud Honor & Glory — Eau de Parfum en spray 100 ml (3.4 oz) unisex ($28.32) <CORE>,PASS,
+funda iphone,funda-iphone,iPhone cases (accessory search),"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <UNRELATED>",WEAK,unrelated product leads
+cargador iphone,cargador-iphone,iPhone chargers (accessory search),[bestbuy] Best Buy essentials™ - 3-in-1 7.5W Magnetic Wireless Charger with Apple Watch Charger Hold ($21.22) <CORE>,PASS,
+mica iphone,mica-iphone,iPhone screen protectors (accessory search),[bestbuy] Insignia™ - Anti-Reflective Glass Screen Protector for iPhone 16 Pro Max (3-Pack) - Clear ($9.27) <CORE>,PASS,
+laptop,laptop,laptops,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+laptops,laptop,laptops,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+laptos,laptop,laptops,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+computadora,computadora,computers,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+computadoras,computadora,computers,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+conputadora,computadora,computers,— (no results),FAIL,dead end: 0 catalog results; pool still holds 910 core items
+computadora portatil,computadora,computers,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,
+portátil,computadora,computers,"[walmart] Disney Store set oficial de micro juguetes de princesas Frozen, incluye microfiguras de El ($45.87) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 910 core items the ranking never surfaces"
+pc,computadora,computers,"[macys] Italian Percale 3-Pc. Duvet Cover Set, Full/Queen ($188.98) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 843, shown: 500); pool holds 910 core items the ranking never surfaces"
+notebook,computadora,computers,"[walmart] 15.6"" Student Laptop Computer, Intel N3710 Processor, 12GB RAM, 256GB SSD, Notebook PC for ($297.46) <CORE>",PASS,
+MacBook,macbook,MacBooks,"[bestbuy] Hyper - HyperDrive Next​ 8 Port USB-C Hub, 4K HDMI, USB4/Thunderbolt 4, 1 USB-C, 2 USB-A,  ($53.06) <ACCESSORY>",FAIL,accessories fill the top; core buried below top five
+macbook,macbook,MacBooks,"[bestbuy] Hyper - HyperDrive Next​ 8 Port USB-C Hub, 4K HDMI, USB4/Thunderbolt 4, 1 USB-C, 2 USB-A,  ($53.06) <ACCESSORY>",FAIL,accessories fill the top; core buried below top five
+macbook air,macbook,MacBooks,[brandsmart] Hardshell Case Dots for 13-inch MacBook Air with Retina Display (2020) - Clear ($39.5) <ACCESSORY>,WEAK,accessory leads; core present below
+macbook pro,macbook,MacBooks,"[bestbuy] Thule - Gauntlet Laptop Sleeve Laptop Case for 16” Apple MacBook Pro, 15” Apple MacBook Pr ($53.01) <ACCESSORY>",FAIL,accessories fill the top; core buried below top five
+macbok,macbook,MacBooks,"[bestbuy] Hyper - HyperDrive Next​ 8 Port USB-C Hub, 4K HDMI, USB4/Thunderbolt 4, 1 USB-C, 2 USB-A,  ($53.06) <ACCESSORY>",FAIL,accessories fill the top; core buried below top five
+Chromebook,chromebook,Chromebooks,"[bestbuy] Lenovo - Chromebook M 15.3"" 2K Laptop - MediaTek Kompanio 540 2026 - 4GB Memory - 64GB Sto ($264.03) <CORE>",PASS,
+chromebook,chromebook,Chromebooks,"[bestbuy] Lenovo - Chromebook M 15.3"" 2K Laptop - MediaTek Kompanio 540 2026 - 4GB Memory - 64GB Sto ($264.03) <CORE>",PASS,
+cromebook,chromebook,Chromebooks,"[bestbuy] Lenovo - Chromebook M 15.3"" 2K Laptop - MediaTek Kompanio 540 2026 - 4GB Memory - 64GB Sto ($264.03) <CORE>",PASS,
+laptop gamer,laptop-gamer,gaming laptops,"[walmart] 60% Mechanical Keyboard, Wired Gaming Keyboard with Blue Switches, LED Backlit Ultra-Compa ($31.61) <UNRELATED>",WEAK,unrelated product leads
+laptop hp,laptop,laptops,"[bestbuy] HP - OmniBook 3 - 17.3"" Full HD Laptop - AMD Ryzen 5 40 (2025) - 8GB Memory - 512GB SSD -  ($597.05) <CORE>",PASS,brand pattern fired: HP
+laptop lenovo,laptop,laptops,"[bestbuy] Lenovo - Chromebook M 15.3"" 2K Laptop - MediaTek Kompanio 540 2026 - 4GB Memory - 64GB Sto ($264.03) <CORE>",PASS,brand pattern fired: Lenovo
+lenovo,lenovo,Lenovo computers,"[bestbuy] Lenovo - Chromebook M 15.3"" 2K Laptop - MediaTek Kompanio 540 2026 - 4GB Memory - 64GB Sto ($264.03) <CORE>",PASS,brand pattern fired: Lenovo
+dell,dell,Dell computers,"[microcenter] 16 DC16251 16"" Laptop Computer - Platinum Silver ($1168.43) <CORE>",PASS,brand pattern fired: Dell
+asus,asus,Asus computers,"[bestbuy] ASUS - CX14 14"" FHD Chromebook Laptop - Intel N50 (2023) - 4GB Memory - 64GB Storage - Dus ($264.03) <CORE>",PASS,brand pattern fired: ASUS
+tablet,tablet,tablets,"[walmart] Android 16 AI Tablet,11 Inch Tablet with 24GB RAM 128GB ROM,Octa-Core T7250 Processor,90Hz ($123) <CORE>",PASS,
+tablets,tablet,tablets,"[walmart] Android 16 AI Tablet,11 Inch Tablet with 24GB RAM 128GB ROM,Octa-Core T7250 Processor,90Hz ($123) <CORE>",PASS,
+iPad,ipad,iPads,[bestbuy] OtterBox - Defender Series for Apple iPad Pro 13-inch (M4) and Apple iPad Pro 13-inch (M5) ($67.65) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 200, shown: 200); pool holds 142 core items the ranking never surfaces"
+ipad,ipad,iPads,[bestbuy] OtterBox - Defender Series for Apple iPad Pro 13-inch (M4) and Apple iPad Pro 13-inch (M5) ($67.65) <ACCESSORY>,FAIL,"no core product in top 12 (engine exact matches: 200, shown: 200); pool holds 142 core items the ranking never surfaces"
+ipad pro,ipad,iPads,[denniskirk] Impaxx Superslim Tour Paxx System w/Chrome Latch ($582.09) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 142 core items the ranking never surfaces"
+tablet samsung,tablet,tablets,"[costco] Samsung Galaxy Tab A11+ 11.0"" Wi-Fi Tablet 128GB - Includes Book Cover ($398.03) <CORE>",PASS,brand pattern fired: Samsung
+monitor,monitor,monitors,"[bestbuy] Acer - Nitro Gaming 31.5"" Curved WQHD 180Hz 1ms FreeSync Premium Gaming Monitor (DisplayPo ($252.08) <CORE>",PASS,
+monitores,monitor,monitors,"[bestbuy] Acer - Nitro Gaming 31.5"" Curved WQHD 180Hz 1ms FreeSync Premium Gaming Monitor (DisplayPo ($252.08) <CORE>",PASS,
+monitor gamer,monitor,monitors,"[bestbuy] Acer - Nitro Gaming 31.5"" Curved WQHD 180Hz 1ms FreeSync Premium Gaming Monitor (DisplayPo ($252.08) <CORE>",PASS,
+teclado,teclado,keyboards,[bestbuy] DROP - CSTM80 TKL Wired Mechanical Gaming Keyboard with RGB Backlighting - White ($126.03) <CORE>,PASS,
+mouse,mouse,computer mice,[boxlunch] Loungefly Disney Minnie Mouse Polka Dot Bow Convertible Clutch ($42.44) <CORE>,PASS,
+impresora,impresora,printers,[bestbuy] Epson - Expression Premium XP-7100 Wireless All-In-One Inkjet Printer - Black ($172.47) <CORE>,PASS,
+audífonos,audifonos,headphones/earbuds,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,
+audifonos,audifonos,headphones/earbuds,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,
+audifono,audifonos,headphones/earbuds,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,
+auriculares,audifonos,headphones/earbuds,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,
+headphones,audifonos,headphones/earbuds,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,
+earbuds,audifonos,headphones/earbuds,[walmart] Restored JBL Endurance Peak 3 - Dust and water proof True Wireless active earbuds - Black ($61.99) <CORE>,PASS,
+audifonos bluetooth,audifonos,headphones/earbuds,[bestbuy] Sennheiser - ACCENTUM Wireless Bluetooth Around-the-ear Headphones – Hybrid Noise Cancelli ($132.67) <CORE>,PASS,
+audífonos inalámbricos,audifonos,headphones/earbuds,[walmart] Restored JBL Endurance Peak 3 - Dust and water proof True Wireless active earbuds - Black ($61.99) <CORE>,PASS,
+audifonos gamer,audifonos,headphones/earbuds,"[walmart] targeal Gaming Headset with Microphone - for PC, PS4, PS5, Switch, Xbox One, Xbox Series X ($19.08) <CORE>",WEAK,core leads but only 2/5 of top five are core
+audifonos sony,audifonos,headphones/earbuds,[brandsmart] All Day Comfort Noise Cancelling Wireless Black Headphones ($119.4) <CORE>,PASS,brand pattern fired: Sony
+AirPods,airpods,AirPods,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",WEAK,accessory leads; core present below
+airpods,airpods,AirPods,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",WEAK,accessory leads; core present below
+airpods pro,airpods,AirPods,"[walmart] (Open Box) Apple AirPods Pro 2 In-Ear Headphones with USB-C Charging Case, White ($157.48) <CORE>",WEAK,core leads but only 2/5 of top five are core
+airpodspro,airpods,AirPods,— (no results),FAIL,dead end: 0 catalog results; pool still holds 30 core items
+airpod,airpods,AirPods,"[bestbuy] Belkin - 15W Dual Qi2 Wireless Magnetic Charging Pad, MagSafe Compatible for iPhone & AirP ($42.44) <ACCESSORY>",WEAK,accessory leads; core present below
+parlante,parlante,speakers,[brandsmart] XBOOM 360 XO2 Wireless Speaker ($106.13) <CORE>,PASS,
+parlantes,parlante,speakers,[brandsmart] XBOOM 360 XO2 Wireless Speaker ($106.13) <CORE>,PASS,
+bocina,parlante,speakers,[walmart] Barbie and Teresa Recipe for Friendship muñeca Teresa y set de juego de cocina con más de  ($38.4) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 2, shown: 2); pool holds 331 core items the ranking never surfaces"
+bocinas,parlante,speakers,— (no results),FAIL,dead end: 0 catalog results; pool still holds 331 core items
+speaker,parlante,speakers,[brandsmart] XBOOM 360 XO2 Wireless Speaker ($106.13) <CORE>,PASS,
+altavoz,parlante,speakers,[brandsmart] XBOOM 360 XO2 Wireless Speaker ($106.13) <CORE>,PASS,
+soundbar,parlante,speakers,"[walmart] 2 in 1 Separable Sound Bars for TV, Bluetooth 5.0 Surround Sound System for TV Wireless Co ($50.59) <UNRELATED>",WEAK,unrelated product leads
+barra de sonido,parlante,speakers,[zumiez] Billabong Barra Pink & Brown Half Zip Sherpa Jacket ($59.69) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 0, shown: 38); pool holds 331 core items the ranking never surfaces"
+JBL,jbl,JBL audio,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,brand pattern fired: JBL
+jbl,jbl,JBL audio,[brandsmart] Tune 770NC Adaptive Noise Cancelling White Wireless Headphones ($106.13) <CORE>,PASS,brand pattern fired: JBL
+Bose,bose,Bose audio,[brandsmart] OmniJewel Center Channel Wall Bracket - White ($31.84) <CORE>,PASS,brand pattern fired: Bose
+bose,bose,Bose audio,[brandsmart] OmniJewel Center Channel Wall Bracket - White ($31.84) <CORE>,PASS,brand pattern fired: Bose
+PS5,ps5,PS5 console/games,"[walmart] Ecomoment Wireless Gaming Headset for PS5, PC, Switch, Mac with Bluetooth 5.2, 2.4GHz USB  ($27.27) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 113, shown: 113); pool holds 73 core items the ranking never surfaces"
+ps5,ps5,PS5 console/games,"[walmart] Ecomoment Wireless Gaming Headset for PS5, PC, Switch, Mac with Bluetooth 5.2, 2.4GHz USB  ($27.27) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 113, shown: 113); pool holds 73 core items the ranking never surfaces"
+play 5,ps5,PS5 console/games,"[walmart] JoyStone Doll House for Girls, 5-Story 19 Rooms Huge Dollhouse Playset with LED Lights, 2  ($45.69) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 77, shown: 77); pool holds 73 core items the ranking never surfaces"
+PlayStation,playstation,PlayStation,"[walmart] God of War Ragnarök Standard Edition, Playstation 5 [Physical] ($47.06) <CORE>",PASS,
+playstation,playstation,PlayStation,"[walmart] God of War Ragnarök Standard Edition, Playstation 5 [Physical] ($47.06) <CORE>",PASS,
+playstation 5,playstation,PlayStation,[brandsmart] DualSense Wireless Midnight Black Controller ($99.5) <ACCESSORY>,FAIL,accessories fill the top; core buried below top five
+ps4,playstation,PlayStation,"[bestbuy] Razer - BlackShark V2 X Wired Over-the-Ear Gaming Headset for PC, PS5, PS4, Switch, Xbox X ($46.42) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 87, shown: 87); pool holds 98 core items the ranking never surfaces"
+Xbox,xbox,Xbox,"[walmart] Ecomoment Wireless Gaming Headset for PS5, PC, Switch, Mac with Bluetooth 5.2, 2.4GHz USB  ($27.27) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 207, shown: 207); pool holds 50 core items the ranking never surfaces"
+xbox,xbox,Xbox,"[walmart] Ecomoment Wireless Gaming Headset for PS5, PC, Switch, Mac with Bluetooth 5.2, 2.4GHz USB  ($27.27) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 207, shown: 207); pool holds 50 core items the ranking never surfaces"
+xbox series x,xbox,Xbox,"[bestbuy] HyperX - Cloud III Wired Gaming Headset for PC, PS5, PS4, Xbox Series X|S, Xbox One, Ninte ($76.94) <ACCESSORY>",FAIL,accessories fill the top; core buried below top five
+xbox series s,xbox,Xbox,"[bestbuy] HyperX - Cloud III Wired Gaming Headset for PC, PS5, PS4, Xbox Series X|S, Xbox One, Ninte ($76.94) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 76, shown: 76); pool holds 50 core items the ranking never surfaces"
+Nintendo,nintendo,Nintendo Switch,[walmart] Super Mario RPG - Nintendo Switch - U.S. Edition ($43.2) <CORE>,PASS,brand pattern fired: Nintendo
+nintendo,nintendo,Nintendo Switch,[walmart] Super Mario RPG - Nintendo Switch - U.S. Edition ($43.2) <CORE>,PASS,brand pattern fired: Nintendo
+Nintendo Switch,nintendo,Nintendo Switch,[brandsmart] Joy-Con™ 2 Charging Grip ($53.06) <ADJACENT>,WEAK,"adjacent product leads, core below"
+switch,nintendo,Nintendo Switch,"[walmart] Logitech G515 Wired Gaming Keyboard, TKL, LIGHTSYNC RGB, Double-Shot PBT Keycaps, Tactile/ ($68.19) <UNRELATED>",FAIL,unrelated product leads
+nintendo swich,nintendo,Nintendo Switch,[walmart] Super Mario RPG - Nintendo Switch - U.S. Edition ($43.2) <CORE>,PASS,brand pattern fired: Nintendo
+consola,consola,game consoles,"[walmart] 7 In 1 Game Console Repair Kit Tools,Screwdrivers For Consoles Controllers,Screwdriver,Cle ($8.42) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 13, shown: 13); pool holds 636 core items the ranking never surfaces"
+consolas,consola,game consoles,"[walmart] 7 In 1 Game Console Repair Kit Tools,Screwdrivers For Consoles Controllers,Screwdriver,Cle ($8.42) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 13, shown: 13); pool holds 636 core items the ranking never surfaces"
+consola nintendo,consola,game consoles,"[walmart] Nintendo Switch 2 Console, 256GB, 7.9 Inch 1080p HDR Screen, Joy-Con 2 Controllers, 4K TV  ($819.42) <CORE>",PASS,brand pattern fired: Nintendo
+videojuegos,juegos,video games,[walmart] LEGO Minecraft The Crafting Table Building Set for Adults - Gift for Birthdays - Collectib ($92.69) <CORE>,PASS,
+control ps5,accesorio-gaming,gaming controllers,"[walmart] LOHEER 1:16 Remote Control Cars , Waterproof 4WD RC Monster Truck Toys Gifts for Kids Adul ($40.16) <CORE>",PASS,
+juegos ps5,juegos,video games,[walmart] Pokémon Scarlet & Violet 10 Destined Rivals Elite Trainer Box juego de cartas coleccionabl ($141.27) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 0, shown: 243); pool holds 53 core items the ranking never surfaces"
+silla gamer,silla-gamer,gaming chairs,[walmart] Sm:)e Ivory Cheesecloth Table Runner 31 x 118 Inch Rustic Gauze Boho Chair Sashes for Brid ($9.91) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 0, shown: 188); pool holds 2 core items the ranking never surfaces"
+headset gamer,audifonos,headphones/earbuds,"[walmart] targeal Gaming Headset with Microphone - for PC, PS4, PS5, Switch, Xbox One, Xbox Series X ($19.08) <CORE>",WEAK,core leads but only 2/5 of top five are core
+dron,dron,drones,[bestbuy] DROP - CSTM80 TKL Wired Mechanical Gaming Keyboard with RGB Backlighting - White ($126.03) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 262 core items the ranking never surfaces"
+drons,dron,drones,[brandsmart] GPS Drone with 4K 3-Axis Gimbal Camera ($358.22) <CORE>,PASS,brand pattern fired: Drones
+drone,dron,drones,"[walmart] HNZENBW Drone with 4K HD Dual Camera for Kids Adults,RC Foldable FPV Quadcopte with 2 Modu ($78.33) <CORE>",WEAK,core leads but only 2/5 of top five are core
+drones,dron,drones,"[walmart] HNZENBW Drone with 4K HD Dual Camera for Kids Adults,RC Foldable FPV Quadcopte with 2 Modu ($78.33) <CORE>",WEAK,core leads but only 2/5 of top five are core
+DJI,dji,DJI drones/cameras,[brandsmart] Osmo Pocket 3 3-Axis Stabilized 4K Handheld Camera with Rotatable Touchscreen - Gray ($582.47) <CORE>,PASS,brand pattern fired: DJI
+dji,dji,DJI drones/cameras,[brandsmart] Osmo Pocket 3 3-Axis Stabilized 4K Handheld Camera with Rotatable Touchscreen - Gray ($582.47) <CORE>,PASS,brand pattern fired: DJI
+dji mini,dji,DJI drones/cameras,[brandsmart] Mic Mini Wireless Omnidirectional Microphone System ($131.35) <CORE>,PASS,brand pattern fired: DJI
+drone dji,dji,DJI drones/cameras,[bestbuy] DJI - Flip Drone (DJI Remote Control 2) (GL) ($674.76) <CORE>,PASS,brand pattern fired: DJI
+dron con cámara,dron,drones,[bestbuy] DROP - CSTM80 TKL Wired Mechanical Gaming Keyboard with RGB Backlighting - White ($126.03) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 0, shown: 1); pool holds 262 core items the ranking never surfaces"
+drone con camara,dron,drones,"[walmart] HNZENBW Drone with 4K HD Dual Camera for Kids Adults,RC Foldable FPV Quadcopte with 2 Modu ($78.33) <CORE>",PASS,
+dron profesional,dron,drones,[bestbuy] DROP - CSTM80 TKL Wired Mechanical Gaming Keyboard with RGB Backlighting - White ($126.03) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 0, shown: 1); pool holds 262 core items the ranking never surfaces query auto-corrected to “dron professional”"
+cámara,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+camara,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+cámaras,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+camera,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+camras,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+GoPro,gopro,GoPro cameras,[bestbuy] GoPro - MAX2 360 Action Camera - Black ($398.03) <CORE>,PASS,brand pattern fired: GoPro
+gopro,gopro,GoPro cameras,[bestbuy] GoPro - MAX2 360 Action Camera - Black ($398.03) <CORE>,PASS,brand pattern fired: GoPro
+gopro 12,gopro,GoPro cameras,[bestbuy] GoPro - MAX2 360 Action Camera - Black ($398.03) <CORE>,PASS,brand pattern fired: GoPro
+camara deportiva,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+cámara de seguridad,camara-seguridad,security cameras,— (no results),FAIL,dead end: 0 catalog results; site suggests “camera”; pool still holds 97 core items
+camara web,webcam,webcams,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 0, shown: 500); pool holds 21 core items the ranking never surfaces"
+webcam,webcam,webcams,[brandsmart] StreamCam Plus Webcam ($132.67) <CORE>,PASS,
+Canon,canon,Canon products,[bestbuy] Canon - EOS R100 4K Video Mirrorless Camera with RF-S18-45mm f/4.5-6.3 IS STM Lens - Black ($726.52) <CORE>,PASS,brand pattern fired: Canon
+canon,canon,Canon products,[bestbuy] Canon - EOS R100 4K Video Mirrorless Camera with RF-S18-45mm f/4.5-6.3 IS STM Lens - Black ($726.52) <CORE>,PASS,brand pattern fired: Canon
+camara canon,canon,Canon products,[bestbuy] Canon - EOS R100 4K Video Mirrorless Camera with RF-S18-45mm f/4.5-6.3 IS STM Lens - Black ($726.52) <CORE>,PASS,brand pattern fired: Canon
+Nikon,nikon,Nikon cameras,[bhphoto] Nikon 64GB XQD Memory Card ($190.99) <CORE>,PASS,brand pattern fired: Nikon
+nikon,nikon,Nikon cameras,[bhphoto] Nikon 64GB XQD Memory Card ($190.99) <CORE>,PASS,brand pattern fired: Nikon
+sony camera,camara,cameras,[bestbuy] Sony - FE 50mm f/1.8 Standard Prime Lens for E-mount Cameras - Black ($265.35) <ACCESSORY>,WEAK,accessory leads; core present below
+lente,lente,camera lenses,[revolve] Drizzle Sunglasses ($53.07) <UNRELATED>,WEAK,unrelated product leads
+tripode,tripode,tripods,"[brandsmart] 57"" Camera Tripod ($26.52) <CORE>",PASS,
+camara instantanea,camara,cameras,"[walmart] 4K Solar Security Camera with Spotlight, ANRAN 360° View Wireless Outdoor Camera, Waterpro ($65.71) <CORE>",PASS,
+televisor,televisor,televisions,[ccs] Televisi Star VX1 Cargo Shorts - Black ($71.65) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 268 core items the ranking never surfaces Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result."
+televisores,televisor,televisions,— (no results),FAIL,dead end: 0 catalog results; pool still holds 268 core items Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+tv,televisor,televisions,"[walmart] 2 in 1 Separable Sound Bars for TV, Bluetooth 5.0 Surround Sound System for TV Wireless Co ($50.59) <UNRELATED>",FAIL,unrelated product leads Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+smart tv,televisor,televisions,"[walmart] Electronic World Wireless Bluetooth Mobile Gaming Controller Gamepad for Android, iPhone,  ($49.48) <UNRELATED>",FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 268 core items the ranking never surfaces Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result."
+smarttv,televisor,televisions,[bestbuy] Lively® - Jitterbug Smart5 Simple Prepaid Smartphone - Black ($119.4) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 3, shown: 3); pool holds 268 core items the ranking never surfaces Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result."
+televisor samsung,televisor,televisions,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <UNRELATED>,FAIL,unrelated product leads Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+tv samsung,televisor,televisions,[microcenter] 9100 PRO 2TB Samsung V NAND TLC NAND (V8) PCIe Gen 5 x4 and PCIe Gen 5 x4 NVMe M.2 Interna ($557.24) <UNRELATED>,FAIL,unrelated product leads Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+tv lg,televisor,televisions,[brandsmart] XBOOM 360 XO2 Wireless Speaker ($106.13) <UNRELATED>,FAIL,unrelated product leads Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+television,televisor,televisions,[ccs] Televisi Star VX1 Cargo Shorts - Black ($71.65) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 268 core items the ranking never surfaces Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result."
+pantalla,pantalla,screens/displays,"[bestbuy] Acer - Nitro Gaming 31.5"" Curved WQHD 180Hz 1ms FreeSync Premium Gaming Monitor (DisplayPo ($252.08) <CORE>",PASS,
+tv 55 pulgadas,televisor,televisions,"[walmart] 2 in 1 Separable Sound Bars for TV, Bluetooth 5.0 Surround Sound System for TV Wireless Co ($50.59) <UNRELATED>",FAIL,unrelated product leads Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result.
+proyector,proyector,projectors,"[walmart] 5G WiFi Bluetooth Projector (Projector Screen Included), CEBORY Native 1080P 15000LM 4k Su ($134.65) <CORE>",WEAK,core leads but only 1/5 of top five are core
+smartwatch,smartwatch,smartwatches,"[walmart] VTech KidiZoom Smartwatch DX4 Plastic, Metal with Accessories, Baby and Toddler Toys ($24.03) <CORE>",PASS,
+reloj inteligente,smartwatch,smartwatches,"[walmart] VTech KidiZoom Smartwatch DX4 Plastic, Metal with Accessories, Baby and Toddler Toys ($24.03) <CORE>",PASS,
+reloj,smartwatch,smartwatches,[zumiez] AURA Memento Mori Gold & Black Analog Watch ($106.13) <ADJACENT>,WEAK,"adjacent product leads, core below"
+Apple Watch,apple-watch,Apple Watch,[bestbuy] Apple Watch Ultra 3 (GPS+Cellular) 49mm Titanium Case with Black Ocean Band - Black - (202 ($851.53) <CORE>,PASS,brand pattern fired: Apple
+apple watch,apple-watch,Apple Watch,[bestbuy] Apple Watch Ultra 3 (GPS+Cellular) 49mm Titanium Case with Black Ocean Band - Black - (202 ($851.53) <CORE>,PASS,brand pattern fired: Apple
+smart watch,smartwatch,smartwatches,"[walmart] Smart Watch for Women Android/iPhone Devices, IP68 Waterproof Fitness Tracker with Bluetoo ($49.59) <CORE>",PASS,
+reloj samsung,smartwatch,smartwatches,[bestbuy] Samsung - Galaxy Watch Ultra Titanium Smartwatch 47mm LTE - Titanium Silver - (2025) ($603.68) <CORE>,PASS,brand pattern fired: Samsung
+fitbit,fitbit,Fitbit trackers,"[walmart] Google GWT9R Pixel Watch Android Smartwatch with Fitbit Activity Tracking, 41mm, Supports  ($100.92) <CORE>",PASS,
+pulsera inteligente,smartwatch,smartwatches,— (no results),FAIL,dead end: 0 catalog results; pool still holds 266 core items
+relojes inteligentes,smartwatch,smartwatches,[zumiez] AURA Memento Mori Gold & Black Analog Watch ($106.13) <ADJACENT>,WEAK,"adjacent product leads, core below"
+kindle,kindle,Kindle e-readers,[bornprimitive] Men's Timber Jacket (Kindle) ($119.41) <CORE>,PASS,
+echo,echo,Amazon Echo/Alexa,[johannaortiz] Andalusian Echoes Skirt ($2219.55) <UNRELATED>,WEAK,unrelated product leads
+alexa,echo,Amazon Echo/Alexa,[vix] Alexa T Back Tri Top (Exchange Only) - Black ($91.55) <CORE>,PASS,
+cargador,cargador,chargers/cables,"[walmart] Bullseye Blower Rechargeable Cordless Leaf Dust Air Blaster 21,000 RPM with 20V Battery an ($73) <CORE>",PASS,
+cable usb,cargador,chargers/cables,"[walmart] 2 in 1 Separable Sound Bars for TV, Bluetooth 5.0 Surround Sound System for TV Wireless Co ($50.59) <UNRELATED>",WEAK,unrelated product leads
+power bank,power-bank,power banks,[brandsmart] BoostCharge Pro Magnetic Power Bank 5K - Black ($33.16) <CORE>,PASS,
+bateria externa,power-bank,power banks,[bestbuy] GoPro - Volta External Battery Grip/Tripod/Remote for HERO13 Black/HERO12 Black/HERO11 Bla ($119.4) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 1, shown: 1); pool holds 81 core items the ranking never surfaces"
+disco duro,disco,drives/SSD,"[walmart] WD_BLACK 5TB P10 Game Drive USB 3.2 Gen 1, 2.5 Portable External Hard Drive HDD, Compatibl ($270.32) <CORE>",PASS,
+disco ssd,disco,drives/SSD,[microcenter] C715 256GB 3D TLC NAND PCIe Gen 3 x4 NVMe M.2 Internal SSD ($86.23) <CORE>,PASS,
+ssd,disco,drives/SSD,"[microcenter] Platinum 1TB SSD 3D TLC NAND SATA III 6Gb/s 2.5"" Internal Solid State Drive ($199.01) <CORE>",PASS,
+memoria ram,componentes,PC components (RAM/GPU),[aguabendita] Nopal Memoria Bikini Bottom ($151.26) <UNRELATED>,FAIL,unrelated product leads
+tarjeta de video,componentes,PC components (RAM/GPU),"[walmart] Mini Body Camera with Audio and Video Recording,Thumb Action Camera with WiFi,IPX6 Waterpr ($74.39) <ACCESSORY>",FAIL,"no core product in top 12 (engine exact matches: 0, shown: 290); pool holds 375 core items the ranking never surfaces"
+router,router,Wi-Fi routers,"[walmart] Mobile Hotspot, WiFi Router, Portable 4G WiFi Router For Chatting Online For Surfing Onlin ($12.4) <CORE>",PASS,
+aspiradora robot,robot,robot vacuums,"[bestbuy] Roborock - Saros Z70 Robot Vacuum & Mop, OmniGrip Arm, 22,000Pa Suction, 3.14"" Ultra Slim, ($1294.69) <CORE>",PASS,
+robot aspiradora,robot,robot vacuums,"[bestbuy] Roborock - Official Multi-Surface Floor Cleaning Solution, Compatible with Robot Vacuum Cl ($34.48) <CORE>",PASS,
+relojes,smartwatch,smartwatches,[zumiez] AURA Memento Mori Gold & Black Analog Watch ($106.13) <ADJACENT>,WEAK,"adjacent product leads, core below"
+tele,televisor,televisions,[valsurf] Poe Tele - 8.12 ($92.86) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 3, shown: 3); pool holds 268 core items the ranking never surfaces Catalog assortment check: the served catalog files stock almost no TV sets (Best Buy file has no TVs department) and the engine also strips big TVs as unshippable; the search void is filled with unrelated items instead of an honest result."
+compu,computadora,computers,[tatami] Tatami Comp Jacket ($32.51) <UNRELATED>,FAIL,"no core product in top 12 (engine exact matches: 126, shown: 126); pool holds 910 core items the ranking never surfaces"

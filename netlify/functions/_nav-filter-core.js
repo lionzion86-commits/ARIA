@@ -45,6 +45,7 @@ import { loadDept, inAudience, typeKeyOf, cardOf as deptCard, photosFirst, PAGE_
 import { finalUsd } from "./_search-core.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 const storeLabel = (k) => (RETAILERS[k] && RETAILERS[k].label) || k;
+import { PLUS_LINGERIE_LEAD, leadFirst, isLingerieSet, isPlusSizeLabel } from "../../scripts/lib/plus-lingerie.js";
 
 const CANDIDATES = [
   process.env.LAMBDA_TASK_ROOT,
@@ -296,6 +297,10 @@ export function readFilters(qs) {
 /* ---------- the engine ----------
    rows: [{ x (the source's own item), title, brand, retailer, usd (the
    card's price), sale, t: {k,label}, u, run }] in the listing's order. */
+const rowType = (r) => (r.x && (r.x.type ?? r.x._type ?? r.x.pt)) ?? "";
+function plusLingerieRows(hits) {
+  return hits.some((r) => r.retailer === PLUS_LINGERIE_LEAD) && isLingerieSet(hits.map((r) => ({ title: r.title, type: rowType(r) })));
+}
 export function facetAnswer(rows, f, sort = "deal", page = 0, card = (x) => x) {
   const fx = f.fx || 0;
   const B = new Set(f.b || []), Z = new Set(f.z || []), P = new Set(f.p || []), RR = new Set(f.r || []);
@@ -349,6 +354,11 @@ export function facetAnswer(rows, f, sort = "deal", page = 0, card = (x) => x) {
   else if (sort === "high") hits.sort((a, b) => (b.usd - a.usd) || (a.i - b.i));
   else hits.sort((a, b) => ((b.sale || 0) - (a.sale || 0)) || (a.i - b.i));
   if (sort === "deal") { const withImg = hits.filter((r) => r.image !== ""), none = hits.filter((r) => r.image === ""); hits = withImg.concat(none); }
+  /* LENCERÍA + TALLAS PLUS (Danny, #443 c.6621407508): lingerie under a
+     plus Talla (1X, 2XL, 16W ...) opens on Lane Bryant -- its lingerie is
+     photographed on plus-size women. The bar's own order only (a price
+     sort stays a price sort); the allowlist decides what is lingerie. */
+  if (sort === "deal" && f.u !== "men" && (f.z || []).length && f.z.every(isPlusSizeLabel) && plusLingerieRows(hits)) hits = leadFirst(hits);
   const pages = Math.ceil(hits.length / PAGE_SIZE);
   const tl = f.t ? ((R.find((r) => r.t.k === f.t) || {}).t || {}).label || "" : "";
   return {

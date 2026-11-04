@@ -86,10 +86,11 @@
     var more = !(l.n > l.items.length) ? "" : door
       ? '<a class="fc-more" href="' + e(door) + '">Ver todo<span>' + Number(l.n).toLocaleString("es-PE") + " productos</span></a>"
       : '<button type="button" class="fc-more" data-lane="' + e(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' + (l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>";
-    return '<section class="rail-section fc-lane"><div class="rail-head"><h2>' + e(l.title) + '</h2><span class="rail-count">' + Number(l.n).toLocaleString("es-PE") + "</span></div>" +
+    return '<section class="rail-section fc-lane' + (l.also ? " fc-also" : "") + '"><div class="rail-head"><h2>' + e(l.title) + '</h2><span class="rail-count">' + Number(l.n).toLocaleString("es-PE") + "</span></div>" +
       '<div class="rail">' + l.items.map(card).join("") + more + "</div></section>";
   }
-  var CSS = ".fc{margin:4px 0 18px}.fc-h{font-size:21px;font-weight:800;color:var(--navy);margin:6px 0 2px;line-height:1.25}" +
+  var CSS = "body.fc-whole #salesTop,body.fc-whole #brandPills,body.fc-whole #rails,body.fc-whole #status{display:none!important}" +
+    ".fc-also .rail-head h2{color:var(--muted)}.fc{margin:4px 0 18px}.fc-h{font-size:21px;font-weight:800;color:var(--navy);margin:6px 0 2px;line-height:1.25}" +
     ".fc-sub{font-size:14px;color:var(--muted);margin:0 0 12px}.fc-sec{font-size:18px;font-weight:800;color:var(--navy);margin:10px 0 2px}" +
     ".fc-secsub{font-size:15px;font-weight:800;color:var(--blue);margin:0 0 10px}" +
     ".fc-chart{border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 10px;background:#fff}" +
@@ -114,16 +115,24 @@
     var box = document.getElementById("brandFocus");
     if (!Q || !box) return;
     SEARCHED = (new RegExp("^" + String(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(Q) ? Q : label + " " + Q).trim();
+    /* THE BRAND ITSELF (#443 c.6621809703, ONE SEARCH REGIMEN): a search
+       for the brand alone (?q=<the brand>) gets the same regimen as a
+       model -- Comparador, Ofertas, one rail per store, biggest first --
+       and the page's own Ofertas and rails, the same products again,
+       step aside. */
+    var whole = Q.toLowerCase().replace(/[^a-z0-9]/g, "") === String(label).toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (whole) SEARCHED = String(label);
     var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
-    box.innerHTML = '<h2 class="fc-h">' + e(SEARCHED) + '</h2><p class="fc-sub">Buscando este modelo en cada tienda…</p>';
+    box.innerHTML = '<h2 class="fc-h">' + e(SEARCHED) + '</h2><p class="fc-sub">' + (whole ? "Buscando " + e(label) + " en cada tienda…" : "Buscando este modelo en cada tienda…") + "</p>";
     box.hidden = false;
     fetch(API + "?q=" + encodeURIComponent(SEARCHED) + "&page=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       var lanes = (d && d.lanes || []).filter(function (l) { return l.items && l.items.length; });
       var charts = (d && (d.compares || (d.compare ? [d.compare] : [])) || []).map(chart).join("");
       if (!lanes.length && !charts) { box.hidden = true; box.innerHTML = ""; return; }
-      box.innerHTML = '<h2 class="fc-h">' + e(SEARCHED) + '</h2><p class="fc-sub">Este modelo en cada tienda, y abajo todo ' + e(label) + ".</p>" +
+      if (whole) document.body.classList.add("fc-whole");
+      box.innerHTML = '<h2 class="fc-h">' + e(SEARCHED) + '</h2><p class="fc-sub">' + (whole ? "Todo " + e(label) + " en cada tienda, la que más tiene primero." : "Este modelo en cada tienda, y abajo todo " + e(label) + ".") + "</p>" +
         (charts ? '<h3 class="fc-sec">Comparador de Precios</h3><p class="fc-secsub">Compara el mismo producto en diferentes tiendas.</p>' + charts : "") +
-        lanes.map(lane).join("");
+        lanes.map(function (l) { return whole && l.key === "ofertas" ? lane(Object.assign({}, l, { title: "Ofertas de " + label })) : lane(l); }).join("");
       if (typeof watchPhotos === "function") watchPhotos(box);
     }).catch(function () { box.hidden = true; box.innerHTML = ""; });
   };

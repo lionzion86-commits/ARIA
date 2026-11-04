@@ -159,19 +159,84 @@ export function buildSearchContext({ index, dict, glossary, read = readRepoFile,
   }
   dict = withPartsGlossary(dict, glossary);
   const products = productsFromIndex(index);
+  const subBrands = foldSubBrands(products);
   S.buildSearchWordIndex(products);
   const stores = [...new Set(products.map((p) => p.retailer).filter(Boolean))];
   /* Store names and logos (the index's `stores` table); the label map
      search.js passes wins for the name. */
   const storeInfo = index.stores || {};
   return {
-    S, P, products, labels, storeInfo,
+    S, P, products, labels, storeInfo, subBrands,
     retailers: stores.map((k) => ({ key: k, label: k })),
     dict: P.prepare(dict, S, products),
     resultLimit: RESULT_LIMIT,
     generatedAt: index.generatedAt || null,
     cache: new Map(),
   };
+}
+
+/* ONE BRAND, ONE NAME (#443 c.6621737932, c.6621809703 -- Danny's
+   «Nike Jordans»). A store files one Jordan as brand "Nike Jordan"
+   (SSENSE) and another as "Air Jordan" (PacSun); the engine took each
+   label for a brand of its own, so «nike jordans», «air jordan»,
+   «airjordan» and «nike air jordan 1» found that ONE product while the
+   catalogue holds 585 Jordans. A label is another brand's alias, by rule
+   and not by a list, when:
+     - it is a handful of products (SUB_MAX) and ends in the name of a big
+       brand (SUB_BIG products, SUB_RATIO times as many), and
+     - every word before that name is a big brand of its own (the maker:
+       "nike") or a word the big brand's own titles carry (SUB_TITLE_SHARE
+       of them: "air" in "Air Jordan 1 Mid").
+   "Jordan Craig" (57, its own clothing line) and "Michael Jordan" (books)
+   stay themselves. The products take the big brand's name, and a query
+   naming the big brand drops the alias words (canonicalTokens):
+   «nike jordans» is "jordan", «nike air jordan 1» "jordan 1". */
+const SUB_MAX = 3, SUB_BIG = 50, SUB_RATIO = 20, SUB_PARENT = 25, SUB_TITLE_SHARE = 0.15;
+export function foldSubBrands(products) {
+  const count = new Map(), label = new Map(), titles = new Map();
+  for (const p of products) {
+    const b = brandKey(p.brand);
+    if (!b) continue;
+    count.set(b, (count.get(b) || 0) + 1);
+    if (!label.has(b)) label.set(b, new Map());
+    label.get(b).set(p.brand, (label.get(b).get(p.brand) || 0) + 1);
+  }
+  const titleShare = (B, w) => {
+    if (!titles.has(B)) titles.set(B, products.filter((p) => brandKey(p.brand) === B).map((p) => " " + brandKey(p.title) + " "));
+    const T = titles.get(B);
+    return T.filter((t) => t.includes(" " + w + " ")).length / (T.length || 1);
+  };
+  const alias = new Map(), drop = new Map();
+  for (const [k, n] of count) {
+    const w = k.split(" ");
+    if (w.length < 2 || n > SUB_MAX) continue;
+    for (let i = 1; i < w.length; i++) {
+      const A = w.slice(0, i), B = w.slice(i).join(" "), nb = count.get(B) || 0;
+      if (nb < SUB_BIG || nb < SUB_RATIO * n) continue;
+      if (!A.every((a) => (count.get(a) || 0) >= SUB_PARENT || titleShare(B, a) >= SUB_TITLE_SHARE)) continue;
+      alias.set(k, B);
+      if (!drop.has(B)) drop.set(B, new Set());
+      for (const a of A) drop.get(B).add(a);
+      break;
+    }
+  }
+  if (!alias.size) return { alias, drop };
+  const shown = (B) => [...label.get(B).entries()].sort((a, b) => b[1] - a[1])[0][0];
+  for (const p of products) { const B = alias.get(brandKey(p.brand)); if (B) p.brand = shown(B); }
+  return { alias, drop };
+}
+/* A query naming a big brand loses its alias words; the brand's plural
+   is the brand («jordans»). */
+function foldAliasTokens(ctx, toks) {
+  const drop = ctx.subBrands && ctx.subBrands.drop;
+  if (!drop || !drop.size) return toks;
+  for (const [B, words] of drop) {
+    if (B.includes(" ")) continue;
+    const at = toks.findIndex((t) => t === B || t === B + "s");
+    if (at < 0) continue;
+    toks = toks.map((t, i) => (i === at ? B : t)).filter((t, i) => i === at || !words.has(t));
+  }
+  return toks;
 }
 
 let shared = null;
@@ -475,6 +540,149 @@ export function worldAnswer(ctx, cw) {
   return { world, devices, accessories, stores, hits };
 }
 
+/* ==================================================================
+   THE TYPE LAYER: EVERYDAY SPANISH WORDS ARE PRODUCT TYPES (#443
+   c.6621646383, class 1; the way «pastillas de freno» already works).
+   «llantas» opened on Hot Wheels, «portátil» on Disney toys, «termo» on
+   suits (read as "terno"), «licuadora» on Blenders sunglasses, «crema
+   para la cara» on cream-coloured dresses, «patines» on Vans skate shoes:
+   the engine matched the word, not the thing. A query that IS a type --
+   its words in any form, Spanish or English, plus only qualifiers the
+   type understands («aro 15», «para hombre», «eléctrica», «de madera») --
+   is answered with the catalogue's products OF that type, read from the
+   product itself (its title's kind, its department), never a title
+   token alone:
+     - qualifiers narrow it (and are never dropped); a qualifier the
+       type's products do not carry gives the whole type, said so (shown);
+     - a type the catalogue does not carry answers honestly: none (the
+       page's chooser), never a lookalike set;
+     - a lead (DJI on the drone shelf, Victoria's Secret in Lencería)
+       goes first, then the qualifier's matches, then the most reviewed.
+   A word of anything else beside the type («bike shorts», «tv stand»,
+   «llanta de bicicleta») is not this: the engine answers.
+   ================================================================== */
+const Q_AUDIENCE = {
+  mujer: /\b(women'?s?|womens|ladies|woman|female|mujer|dama|girls?'?)\b/i, mujeres: "mujer", dama: "mujer", damas: "mujer", femenina: "mujer", femenino: "mujer", women: "mujer", womens: "mujer",
+  hombre: /\b(men'?s|mens|man|male|hombre|caballero|boys?'?)\b/i, hombres: "hombre", caballero: "hombre", caballeros: "hombre", masculina: "hombre", masculino: "hombre", men: "hombre", mens: "hombre",
+  bebe: /\b(baby|babies|infant|newborn|toddler|bebe|0-3|3-6|6-12|12-18|18-24)\b/i, bebes: "bebe", baby: "bebe", recien: "bebe", nacido: "bebe",
+  nino: /\b(kids?'?|boys?'?|youth|children|child|toddler|grade school|preschool|nino)\b/i, ninos: "nino", infantil: "nino", kids: "nino", nina: /\b(girls?'?|kids?'?|youth|children|nina)\b/i, ninas: "nina",
+};
+const Q_WORDS = {
+  electrica: /\b(electric|e-?bike|electrica|powered|motorized)\b/i, electricas: "electrica", electrico: "electrica", electricos: "electrica", electric: "electrica",
+  madera: /\b(wood|wooden|madera|bamboo|oak|walnut|acacia)\b/i, cuero: /\b(leather|cuero)\b/i, acero: /\b(steel|stainless|acero)\b/i, inoxidable: "acero",
+  montana: /\b(mountain|mtb|trail)\b/i, montanera: "montana", ruta: /\b(road|ruta)\b/i, bmx: /\bbmx\b/i,
+  moto: /./, motos: "moto", auto: /./, autos: "auto", carro: "auto", carros: "auto", coche: "auto", coches: "auto", camioneta: "auto", camionetas: "auto",
+  linea: /\b(inline|in-line|rollerblade)\b/i, ruedas: /./, cuatro: /\b(quad|roller)\b/i,
+  inteligente: /./, smart: /./, led: /./, plana: /./, planas: /./, grande: /./, grandes: /./, gamer: /\bgaming|gamer\b/i, portatil: /./,
+  cara: /./, rostro: /./, facial: /./, faciales: /./,
+  barato: /./, baratos: /./, barata: /./, baratas: /./, nuevo: /./, nueva: /./, original: /./, originales: /./,
+};
+/* Words a qualifier may bring that only say "of": aro 15, rin 17, 55 pulgadas. */
+const Q_SKIP = new Set("de del para el la los las con y en un una por al a the for and with of aro rin pulgadas pulgada inch inches in".split(" "));
+const TIRE_RX = /\b(tires?|tyres?)\b/i;
+const NOT_TIRE_RX = /\b(gauges?|inflators?|pressure|chains?|covers?|shine|cleaner|repair|plugs?|valves?|irons?|levers?|stickers?|keychains?|t-?shirts?|tees?|hoodies?|rc|remote control|toys?|1:\d+|tubes? only|rim tape|balancing|changer|tire (bag|rack|stand|warmer|spoons?)|strollers?|joggers?|wagons?|skateboards?|urethane|\d{2}a|wheelchairs?|scooters?)\b/i;
+const TV_RX = /\b(\d{2,3}["”]?\s*(?:-?\s*inch|in\.?|"|”)?\s*(?:class\s*)?(?:4k|8k|uhd|fhd|hd|qled|oled|led|lcd|smart|google|roku|fire|mini-led)?\s*(?:\w+\s){0,3}(?:tv|television)|smart tv|qled tv|oled tv|led tv|roku tv|google tv|fire tv(?! stick)|uhd tv|4k tv)\b/i;
+const NOT_TV_RX = /\b(projectors?|laser|portable|monitors?|controllers?|gamepads?|console|stand|mount|bracket|furniture|cabinet|tv tray|antenna|remote|streamer|stick|cable|funko|figure|tee|shirt|hoodie|apple tv|soundbar|connector|fireplace)\b/i;
+const APPAREL_RX = /\b(shirts?|t-?shirts?|tees?|tops?|tank|blouses?|dress(es)?|skirts?|pants|jeans|shorts|leggings|joggers?|sweatpants|hoodies?|sweatshirts?|sweaters?|cardigans?|jackets?|coats?|vests?|blazers?|suits?|polos?|rompers?|jumpsuits?|onesies?|bodysuits?|pajamas?|pj|sleepers?|outfits?|overalls?|tracksuits?|robes?)\b/i;
+const LINGERIE_RX = /\b(bras?|bralettes?|push-?up|balconette|plunge|panty|panties|thongs?|v-?string|cheeky|hiphuggers?|brazilian|teddy|teddies|bodysuits?|garters?|garter belts?|corsets?|bustiers?|babydolls?|chemises?|slips?|lingerie|lencer[ií]a|unlined|demi)\b/i;
+const NOT_LINGERIE_RX = /\b(sports? bras?|sport bra|leggings|joggers|swim|bikini tops?|tankini|shorts|tees?|t-?shirts?|hoodies?|sweat|jackets?|perfume|mist|lotion|fragrance|candle|bag|wallet|keychain|socks|pajama|pj)\b/i;
+const FACE_CREAM_RX = /\b(moisturi[sz](er|ing)|face cream|facial cream|day cream|night cream|gel[- ]cream|water cream|cream moisturizer|creme|crema|hydrat(ing|or) cream|barrier cream|rich cream|cream)\b/i;
+const NOT_FACE_RX = /\b(body|corporal|corps|lipsticks?|lip ?gloss|nails?|hand|foot|feet|shave|shaving|hair|curl|eye cream|lip|diaper|nipple|cuticle|tattoo|sunscreen|cleanser|wash|foundation|concealer|blush|eyeshadow|cream blush|bronzer|perfume|parfum|toilette)\b/i;
+const BEAUTY_STORE = new Set(["sephora", "ulta", "yesstyle", "beauty", "sleekshop"]);
+const isBeautyP = (p) => BEAUTY_DEPT_RX.test((p.departments && p.departments[0]) || "") || BEAUTY_STORE.has(p.retailer) || /^(skin|cuidado|piel|facial)/i.test((p.departments && p.departments[0]) || "");
+const deptOf = (p) => (p.departments && p.departments[0]) || "";
+export const TYPE_WORLDS = [
+  { id: "llantas", label: "Llantas", q: /(llantas?|neumaticos?|tires?|tyres?|cauchos?)/,
+    test: (p) => TIRE_RX.test(p.title) && !NOT_TIRE_RX.test(p.title) && !isToyDept(p) && !FASHION_DEPT_RX.test(deptOf(p)),
+    num: (n) => new RegExp("(?:\\bR-?|-|x\\d+(?:\\.\\d+)?R?-?|\\b)" + n + "(?:\\b|\")", "i"),
+    quals: { moto: (p) => /moto/i.test(deptOf(p)), auto: (p) => !/moto/i.test(deptOf(p)) } },
+  { id: "televisores", label: "Televisores", q: /(televisores?|televisions?|tvs?|teles?|smart ?tvs?|pantallas? (?:planas?|smart|led|grandes?))/,
+    test: (p) => TV_RX.test(p.title) && !NOT_TV_RX.test(p.title) && !isToyDept(p), num: (n) => new RegExp("\\b" + n + "(?:\"|”|-?\\s?inch|\\s?in\\b|\\s?class|\\b)", "i") },
+  { id: "loncheras", label: "Loncheras", q: /(loncheras?|lunch ?box(?:es)?|lunch ?bags?|portaviandas?)/,
+    test: (p) => /\b(lunch ?box(es)?|lunch ?bags?|lunch kits?|bento|lunch tote|lunch cooler)\b/i.test(p.title) && !APPAREL_RX.test(titleHead(p.title)) && !isBeautyP(p) && !/\b(eyeshadow|palette|makeup|lip)\b/i.test(p.title) },
+  { id: "termos", label: "Termos y botellas térmicas", q: /(termos?|thermos|botellas? termicas?|tomatodos?|vasos? termicos?|tumblers?|botellas? de agua|water bottles?|insulated bottles?)/,
+    test: (p) => /\b(thermos|insulated|vacuum|water bottles?|hydro ?flask|quencher|rambler|flasks?|travel mugs?|stainless steel tumblers?)\b/i.test(p.title) && /\b(bottles?|tumblers?|thermos|flasks?|mugs?|cups?|jugs?)\b/i.test(p.title) && !/\b(bathroom|candle|toothbrush|soap|wallet|belt|sunglasses|polarized)\b/i.test(p.title) && !/\b(baby bottles?|feeding|nipples?|perfume|lotion|shampoo|wash|keychain|sticker|tee|t-?shirt|hoodie|socks|opener|brush|cleaning|bottle warmer|sterili[sz]er|organizer|in a bottle|lunch|jacket|vest|cooler bag)\b/i.test(p.title) && !isToyDept(p) && !isBeautyP(p) },
+  { id: "licuadoras", label: "Licuadoras", q: /(licuadoras?|blenders?)/,
+    test: (p) => /\b(blenders?|licuadora|nutribullet|smoothie maker)\b/i.test(p.title) && !/^blenders/i.test(p.brand || "") && !/\b(sunglasses|polarized|eyewear|sponge|makeup|beauty|brush|bottle|shaker|tee|play-?doh|toy)\b/i.test(p.title) && !isToyDept(p) && !isBeautyP(p) },
+  { id: "bicicletas", label: "Bicicletas", q: /(bicicletas?|bicis?|bicycles?|bikes?|ebikes?|e bikes?)/,
+    test: (p) => /\b((\d{2}["”]?\s*(-?\s*inch|in\.?)?\s*)?(kids'?|boys'?|girls'?|women'?s|men'?s|mountain|road|bmx|cruiser|balance|electric|hybrid|folding|youth|adult|fat tire|city|commuter)\s+(e-?)?(bikes?|bicycles?)|\d{2}["”]?\s*(-?\s*inch|in\.?)\s*(bikes?|bicycles?)|e-?bikes?|bmx bikes?)\b/i.test(p.title) && !/^bicycle$/i.test(p.brand || "") && !/\b(playing cards|cameras?|shorts?|jerseys?|tees?|t-?shirts?|hoodies?|helmets?|lights?|locks?|racks?|pumps?|seat covers?|dirt ?bikes?|motorcycles?|pit bikes?|stands?|trainers?|lego|pajamas?|socks|bags?|gloves?|bottles?|mounts?|grips?|bells?|stickers?|decals?|keychains?|ornaments?|figures?|book|bike week|exercise bikes?|stationary)\b/i.test(p.title) && !/moto/i.test(deptOf(p)) && !FASHION_DEPT_RX.test(deptOf(p)) },
+  { id: "bicicletas-estaticas", label: "Bicicletas estáticas", q: /(bicicletas? estaticas?|exercise bikes?|stationary bikes?|spinning bikes?|spin bikes?)/,
+    test: (p) => /\b(exercise bikes?|stationary bikes?|spin(ning)? bikes?|indoor cycling bikes?|recumbent bikes?)\b/i.test(p.title) && !APPAREL_RX.test(p.title) },
+  { id: "crema-facial", label: "Cremas para la cara", q: /(cremas? (?:para|de) (?:la )?(?:cara|rostro)|cremas? faciale?s?|cremas? humectantes?|cremas? hidratantes?|hidratantes? faciales?|humectantes? faciales?|face creams?|facial moisturi[sz]ers?|moisturi[sz]ers?|face moisturi[sz]ers?)/,
+    test: (p) => isBeautyP(p) && FACE_CREAM_RX.test(p.title) && !NOT_FACE_RX.test(p.title) },
+  { id: "crema-corporal", label: "Cremas para el cuerpo", q: /(cremas? (?:para|de) (?:el )?cuerpo|cremas? corporale?s?|lociones? corporale?s?|body creams?|body lotions?|body butters?)/,
+    test: (p) => /\b(body (cream|lotion|butter|milk|moisturi[sz]er|souffle|creme)|loci[oó]n corporal|crema corporal)\b/i.test(p.title) },
+  { id: "patines", label: "Patines", q: /(patines|patin|patinez|roller ?skates?|rollerblades?|inline skates?|quad skates?|patinaje)/,
+    test: (p) => /\b(roller ?skates?|inline skates?|rollerblades?|quad skates?|patines)\b/i.test(p.title) && !/\b(skate gear|pads?|helmets?|wheels?|bearings?|laces|bag|tee|t-?shirt|hoodie|socks|keychain|charm|figure|tumblers?|cups?|teethers?|teething)\b/i.test(p.title) && !isToyDept(p) && !/^(moms|baby)/i.test(deptOf(p)) },
+  { id: "caminadoras", label: "Caminadoras", q: /(caminadoras?|trotadoras?|treadmills?|cintas? de correr|walking pads?)/,
+    test: (p) => /\b(treadmills?|walking pads?)\b/i.test(p.title) && !/\b(mat|lubricant|belt only|tee|shirt)\b/i.test(p.title) },
+  { id: "pesas", label: "Pesas", q: /(pesas?|pesas? rusas?|mancuernas?|dumbbells?|kettle ?bells?|kettelbells?|barbells?|discos de pesas?|weight plates?|barras? olimpicas?|hand weights?|free weights?)/,
+    test: (p) => isWeight(p) && !/\b(sweatpants|sweatshirts?|joggers?|shorts|leggings|bras?|tanks?)\b/i.test(p.title) && !FASHION_DEPT_RX.test(deptOf(p)) },
+  { id: "drones", label: "Drones", q: /(dron|drons|drone|drones|dorn|drom|cuadricopteros?|quadcopters?|drones? con camara|drones? dji|dji drones?)/,
+    test: (p) => DRONE_RX.test(p.title) && !isToyDept(p) && !FASHION_DEPT_RX.test(deptOf(p)) && !/^(general)$/i.test(deptOf(p)) && !/\b(tees?|t-?shirts?|hoodies?|figures?|plush|pins?|murder|stickers?|keychains?|poster)\b/i.test(p.title) && !isAccessoryName(titleHead(p.title)),
+    lead: (p) => /^dji$/i.test(String(p.brand || "").trim()) || /^dji\b/i.test(p.title) },
+  { id: "lenceria", label: "Lencería", q: /(lenceria|lingerie|ropa interior (?:de |para )?(?:mujer|mujeres|dama|damas|femenina))/,
+    test: (p) => LINGERIE_RX.test(p.title) && !NOT_LINGERIE_RX.test(p.title) && !/\b(men'?s|boys?)\b/i.test(p.title) && !isToyDept(p),
+    lead: (p) => p.retailer === "victoriassecret" },
+  { id: "ropa", label: "Ropa", q: /(ropa|prendas?|vestimenta|clothes|clothing)/,
+    test: (p) => APPAREL_RX.test(titleHead(p.title)) && !isToyDept(p) && !/\b(doll|figure|plush|costume for (dogs?|pets?)|pet|dog|cat|sheets?|bedding|pillows?|towels?|curtains?|blankets?|throws?|swimsuit|swim|bikini)\b/i.test(p.title) && !BEAUTY_DEPT_RX.test(deptOf(p)) },
+  { id: "repuestos", label: "Repuestos", q: /(repuestos?|autopartes?|auto ?partes|partes|piezas)(?= (?:de |para )?(?:auto|autos|carro|carros|coche|coches|moto|motos|camioneta)|$)/,
+    test: (p) => /^(auto_parts|motos|autopartes)$/i.test(deptOf(p)) && !/\b(eau de|perfume|parfum|toilette|cologne|refill|helmets?|jackets?|gloves?|boots?|pants|jerseys?|vests?|goggles?|tees?|t-?shirts?|hoodies?|dash ?cams?|backpacks?|bags?)\b/i.test(p.title),
+    lead: (p) => /^(auto_parts|motos)$/i.test(deptOf(p)),
+    quals: { moto: (p) => /moto/i.test(deptOf(p)), auto: (p) => !/moto/i.test(deptOf(p)) } },
+];
+/** The type a whole query names, with its qualifiers, or null. */
+export function typeWorldOf(q) {
+  const k = deaccent(q).replace(/[^a-z0-9" ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!k) return null;
+  for (const t of TYPE_WORLDS) {
+    const m = new RegExp("^(?:(?:" + t.q.source + ")|(.+?) (?:" + t.q.source + ")|(?:" + t.q.source + ") (.+?))$").exec(k);
+    if (!m) continue;
+    const head = new RegExp("^(?:" + t.q.source + ")(?= |$)").exec(k), tail = new RegExp("(?:^| )(?:" + t.q.source + ")$").exec(k);
+    if (!head && !tail) continue;
+    const rest = (head ? k.slice(head[0].length) : k.slice(0, k.length - tail[0].length)).trim();
+    const words = rest ? rest.split(" ").filter((w) => w && !Q_SKIP.has(w)) : [];
+    /* Every other word must be a qualifier the type reads (a number, an
+       audience, a material, a kind): anything else is not this type. */
+    const quals = [];
+    let ok = true;
+    for (const w of words) {
+      if (/^\d{1,3}$/.test(w) && t.num) { quals.push({ w, test: (p) => t.num(w).test(p.title) }); continue; }
+      let a = Q_AUDIENCE[w];
+      if (typeof a === "string") a = Q_AUDIENCE[a];
+      if (a) { quals.push({ w, test: (p) => a.test(p.title) || a.test(deptOf(p).replace(/_/g, " ")) || (w.startsWith("muj") || w === "dama" || w === "damas" || w.startsWith("femen") ? /^(women|mujer|ropa_mujer|curvy)/i.test(deptOf(p)) : /^hombre|^men|^mens/.test(w) ? /^(men|hombre|mens)/i.test(deptOf(p)) : false) }); continue; }
+      let r = Q_WORDS[w];
+      if (typeof r === "string") { const base = r; r = Q_WORDS[base]; if (t.quals && t.quals[base]) { quals.push({ w, test: t.quals[base] }); continue; } }
+      else if (t.quals && t.quals[w]) { quals.push({ w, test: t.quals[w] }); continue; }
+      if (r) { if (r.source !== ".") quals.push({ w, test: (p) => r.test(p.title) }); continue; }
+      ok = false; break;
+    }
+    if (!ok) continue;
+    if (t.needsQual && !quals.length) continue;
+    return { type: t, quals };
+  }
+  return null;
+}
+/** The type's answer: its products, the lead first, then the qualifiers' matches, then the most reviewed. */
+export function typeAnswer(ctx, tw) {
+  const memo = ctx._types || (ctx._types = new Map());
+  let all = memo.get(tw.type.id);
+  if (!all) {
+    all = ctx.products.filter((p) => p.image && tw.type.test(p));
+    memo.set(tw.type.id, all);
+  }
+  let hits = all, shown = null;
+  if (tw.quals.length) {
+    const narrowed = all.filter((p) => tw.quals.every((q) => q.test(p)));
+    if (narrowed.length) hits = narrowed;
+    else shown = tw.type.label;
+  }
+  const lead = tw.type.lead || (() => false);
+  hits = hits.map((p, i) => ({ p, i, l: lead(p) ? 1 : 0, r: Number(p.reviews) || 0 }))
+    .sort((a, b) => (b.l - a.l) || (b.r - a.r) || (a.i - b.i)).map((x) => x.p);
+  return { hits, shown };
+}
+
 /* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and
    "lego" opened with Barbie- and LEGO-branded girls' dresses and a
    toddler sweatshirt ahead of the dolls and the sets: the engine ranks
@@ -511,8 +719,62 @@ export function toysLead(hits) {
 const DYM_RARE = 50;          // a word in fewer products than this is suspect
 const DYM_COMMON = 200;       // a suggestion must be in at least this many
 const DYM_RATIO = 20;         // ...and this many times more than the typed word
+/* DID-YOU-MEAN GUARDRAILS (#443 c.6621646383, class 6): «llantas aro 15»
+   was asked "pants pro 15?", «patines» "panties?", «dronn» "iron?",
+   «faro» "farm?". A suggestion is offered only when it names something
+   real -- every word it changes is a word of Aria's vocabulary (the
+   search dictionary, English and Spanish; a concept word; a brand or
+   store name) -- when it keeps the typed word's first letter, and when
+   it is not the same word in the other number («sales» -> "sale"). A
+   query the search already understood (a type, a store, a core product)
+   is never second-guessed. */
+function dymVocabulary(ctx) {
+  if (ctx._dymVocab) return ctx._dymVocab;
+  const out = new Set(dictWords(ctx));
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(DICT_FILE)); } catch { raw = null; }
+  for (const sec of Object.values(raw || {})) {
+    if (!sec || typeof sec !== "object" || Array.isArray(sec)) continue;
+    for (const v of Object.values(sec)) for (const x of [].concat(v)) if (typeof x === "string") for (const w of ctx.S.searchTokens(x)) out.add(w);
+  }
+  const C = conceptTable(ctx);
+  for (const k of C.map.keys()) for (const w of k.split(" ")) out.add(w);
+  for (const n of C.nameWords) out.add(n);
+  return (ctx._dymVocab = out);
+}
+const singularOf = (w) => w.replace(/(es|s)$/, "");
+/* The product words the engine reads as written: the dictionary's and
+   the concepts' English words («blouse», «blazer», «jeans») -- never a
+   Spanish word, which Spanish titles carry for other things. */
+const OFERTAS_WORD_MIN = 200;   // a word this many titles carry is the catalogue's own («blazer» 373; «cabello» 52)
+function englishVocabulary(ctx) {
+  if (ctx._enVocab) return ctx._enVocab;
+  const out = new Set();
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(DICT_FILE)); } catch { raw = null; }
+  for (const sec of Object.values(raw || {})) {
+    if (!sec || typeof sec !== "object" || Array.isArray(sec)) continue;
+    for (const v of Object.values(sec)) for (const x of [].concat(v)) if (typeof x === "string") for (const w of ctx.S.searchTokens(x)) out.add(w);
+  }
+  for (const canon of conceptTable(ctx).map.values()) for (const w of canon) out.add(w);
+  const dw = dictWords(ctx);
+  for (const w of [...out]) if (dw.has(w) && !/^(jeans|shorts|tops|leggings|blazer|top|short)$/.test(w)) out.delete(w);
+  return (ctx._enVocab = out);
+}
 export function didYouMean(ctx, q, r) {
-  if (!r || r.state !== "results" || r.shown) return null;
+  if (!r || r.state !== "results" || r.shown || r._type || r._world || r._store) return null;
+  const sugg = didYouMeanRaw(ctx, q, r);
+  if (!sugg) return null;
+  const vocab = dymVocabulary(ctx), typed = ctx.S.searchTokens(q), said = sugg.split(" ");
+  if (typed.length !== said.length) return null;
+  for (let i = 0; i < said.length; i++) {
+    const t = typed[i], w = said[i];
+    if (t === w) continue;
+    if (vocab.has(t) || singularOf(t) === singularOf(w) || t[0] !== w[0] || !(vocab.has(w) || vocab.has(singularOf(w)))) return null;
+  }
+  return sugg;
+}
+function didYouMeanRaw(ctx, q, r) {
   const S = ctx.S, windex = ctx.products && ctx.products._windex;
   if (!windex || typeof S.searchTokens !== "function" || typeof S.fuzzyEditDist !== "function") return null;
   const toks = S.searchTokens(q);
@@ -676,7 +938,60 @@ export function equivalentQuery(ctx, q) {
     const W = worldAnswer(ctx, cw);
     if (W.hits.length) out = { state: "results", query: (out && out.query) || q, kinds: ["brand"], hits: W.hits, _world: W };
   }
+  /* A PHRASE THE CATALOGUE WRITES IS NOT A MISSPELLED BRAND (class 2):
+     «air max» (170 titles carry it, side by side) was joined by the
+     engine into "airmax", one edit from the hair-laser brand Hairmax, and
+     the answer was two hair-growth caps. When the whole answer is one
+     brand the query does not name, and the query's words are a phrase
+     PHRASE_MIN titles of other brands carry, the answer is the products
+     carrying that phrase. */
+  if (out && out.state === "results" && !cw) {
+    const qt = ctx.S.searchTokens(q);
+    const bs = new Set(out.hits.slice(0, 50).map((p) => brandKey(p.brand)));
+    const [only] = bs;
+    if (qt.length >= 2 && qt.length <= 4 && bs.size === 1 && only && !qt.some((t) => only.split(" ").includes(t)) && pairCount(ctx, ...qt) >= PHRASE_MIN) {
+      const carry = (p) => { const t = ctx.S.searchTokens(String(p.title || "")); for (let k = 0; k + qt.length <= t.length; k++) if (qt.every((w, m) => t[k + m] === w)) return true; return false; };
+      const W = windexOf(ctx), small = qt.map((t) => W.get(t) || []).sort((x, y) => x.length - y.length)[0];
+      const hits = small.filter((p) => p.image && carry(p)).sort((x, y) => (Number(y.reviews) || 0) - (Number(x.reviews) || 0));
+      if (hits.length >= PHRASE_MIN) out = { state: "results", query: q, kinds: ["phrase"], hits: hits.slice(0, ctx.resultLimit || hits.length) };
+    }
+  }
+  /* A type's answer is exactly its products (typeAnswer). */
+  const tw = !cw && typeWorldOf(q);
+  if (tw && (!out || out.state !== "error")) {
+    const T = typeAnswer(ctx, tw);
+    out = T.hits.length
+      ? { state: "results", query: q, kinds: ["type"], hits: T.hits.slice(0, ctx.resultLimit || T.hits.length), shown: T.shown, _type: tw }
+      : { state: "none", query: q, hits: [], _type: tw };
+  }
+  /* A brand's own name: its leading kind leads (brandLead). */
+  if (out && out.state === "results" && !out._world && !out._type) out = brandLead(ctx, q, out);
   ctx.cache.set(key, out);
+  return out;
+}
+
+/* A BRAND LEADS WITH WHAT IT IS (#443 c.6621809703: «nike jordans»
+   resolve to "the Jordan set (shoes)"). A query that is a brand's own
+   name -- nothing else -- answers with that brand; when most of the
+   brand's answer is footwear (Jordan 59%, Crocs, Skechers, Converse) the
+   footwear leads every part of it -- the charts, the Ofertas rail, each
+   store's rail -- and its apparel follows, never dropped. A brand that
+   is mostly something else (adidas 40% shoes, Nike 45%) is left as the
+   engine ranked it. */
+const LEAD_SHARE = 0.5, LEAD_BRAND_SHARE = 0.9;
+const SHOE_TITLE_RX = /\b(shoes?|sneakers?|boots?|sandals?|slides?|cleats?|slip-?ons?|mules?|clogs?|loafers?|trainers?)\b/i;
+export function isFootwear(p) {
+  return /calzado|shoe|footwear|zapat/i.test((p.departments && p.departments[0]) || "") || p._cat === "footwear" || SHOE_TITLE_RX.test(p.title || "");
+}
+function brandLead(ctx, q, r) {
+  const qb = brandKey(q);
+  if (!qb || r.hits.length < LANE_MIN) return r;
+  const mine = r.hits.filter((p) => brandKey(p.brand) === qb).length;
+  if (mine < r.hits.length * LEAD_BRAND_SHARE) return r;
+  const lead = r.hits.filter(isFootwear);
+  if (lead.length < r.hits.length * LEAD_SHARE || lead.length === r.hits.length) return r;
+  const out = { ...r, hits: lead.concat(r.hits.filter((p) => !isFootwear(p))), _lead: isFootwear };
+  for (const k of Object.keys(out)) if (k.startsWith("_") && !["_device", "_pure", "_lead"].includes(k)) delete out[k];
   return out;
 }
 
@@ -839,6 +1154,9 @@ export function canonicalTokens(ctx, q) {
      15"): never a concept's typo («iphones» is not "phones"). */
   const core = coreWorldOf(out.join(" "));
   if (core) return core.model.split(" ");
+  /* A type's every form stays a form of that type: the type layer reads
+     it (typeWorldOf) -- «termo» is never "terno" (a suit). */
+  const typed = typeWorldOf(out.join(" "));
   /* 4. joined or apart: the catalogue's form (a concept word as typed
      first: «necktie» is "tie", not "neck tie"). */
   const res = [], cw = conceptTokens(ctx, out);
@@ -848,8 +1166,76 @@ export function canonicalTokens(ctx, q) {
     res.push(...formOf(ctx, a));
   }
   /* 5. every word for one idea, English or Spanish: its concept's word
-     (again: a word step 4 joined or parted). */
-  return conceptTokens(ctx, res);
+     (again: a word step 4 joined or parted). 6. one brand, one name
+     (foldSubBrands). 7. a model in the plural is the model; a model's
+     initials are the model (modelForms). */
+  const done = modelForms(ctx, foldAliasTokens(ctx, conceptTokens(ctx, res)));
+  if (typed) { const t2 = typeWorldOf(done.join(" ")); if (!t2 || t2.type.id !== typed.type.id) return out; }
+  return done;
+}
+/* ONE MODEL, ONE FORM (#443 c.6621646383, class 2: «sambas» found a
+   Samba perfume, «gazelles» Gameness jackets, «superstars» a serum set,
+   «af1» skate hardware). By rule, from the catalogue's own counts:
+     - a plural is its singular when the catalogue writes the singular
+       PLURAL_RATIO times as often and at least PLURAL_MIN times
+       («sambas» -> "samba", «gazelles» -> "gazelle», «carters» ->
+       "carter", the Carter's brand) -- a dictionary word (Spanish) is
+       never touched («carteras» stays handbags), and a plural the
+       catalogue writes as often stays («jeans», «boots»);
+     - two or three letters before a number are a model's initials when
+       the catalogue writes one word pair with those initials before that
+       number more often than the initials themselves, and INITIALS_RATIO
+       times as often as the initials apart («af1» -> "air force 1": 145
+       titles write it, 94 write "af1"). */
+const PHRASE_MIN = 3;
+const PLURAL_RATIO = 3, PLURAL_MIN = 10, INITIALS_RATIO = 3, INITIALS_MIN = 10;
+function initialsTable(ctx) {
+  if (ctx._initials) return ctx._initials;
+  const m = new Map();
+  for (const p of ctx.products) {
+    const t = ctx.S.searchTokens(String(p.title || ""));
+    const seen = new Set();
+    for (let i = 0; i + 2 < t.length; i++) {
+      const a = t[i], b = t[i + 1], n = t[i + 2];
+      if (!/^\d{1,2}$/.test(n) || !/^[a-z]{2,}$/.test(a) || !/^[a-z]{2,}$/.test(b)) continue;
+      const key = a[0] + b[0] + "|" + n, ph = a + " " + b + " " + n;
+      if (seen.has(ph)) continue;
+      seen.add(ph);
+      if (!m.has(key)) m.set(key, new Map());
+      m.get(key).set(ph, (m.get(key).get(ph) || 0) + 1);
+    }
+  }
+  return (ctx._initials = m);
+}
+function modelForms(ctx, toks) {
+  const dict = dictWords(ctx), C = conceptTable(ctx);
+  const out = [];
+  toks = toks.flatMap((t) => { const m = /^([a-z]{2})(\d{1,2})$/.exec(t); return m ? [m[1], m[2], "\u0000" + t] : [t]; });
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i], n = toks[i + 1];
+    if (t[0] === "\u0000") continue;
+    if (/^[a-z]{2}$/.test(t) && n && /^\d{1,2}$/.test(n) && !dict.has(t)) {
+      const joinedForm = toks[i + 2] && toks[i + 2][0] === "\u0000" ? toks[i + 2].slice(1) : null;
+      const ph = initialsTable(ctx).get(t + "|" + n);
+      if (ph) {
+        const [best, c] = [...ph.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (c >= INITIALS_MIN && c >= INITIALS_RATIO * pairCount(ctx, t, n) && c >= wfreq(ctx, t + n)) { out.push(...best.split(" ")); i += joinedForm ? 2 : 1; continue; }
+      }
+      /* Not initials: the word as it was. */
+      if (joinedForm) { out.push(joinedForm); i += 2; continue; }
+    }
+    /* A model's letter run on into its name: «galaxys24» is "galaxy s24". */
+    if (/^[a-z]{4,}$/.test(t) && n && /^\d{1,3}$/.test(n) && wfreq(ctx, t) < 3 && wfreq(ctx, t.slice(0, -1)) >= PLURAL_MIN && pairCount(ctx, t.slice(0, -1), t.slice(-1) + n) >= 2) {
+      out.push(t.slice(0, -1), t.slice(-1) + n); i++; continue;
+    }
+    if (/^[a-z]{4,}s$/.test(t) && !dict.has(t) && !C.map.has(t) && !C.nameWords.has(t) && !storeNames(ctx).has(t) && !(n && /^\d/.test(n))) {
+      const one = t.endsWith("es") && wfreq(ctx, t.slice(0, -2)) > wfreq(ctx, t.slice(0, -1)) ? t.slice(0, -2) : t.slice(0, -1);
+      const f1 = wfreq(ctx, one);
+      if (f1 >= PLURAL_MIN && f1 >= PLURAL_RATIO * wfreq(ctx, t)) { out.push(one); continue; }
+    }
+    out.push(t);
+  }
+  return out;
 }
 /** The query in its canonical form: the typed text itself when it is
     already canonical (the engine reads it exactly as before). */
@@ -1320,15 +1706,88 @@ export function storeFor(ctx, q) {
   if (k.length < 2) return null;
   const names = storeNames(ctx);
   let key = names.get(k) || names.get(k.replace(/\b(\w+) s\b/g, "$1s")) || null;
-  if (!key && k.length >= 5) {
-    /* Most of a store's name, from its start ("brandsmart", "victoria s secr"). */
+  /* SPACING NEVER DECIDES (#443 c.6621646383, class 5): «best-buy»,
+     «bestbuy», «best buy» and «foot-locker» are one name -- the names
+     compared joined. */
+  const j = k.replace(/ /g, "");
+  if (!key) for (const [n, kk] of names) if (n.replace(/ /g, "") === j) { key = kk; break; }
+  if (!key && j.length >= 5) {
+    /* Most of a store's name, from its start ("brandsmart", "victoria s
+       secr", «dickssporting»). */
     const cands = new Set();
-    for (const [n, kk] of names) if (n.startsWith(k) && k.length >= n.length * 0.6) cands.add(kk);
+    for (const [n, kk] of names) { const nj = n.replace(/ /g, ""); if ((n.startsWith(k) && k.length >= n.length * 0.6) || (nj.startsWith(j) && j.length >= nj.length * 0.6)) cands.add(kk); }
+    if (cands.size === 1) key = [...cands][0];
+  }
+  /* ONE EDIT FROM A STORE'S NAME (class 4: «costcco», «ultaa»,
+     «nordstromm», «autozonee»): the forgiveness brands already have. Only
+     a word of 5+ letters the catalogue does not carry, one edit from
+     exactly one store's name. */
+  if (!key && j.length >= 5 && !/\d/.test(j) && wfreq(ctx, j) < 3 && !brandStores(ctx).has(k)) {
+    const cands = new Set();
+    for (const [n, kk] of names) { const nj = n.replace(/ /g, ""); if (nj.length >= 4 && editsWithin(j, nj, 1) <= 1) cands.add(kk); }
     if (cands.size === 1) key = [...cands][0];
   }
   /* A store's name always opens that store (Danny, 2026-11-01), even
      when other stores also sell its brand (Crocs, New Balance, Miu Miu). */
   return key || null;
+}
+/* Words that ask for a store's sale, not for a product. */
+const SALE_WORDS = new Set("sale sales oferta ofertas descuento descuentos rebaja rebajas outlet deals deal promo promos promocion promociones liquidacion clearance".split(" "));
+/** A store named at the start of a query, with the words after it:
+    { key, rest } -- «victoria secret sales» is Victoria's Secret, on sale.
+    Words after a store's name keep it only when they ask for its sale,
+    or when the name is no other store's brand («gap hoodie» is Gap's;
+    «new balance 550» is the shoe, at every store). */
+export function storeQuery(ctx, q) {
+  const whole = storeFor(ctx, q);
+  if (whole) return { key: whole, rest: [] };
+  const w = brandKey(q).split(" ").filter(Boolean);
+  for (let i = w.length - 1; i >= 1; i--) {
+    const key = storeFor(ctx, w.slice(0, i).join(" "));
+    if (!key) continue;
+    const rest = w.slice(i);
+    const sale = rest.every((x) => SALE_WORDS.has(x));
+    const sold = brandStores(ctx).get(brandKey(ctx.labels[key] || key));
+    if (sale || !sold || sold.size <= 1) return { key, rest, sale };
+    return null;
+  }
+  return null;
+}
+/* THE STORE ANSWERS FOR ITSELF (class 5, "no lying store key"): a query
+   that names a store keys it only when Aria carries that store's
+   products, and then its answer IS the store's products -- the words
+   after the name narrowing them (a sale word: its markdowns). A store
+   key over another store's products was a lie («dicks sporting goods»
+   served Kohl's sweaters); a store with nothing in the catalogue is not
+   keyed at all (Best Buy, Nordstrom, AutoZone: honestly not carried). */
+function storeAnswer(ctx, q) {
+  const sq = storeQuery(ctx, q);
+  if (!sq) return null;
+  const all = railIndex(ctx).byStore.get(sq.key) || [];
+  if (!all.length) return { key: null };
+  let hits = null;
+  if (sq.sale) hits = saleFirst(all.filter((p) => onSaleOf(p)));
+  else if (sq.rest.length) {
+    const r = equivalentQuery(ctx, sq.rest.join(" "));
+    const ids = new Set(r.state === "results" ? r.hits.map((p) => p.id) : []);
+    hits = all.filter((p) => ids.has(p.id));
+  }
+  if (!hits || !hits.length) {
+    const own = equivalentQuery(ctx, q);
+    const first = own.state === "results" ? own.hits.filter((p) => p.retailer === sq.key) : [];
+    const seen = new Set(first.map((p) => p.id));
+    hits = first.concat(saleFirst(all.filter((p) => !seen.has(p.id))));
+  }
+  return { key: sq.key, r: { state: "results", query: q, kinds: ["store"], hits: hits.slice(0, ctx.resultLimit || hits.length), _store: sq.key } };
+}
+/** What a query answers: a store's own products, or the search. */
+export function answerFor(ctx, query) {
+  const key = "~ans:" + cacheKey(query);
+  if (ctx.cache.has(key)) return ctx.cache.get(key);
+  const sa = storeAnswer(ctx, query);
+  const out = sa && sa.r ? { r: sa.r, store: sa.key } : { r: equivalentQuery(ctx, query), store: null };
+  ctx.cache.set(key, out);
+  return out;
 }
 
 /* Indexes the rails read: brand -> store -> products; store|category -> products. */
@@ -1384,17 +1843,46 @@ function doctrineLanes(ctx, q, r) {
   if (r._doctrine) return r._doctrine;
   if (r._world) return (r._doctrine = worldLanes(ctx, r));
   const inBlock = new Set(compareGroup(ctx, r) || []);
-  const { brand, cat, words } = answerFocus(ctx, q, r);
+  const focus = answerFocus(ctx, q, r);
+  const brand = r._type ? null : focus.brand, cat = r._type ? null : focus.cat, words = r._type ? [] : focus.words;
   /* The rails show what the old lanes trusted: a product in the answer's
      own aisle (annotate) and, for a category query, of that category
      only (r._pure, #443 c.6544117193) -- or the brand the query names. */
   const A = annotate(ctx, r);
-  const hits = r.hits.filter((p) => (!r._pure || r._pure(p)) && (A.of(p).aisle || (brand && brandKey(p.brand) === brand)));
+  const hits = r._type ? r.hits : r.hits.filter((p) => (!r._pure || r._pure(p)) && (A.of(p).aisle || (brand && brandKey(p.brand) === brand)));
   const wordRx = words.map(stemRx);
   const idx = railIndex(ctx);
   const lanes = [];
   /* A real markdown only: the site's sale floor (/sale-rule.js MIN_PCT, 5%). */
-  const sales = saleFirst(hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p)));
+  const lead = r._lead || (r._type && r._type.type.lead) || null;
+  const leadFirst = (list) => (lead ? list.filter(lead).concat(list.filter((p) => !lead(p))) : list);
+  /* OFERTAS KEEPS THE QUERY'S TYPE (#443 c.6621646383, class 8: «blusa»
+     opened its Ofertas on bikini tops, «blazer» on puffer coats -- the
+     rail re-sorts by discount, and the deepest discounts were the
+     loosest matches). A query that names a product (its own words, the
+     brand set aside) keeps in Ofertas only what its titles name so;
+     when too few do and the query names a brand, the brand's sales
+     stand (they are the brand's own). */
+  let saleSet = hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p));
+  /* Only the words the engine read as written: a Spanish word the
+     dictionary translates («luces», «aceite») is matched in English by
+     the engine, and Spanish titles («perro robot ... luces») would pass
+     it; a long query is the engine's to rank. */
+  const ev = englishVocabulary(ctx);
+  const content = words.filter((w) => !WORLD_FILLER.has(w));
+  const dw = dictWords(ctx);
+  const ofWords = content.length <= 3 ? content.filter((w) => !/^(womens|mens|kids|girls|boys|baby)$/.test(w) && (ev.has(w) || (!dw.has(w) && wfreq(ctx, w) >= OFERTAS_WORD_MIN))) : [];
+  if (!r._type && !r._world && !r._store && ofWords.length) {
+    const wordRx = ofWords.map(stemRx);
+    /* The sales naming every word of the query, else its head word (the
+       product: «blusa» is blouse), when they fill a rail; otherwise the
+       rail stays as it was -- a filter never empties it. */
+    const all = saleSet.filter((p) => wordRx.every((rx) => rx.test(p.title || "")));
+    const head = saleSet.filter((p) => wordRx[0].test(p.title || ""));
+    if (all.length >= LANE_MIN) saleSet = all;
+    else if (head.length >= LANE_MIN) saleSet = head;
+  }
+  const sales = leadFirst(saleFirst(saleSet));
   if (sales.length >= LANE_MIN) lanes.push({ key: "ofertas", title: "Ofertas", all: distinct(sales, RAIL_CAP) });
   const exactBy = new Map();
   for (const p of hits) { if (!exactBy.has(p.retailer)) exactBy.set(p.retailer, []); exactBy.get(p.retailer).push(p); }
@@ -1409,24 +1897,29 @@ function doctrineLanes(ctx, q, r) {
     const ex0 = exactBy.get(store) || [];
     const exact = ex0.filter(full).concat(ex0.filter((p) => !full(p)));
     const seen = new Set(exact);
-    const more = saleFirst((brandBy.get(store) || []).filter((p) => !seen.has(p)));
+    const more = leadFirst(saleFirst((brandBy.get(store) || []).filter((p) => !seen.has(p))));
     more.forEach((p) => seen.add(p));
-    /* Similar: the store's items named by the query's product words (its
-       other jeans); without such words, the answer's category. */
-    /* Similar: the store's items named by the query's product words (its
-       other jeans) and of the answer's category; without such words, the
-       answer's category. A store with none of the exact item shows the
-       brand only (the doctrine, item 5). */
+    /* NO SILENT FILLER (#443 c.6621737932, Danny's «Nike Jordans»: one
+       Jordan, then SSENSE sandals and trail sneakers dressed as the
+       answer). A store's rail holds the model, then the same brand --
+       nothing else. The store's similar items (named by the query's
+       product words, or of the answer's category) go to ONE rail headed
+       «También puedes ver», after every store rail, and only when the
+       store's rail holds the model itself. */
     const pure = (p) => (!r._pure || r._pure(p)) && (!cat || p._cat === cat);
-    const similar = !exact.length && brand ? [] : (wordRx.length
+    const similar = !exact.length ? [] : (wordRx.length
       ? saleFirst((idx.byStore.get(store) || []).filter((p) => !seen.has(p) && pure(p) && wordRx.every((rx) => rx.test(p.title))))
-      : cat ? saleFirst((idx.byCat.get(store + "|" + cat) || []).filter((p) => !seen.has(p) && (!r._pure || r._pure(p)))) : []).slice(0, SIMILAR_CAP);
-    const all = distinct(exact.concat(more, similar), RAIL_CAP);
+      : cat && !brand ? saleFirst((idx.byCat.get(store + "|" + cat) || []).filter((p) => !seen.has(p) && (!r._pure || r._pure(p)))) : []).slice(0, SIMILAR_CAP);
+    const all = distinct(exact.concat(more), RAIL_CAP);
     if (!all.length) continue;
-    storeLanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, exact: exact.length, all });
+    storeLanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, exact: exact.length, all, similar });
   }
   storeLanes.sort((a, b) => (b.exact - a.exact) || (b.all.length - a.all.length) || (a.title < b.title ? -1 : 1));
-  for (const l of storeLanes.slice(0, STORE_LANES_MAX)) lanes.push(l);
+  const shownLanes = storeLanes.slice(0, STORE_LANES_MAX);
+  for (const l of shownLanes) lanes.push(l);
+  const inRails = new Set(shownLanes.flatMap((l) => l.all));
+  const also = distinct(shownLanes.flatMap((l) => l.similar).filter((p) => !inRails.has(p)), RAIL_CAP);
+  if (also.length >= LANE_MIN) lanes.push({ key: "tambien", title: "También puedes ver", also: true, all: also });
   return (r._doctrine = { brand, cat, lanes });
 }
 /* A core product's lanes (worldAnswer): the product, its accessories by
@@ -1444,7 +1937,7 @@ function worldLanes(ctx, r) {
 /* One more page of one lane ("Ver más" re-rails it). */
 export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
   const query = canonicalQuery(ctx, String(q == null ? "" : q).trim().slice(0, 120));
-  const r = equivalentQuery(ctx, query);
+  const { r } = answerFor(ctx, query);
   if (r.state !== "results") return null;
   const l = doctrineLanes(ctx, query, r).lanes.find((x) => x.key === laneKey);
   if (!l) return null;
@@ -1458,7 +1951,7 @@ export function lanesFor(ctx, q, r, fx) {
   /* The doctrine: Ofertas, then one rail per store (doctrineLanes). */
   const d = doctrineLanes(ctx, q, r);
   return { mode: "doctrine", lanes: d.lanes.map((l) => ({ key: l.key, title: l.title, ...(l.store ? { store: l.store } : {}), n: l.all.length,
-    ...(l.exact != null ? { exact: l.exact } : {}), ...(l.doorQ ? { doorQ: l.doorQ } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
+    ...(l.exact != null ? { exact: l.exact } : {}), ...(l.doorQ ? { doorQ: l.doorQ } : {}), ...(l.also ? { also: true } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
 }
 /* (The earlier lane builder, kept for its callers' tests: generic /
    brand / specific lanes. The page now reads lanesFor.) */
@@ -1930,7 +2423,8 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const typed = String(q == null ? "" : q).trim().slice(0, 120);
   /* Every variant of a name is one search (canonicalQuery). */
   const query = canonicalQuery(ctx, typed);
-  const r = equivalentQuery(ctx, query);
+  const ans = answerFor(ctx, query);
+  const r = ans.r;
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
      comparison block's. Pages are the grid's. */
@@ -1942,8 +2436,9 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
   const compares = n === 1 && grouped ? comparesFor(ctx, r, fx) : [];
   const compare = compares[0] || null;
-  /* A store's name: its page (the doctrine, item 1). */
-  const store = n === 1 ? storeFor(ctx, query) : null;
+  /* A store's name: its page (the doctrine, item 1) -- only a store Aria
+     carries, whose products the answer is (storeAnswer). */
+  const store = n === 1 ? ans.store : null;
   return {
     q: typed,
     ...(query !== typed ? { canonical: query } : {}),
