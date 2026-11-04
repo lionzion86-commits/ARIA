@@ -231,15 +231,7 @@ const SPANISH_RAW_TYPES = new Set(["skateboards", "decks (tablas de skate)", "ta
   "hogar", "colchonetas", "faroles", "canilleras", "vendas", "pantalón", "objetivo", "ternos", "cascos", "manta", "disfraces", "alimentacion",
   "linternas de buceo", "accesorios de pesca submarina", "lactancia", "maternidad", "repuestos", "mallas de compresión", "gis y kimonos",
   "polos de licra", "camisetas de equipo", "balones y pelotas", "arcos y porterías", "reguladores", "cuerdas", "juegos", "calzado", "bolsos",
-  "audífonos", "joyería", "cámaras", "mascarillas", "belleza", "perfumes", "regalos", "chaqueta", "pijama", "disfraz", "sombreros",
-  /* Aria Auto's part names (assets/auto/index.json, the shared glossary):
-     the type of a part with vehicle fitment (scripts/build-fitment.mjs). */
-  "bobina de encendido", "bujías", "cables de bujía", "conector de sensor de detonación", "correa de accesorios", "correa de distribución",
-  "empaque de tapa de válvulas", "faros delanteros", "filtro de aceite", "filtro de aire", "filtro de aire de cabina", "filtro de combustible",
-  "filtro de transmisión", "focos de freno", "focos direccionales", "limpiaparabrisas", "sensor abs", "sensor de cigüeñal",
-  "sensor de detonación", "sensor de flujo de aire", "sensor de oxígeno", "sensor de temperatura", "sensor de árbol de levas",
-  "sensor del acelerador", "tapa de distribuidor", "tapa de radiador", "tensor de correa", "termostato", "válvula egr", "válvula pcv",
-  "zapatas de freno", "zapatas de freno de mano"]);
+  "audífonos", "joyería", "cámaras", "mascarillas", "belleza", "perfumes", "regalos", "chaqueta", "pijama", "disfraz", "sombreros"]);
 const SKU_TYPE = /^(?=[a-z]{0,6}\d)[a-z0-9]+$|^(?:general|retail|sample|wholesale|accessory|for (?:him|her))$/i;
 export function typeLabel(t) {
   /* Store types arrive as "shapewear-bottoms", "Mens_Tops", "T Shirts". */

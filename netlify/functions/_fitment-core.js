@@ -1,33 +1,34 @@
 /* ============================================================
-   THE VEHICLE FILTER (#443 c.6620267344, amended c.6620289895).
+   THE VEHICLE FILTER (#443 c.6620267344, amended c.6620289895; one
+   canonical page, c.6621544530 / c.6621722209).
 
-   One fitment system for every page that sells auto parts. The filter
-   bar's engine (_nav-filter-core.js) asks this module three things:
+   ONE VIEW: Aria Auto, the section's own page --
+     /aria-auto.html?vy=<año>&vmk=<marca>&vmd=<modelo>[&t=<tipo>][&b=<marca del repuesto>]#buscar
+   The «Tu vehículo» cards on the auto parts department and the auto
+   stores only open it. This module answers it (netlify/functions/
+   vehicle-fit.js): one page of cards and every option counted under
+   every other selection, so only a choice that returns products is
+   offered (no dead end).
 
-     fitList(dept, list)   the department's rows plus the parts that
-                           carry vehicle data (assets/sections/auto/_fn/
-                           fitment.json, scripts/build-fitment.mjs);
-     fitMatcher(dept, v)   whether a row is in the view: with no vehicle
-                           chosen, the department exactly as before; with
-                           one, only the rows whose data says they fit it;
-     .answer(rows)         the vehicle dropdowns (Año / Marca del vehículo
-                           / Modelo), each option counted under every
-                           other filter, so only a combination that
-                           returns products is offered (no dead end); and
-                           the rows with no vehicle data, kept apart as
-                           «Universal / sin datos de compatibilidad».
+   THE DATA. The auto parts with vehicle data (assets/sections/
+   departamento/_fn/auto_parts.fitment.json, scripts/build-fitment.mjs:
+   AutoZone's VEHICLE_SPECIFIC filings in auto-cache.json, named as Aria
+   Auto's selector names them) and the auto parts department's own rows
+   (Advance Auto Parts publishes no fitment). A product with no vehicle
+   data is never shown as fitting: with a vehicle chosen it is listed
+   apart, «Universal / sin datos de compatibilidad».
 
    THE PARAMS are the same on every page: vy=<year>, vmk=<make slug>,
-   vmd=<model slug> (slugs as Aria Auto's slug(): «3 Series» -> 3-series).
+   vmd=<model slug> (Aria Auto's slug(): «3 Series» -> 3-series),
+   t=<part type>, b=<part brand>.
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { rowItem, photosFirst } from "./_department-core.js";
+import { rowItem, cardOf, photosFirst, loadDept } from "./_department-core.js";
 
 export const FIT_FILE = "assets/sections/departamento/_fn/auto_parts.fitment.json";
-/* The departments whose view takes the vehicle filter. */
-export const FIT_DEPTS = new Set(["auto_parts"]);
-export const NONE_CARDS = 24;
+export const DEPT = "auto_parts";
+export const PAGE = 24;
 
 const CANDIDATES = [
   process.env.LAMBDA_TASK_ROOT,
@@ -43,8 +44,15 @@ export function vslug(s) {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 const keyOf = (retailer, title) => String(retailer || "") + "\u0000" + String(title || "");
+/* A part type, as its store or Aria Auto names it: «pastillas de freno» -> Pastillas de freno. */
+function typeOf(raw) {
+  const s = String(raw || "").trim();
+  if (!s || /^repuestos?$/i.test(s)) return null;
+  return { k: vslug(s), label: s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() };
+}
 
 const cache = new Map();
+/* { vehicles: [{y, mk, md, mkL, mdL}], rows: [{p, t, bk, fv}] } */
 export function loadFitment(roots) {
   const ck = roots ? roots.join("|") : "";
   if (cache.has(ck)) return cache.get(ck);
@@ -55,15 +63,21 @@ export function loadFitment(roots) {
       if (!existsSync(p)) continue;
       const f = JSON.parse(readFileSync(p, "utf8"));
       const vehicles = (f.vehicles || []).map(([y, mk, md]) => ({ y: String(y), mk: vslug(mk), md: vslug(md), mkL: mk, mdL: md }));
-      const fits = new Map();
-      const rows = (f.rows || []).map((r, i) => {
+      const rows = [], seen = new Set();
+      (f.rows || []).forEach((r, i) => {
         const p = rowItem(r);
-        p.xfit = 1;                     /* joins the view only with a vehicle chosen */
+        seen.add(keyOf(p.retailer, p.title));
         const fv = (f.fits || [])[i] || [];
-        if (fv.length) fits.set(keyOf(p.retailer, p.title), fv);
-        return p;
+        rows.push({ p, fv: fv.length ? fv : null });
       });
-      out = { vehicles, rows, fits };
+      /* The department's own auto parts: no vehicle data (none is published). */
+      const d = loadDept(DEPT, roots || CANDIDATES);
+      for (const p of (d && d.list) || []) {
+        if (seen.has(keyOf(p.retailer, p.title)) || !/^(advanceauto|autozone)$/.test(p.retailer)) continue;
+        rows.push({ p, fv: null });
+      }
+      for (const r of rows) { r.t = typeOf(r.p.type); r.bk = String(r.p.brand || "").trim().toLowerCase(); }
+      out = { vehicles, rows: rows.filter((r) => r.p.image && r.p.rawPrice > 0) };
       break;
     } catch { /* next */ }
   }
@@ -71,82 +85,75 @@ export function loadFitment(roots) {
   return out;
 }
 
-/* The vehicle, read and clamped from a query. */
-export function readVehicle(qs) {
-  const y = /^\d{4}$/.test(String(qs.vy || "")) ? String(qs.vy) : "";
-  const s = (v) => (/^[a-z0-9-]{1,40}$/.test(String(v || "")) ? String(v) : "");
-  return { y, mk: s(qs.vmk), md: s(qs.vmd) };
-}
-const active = (v) => !!(v && (v.y || v.mk || v.md));
-
-const listCache = new WeakMap();
-/* The department's list plus the parts with vehicle data (same array per list). */
-export function fitList(key, list, roots) {
-  if (!FIT_DEPTS.has(key)) return list;
-  const F = loadFitment(roots);
-  if (!F) return list;
-  if (listCache.has(list)) return listCache.get(list);
-  const have = new Set(list.map((p) => keyOf(p.retailer, p.title)));
-  const out = list.concat(F.rows.filter((p) => !have.has(keyOf(p.retailer, p.title))));
-  listCache.set(list, out);
-  return out;
+/* The selection, read and clamped from a query. */
+export function readFit(qs) {
+  const s = (v, n) => (new RegExp("^[a-z0-9-]{1," + n + "}$").test(String(v || "")) ? String(v) : "");
+  return {
+    y: /^\d{4}$/.test(String(qs.vy || "")) ? String(qs.vy) : "",
+    mk: s(qs.vmk, 40), md: s(qs.vmd, 40), t: s(qs.t, 60),
+    b: String(qs.b || "").trim().toLowerCase().slice(0, 80),
+    page: Math.max(0, Math.min(200, Number(qs.page) || 0)),
+  };
 }
 
-/* null for a page without fitment; else the row test and the answer. */
-export function fitMatcher(key, v, roots) {
-  if (!FIT_DEPTS.has(key)) return null;
+export function answerFit(qs, roots) {
   const F = loadFitment(roots);
-  if (!F) return null;
-  const on = active(v);
-  const fvOf = (p) => F.fits.get(keyOf(p.retailer, p.title)) || null;
-  const vOk = (x, skip) => (skip === "y" || !v.y || x.y === v.y) && (skip === "mk" || !v.mk || x.mk === v.mk) && (skip === "md" || !v.md || x.md === v.md);
-  const fitsV = (p, skip) => {
-    const fv = fvOf(p);
-    if (!fv) return false;
-    for (const i of fv) if (vOk(F.vehicles[i], skip)) return true;
+  if (!F) return { status: 500, body: { error: "Sin datos de compatibilidad." } };
+  const f = readFit(qs);
+  const on = !!(f.y || f.mk || f.md);
+  const vOk = (x, skip) => (skip === "y" || !f.y || x.y === f.y) && (skip === "mk" || !f.mk || x.mk === f.mk) && (skip === "md" || !f.md || x.md === f.md);
+  const fits = (r, skip) => {
+    if (!r.fv) return false;
+    for (const i of r.fv) if (vOk(F.vehicles[i], skip)) return true;
     return false;
   };
-  return {
-    on,
-    /* In the view: no vehicle -> the department as it was; a vehicle -> what fits it. */
-    ok: (p) => (on ? fitsV(p) : !p.xfit),
-    /* rows: the engine's rows; others(r): r passes every filter but the vehicle. */
-    answer(rows, others, card) {
-      const base = rows.filter(others);
-      const count = (field, skip, label) => {
-        const n = new Map();
-        for (const r of base) {
-          const fv = fvOf(r.p);
-          if (!fv) continue;
-          const seen = new Set();
-          for (const i of fv) {
-            const x = F.vehicles[i];
-            if (!vOk(x, skip) || seen.has(x[field])) continue;
-            seen.add(x[field]);
-            const o = n.get(x[field]) || [x[field], label(x), 0];
-            o[2]++; n.set(x[field], o);
-          }
-        }
-        return [...n.values()];
-      };
-      const alpha = (a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0);
-      const y = count("y", "y", (x) => x.y).sort((a, b) => Number(b[0]) - Number(a[0]));
-      const mk = count("mk", "mk", (x) => x.mkL).sort(alpha);
-      /* A model is picked within a make. */
-      const md = v.mk ? count("md", "md", (x) => x.mdL).sort(alpha) : [];
-      const label = (list, k) => ((list.find((o) => o[0] === k) || [])[1]) || "";
-      const out = {
-        v: { y: v.y, mk: v.mk, md: v.md, mkL: label(mk, v.mk), mdL: label(md, v.md) },
-        facets: { y, mk, md },
-        /* how many of the products under the other filters carry vehicle data */
-        withData: base.filter((r) => fvOf(r.p)).length,
-        all: base.length,
-      };
-      if (on) {
-        const none = photosFirst(base.filter((r) => !fvOf(r.p)).map((r) => r.p));
-        out.none = { count: none.length, cards: none.slice(0, NONE_CARDS).map(card) };
+  /* In the view: the parts whose data says they fit the vehicle (with no
+     vehicle yet: every part that has vehicle data). */
+  const other = (r, skip) => (skip === "t" || !f.t || (r.t && r.t.k === f.t)) && (skip === "b" || !f.b || r.bk === f.b);
+  const match = (r, skip) => other(r, skip) && fits(r, skip);
+  const tally = (skip, keysOf) => {
+    const n = new Map();
+    for (const r of F.rows) {
+      if (!match(r, skip)) continue;
+      for (const [k, label] of keysOf(r)) {
+        if (!k) continue;
+        const o = n.get(k) || [k, label, 0];
+        o[2]++; n.set(k, o);
       }
-      return out;
-    },
+    }
+    return [...n.values()];
   };
+  const vKeys = (field, skip) => (r) => {
+    const out = new Map();
+    for (const i of r.fv || []) { const x = F.vehicles[i]; if (vOk(x, skip)) out.set(x[field], [x[field], field === "y" ? x.y : field === "mk" ? x.mkL : x.mdL]); }
+    return [...out.values()];
+  };
+  const byN = (a, b) => (b[2] - a[2]) || (a[1] < b[1] ? -1 : 1);
+  const alpha = (a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0);
+  const facets = {
+    t: tally("t", (r) => [[r.t && r.t.k, r.t && r.t.label]]).sort(byN),
+    b: tally("b", (r) => [[r.bk, String(r.p.brand || "").trim()]]).sort(byN),
+    y: tally("y", vKeys("y", "y")).sort((a, b) => Number(b[0]) - Number(a[0])),
+    mk: tally("mk", vKeys("mk", "mk")).sort(alpha),
+    /* a model is picked within a make */
+    md: f.mk ? tally("md", vKeys("md", "md")).sort(alpha) : [],
+  };
+  const label = (list, k) => ((list.find((o) => o[0] === k) || [])[1]) || "";
+  const hits = photosFirst(F.rows.filter((r) => match(r)).map((r, i) => ({ r, i }))
+    .sort((a, b) => ((b.r.p.salePct || 0) - (a.r.p.salePct || 0)) || (a.i - b.i)).map((x) => x.r.p));
+  const body = {
+    v: { y: f.y, mk: f.mk, md: f.md, mkL: label(facets.mk, f.mk), mdL: label(facets.md, f.md) },
+    f: { t: f.t, b: f.b }, tl: label(facets.t, f.t), bl: label(facets.b, f.b),
+    count: on ? hits.length : 0, page: f.page, pages: on ? Math.ceil(hits.length / PAGE) : 0,
+    cards: on ? hits.slice(f.page * PAGE, (f.page + 1) * PAGE).map(cardOf) : [],
+    facets,
+    /* how many of the products under the part filters carry vehicle data */
+    withData: F.rows.filter((r) => other(r) && r.fv).length,
+    all: F.rows.filter((r) => other(r)).length,
+  };
+  if (on) {
+    const none = photosFirst(F.rows.filter((r) => other(r) && !r.fv).map((r) => r.p));
+    body.none = { count: none.length, cards: f.page ? [] : none.slice(0, PAGE).map(cardOf) };
+  }
+  return { status: 200, body };
 }
