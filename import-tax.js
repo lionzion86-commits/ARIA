@@ -36,7 +36,8 @@
    request per 50 lines).
 
    WHAT THE LINE NEVER SHOWS: the dutiable value or the rate. Only the
-   amount, soles first ("+ S/ 120.50 IMP"); dollars only without a rate.
+   amount, in soles ("+ S/ 120.50 IMP"); never dollars (#443 c.6629812301):
+   until a rate is known it reads "+ S/ … IMP" and fills when one lands.
 
    SHAPE. A plain script (no import/export), like /not-sold.js: pages load
    it with <script src="/import-tax.js"> before they draw a card; ES
@@ -109,17 +110,116 @@
   }
 
   /* ---------------- the line ---------------- */
+  var state = { fx: 0, kg: {}, pending: {}, queue: [], timer: null, mo: null, started: false, fxWait: null };
+  /* ---------------- the rate: soles, always (#443 c.6629812301) ----------------
+     Danny: "we only show soles. Then we show the import underneath." A
+     card never falls back to dollars. The rate comes from, in order:
+       1. the site's 24-hour cache (aria_fx_rate_v1, the key every page writes);
+       2. /.netlify/functions/exchange-rate (SUNAT, or its last good rate);
+       3. the last rate this browser saw, up to STALE_MAX old -- a real SUNAT
+          rate, a few days old, for the card only (checkout asks afresh);
+     and with none of them the price row keeps its placeholder while the rate
+     is asked for again (RETRY_MS), never a dollar figure in its place.
+     Every page asks through AriaImportTax.fx, so one request serves the
+     page and its IMP lines. */
   var FX_KEY = 'aria_fx_rate_v1', FX_TTL = 24 * 60 * 60 * 1000;
-  function fxRate() {
+  var FX_STALE_MAX = 14 * 24 * 60 * 60 * 1000;
+  var FX_TIMEOUT_MS = 8000;
+  var FX_RETRY_MS = [4000, 8000, 15000, 30000, 60000, 120000];
+  function fxCached(maxAge) {
     try {
       var c = JSON.parse(root.localStorage.getItem(FX_KEY) || 'null');
-      if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - c.fetchedAt < FX_TTL) return c.venta;
+      if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - (Number(c.fetchedAt) || 0) < maxAge) return c.venta;
     } catch (e) {}
-    return state.fx > 0 ? state.fx : 0;
+    return 0;
+  }
+  function fxRate() {
+    return fxCached(FX_TTL) || (state.fx > 0 ? state.fx : 0);
+  }
+  var fxSubs = [], fxPromise = null, fxTry = 0;
+  function fxSet(v) {
+    if (!(v > 0)) return;
+    var was = state.fx;
+    state.fx = v;
+    if (was === v) return;
+    paintSlots();
+    for (var i = 0; i < fxSubs.length; i++) { try { fxSubs[i](v); } catch (e) {} }
+  }
+  /* A price drawn before any rate was known: a soles placeholder that
+     fills itself when one lands (fx.slot). */
+  function paintSlots() {
+    if (!root.document) return;
+    var els = root.document.querySelectorAll('[data-soles-usd]');
+    for (var i = 0; i < els.length; i++) {
+      var t = fmtSoles(els[i].getAttribute('data-soles-usd'));
+      if (t && els[i].textContent !== t) els[i].textContent = t;
+    }
+  }
+  function slotHTML(usd, opts) {
+    var o = opts || {};
+    var tag = o.tag === 'div' ? 'div' : 'span';
+    var n = Number(usd);
+    if (!isFinite(n)) return '';
+    if (!state.fxWait) waitForFx();
+    return '<' + tag + (o.cls ? ' class="' + esc(o.cls) + '"' : '') + (o.style ? ' style="' + esc(o.style) + '"' : '')
+      + ' data-soles-usd="' + r2(n) + '">' + esc(fmtSoles(n) || 'S/ \u2026') + '</' + tag + '>';
+  }
+  function fxAsk() {
+    if (typeof root.fetch !== 'function') return Promise.resolve(0);
+    return new Promise(function (done) {
+      var t = setTimeout(function () { done(0); }, FX_TIMEOUT_MS);
+      try {
+        root.fetch('/.netlify/functions/exchange-rate')
+          .then(function (r) { return r.json().then(function (d) { return r.ok ? d : null; }); })
+          .then(function (d) {
+            clearTimeout(t);
+            if (!(d && typeof d.venta === 'number' && d.venta > 0)) return done(0);
+            /* A stored (stale) answer from the function is not cached as today's. */
+            if (!d.stale) { try { root.localStorage.setItem(FX_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); } catch (e) {} }
+            done(d.venta);
+          }, function () { clearTimeout(t); done(0); });
+      } catch (e) { clearTimeout(t); done(0); }
+    });
+  }
+  function fxRetry() {
+    var wait = FX_RETRY_MS[Math.min(fxTry++, FX_RETRY_MS.length - 1)];
+    if (fxTry > 20) return;
+    setTimeout(function () {
+      fxAsk().then(function (v) { if (v > 0) fxSet(v); else fxRetry(); });
+    }, wait);
+  }
+  /* The rate for the cards: resolves with a number (0 only when none could
+     be had yet -- a later arrival reaches fx.on). */
+  function fxGet() {
+    var now = fxRate();
+    if (now > 0) { state.fx = now; return Promise.resolve(now); }
+    if (fxPromise) return fxPromise;
+    fxPromise = fxAsk().then(function (v) {
+      if (v > 0) { fxSet(v); return v; }
+      var stale = fxCached(FX_STALE_MAX);
+      if (stale > 0) { fxSet(stale); fxRetryFresh(); return stale; }
+      fxRetry();
+      return 0;
+    });
+    return fxPromise;
+  }
+  /* On a stale rate, one more quiet try for today's (a fresh one repaints). */
+  function fxRetryFresh() {
+    setTimeout(function () { fxAsk().then(function (v) { if (v > 0) fxSet(v); }); }, FX_RETRY_MS[2]);
+  }
+  function fxOn(cb) {
+    if (typeof cb !== 'function') return;
+    fxSubs.push(cb);
+  }
+  /* "S/ 1,234.50" at the rate; '' without one (the caller keeps its placeholder). */
+  function fmtSoles(usd, fx) {
+    var r = fx > 0 ? fx : fxRate();
+    var n = Number(usd);
+    if (!(r > 0) || !isFinite(n)) return '';
+    return 'S/ ' + r2(n * r).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function money(usd, fx) {
-    if (fx > 0) return 'S/ ' + r2(usd * fx).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return 'US$ ' + Number(usd).toFixed(2);
+    return fmtSoles(usd, fx) || 'S/ \u2026';
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
@@ -146,7 +246,6 @@
   }
 
   /* ---------------- runtime: weights and soles ---------------- */
-  var state = { fx: 0, kg: {}, pending: {}, queue: [], timer: null, mo: null, started: false, fxWait: null };
   function itemOf(el) {
     return { raw: el.getAttribute('data-imp-p'), usd: el.getAttribute('data-imp-u'), retailer: el.getAttribute('data-imp-r'), title: el.getAttribute('data-imp-t') || '' };
   }
@@ -197,22 +296,10 @@
   }
   function schedule() { if (!state.timer) state.timer = setTimeout(flush, 120); }
   function waitForFx() {
-    if (state.fxWait || fxRate() > 0) return;
-    var tries = 0;
-    /* The page asks for the rate itself and caches it under the same key;
-       read that first, and only ask once more if it never arrives. */
-    state.fxWait = setInterval(function () {
-      tries++;
-      if (fxRate() > 0) { clearInterval(state.fxWait); paintAll(); return; }
-      if (tries === 10) {
-        try {
-          root.fetch('/.netlify/functions/exchange-rate').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-            if (d && typeof d.venta === 'number' && d.venta > 0) state.fx = d.venta;
-          }, function () {});
-        } catch (e) {}
-      }
-      if (tries >= 40) clearInterval(state.fxWait);
-    }, 300);
+    if (state.fxWait) return;
+    state.fxWait = true;
+    fxOn(function () { paintAll(); });
+    fxGet().then(function (v) { if (v > 0) paintAll(); });
   }
   function ensureRuntime() {
     if (state.started || !root.document || typeof root.fetch !== 'function') return;
@@ -250,6 +337,12 @@
     PRE_PRICED: PRE_PRICED, TAX_EXEMPT: TAX_EXEMPT,
     importTaxEstimateUsd: importTaxEstimateUsd, rawFromTieredMarked: rawFromTieredMarked,
     salesTaxRate: salesTaxRate, dutiableOf: dutiableOf, cardImpUsd: cardImpUsd,
-    lineHTML: lineHTML, refresh: function () { if (root.document) { ensureRuntime(); schedule(); } }
+    lineHTML: lineHTML, refresh: function () { if (root.document) { ensureRuntime(); schedule(); } },
+    /* The page's rate (see "the rate" above): fx.get() -> Promise<number>,
+       fx.now() -> number or 0, fx.on(cb) -> cb(rate) on every later rate,
+       fx.soles(usd) -> "S/ 1,234.50" or '' without a rate,
+       fx.slot(usd, {tag, cls, style}) -> that price as markup, a «S/ …»
+       placeholder until a rate lands and then filled in place. */
+    fx: Object.freeze({ get: fxGet, now: fxRate, on: fxOn, soles: fmtSoles, slot: slotHTML })
   });
 })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));

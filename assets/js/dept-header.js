@@ -53,6 +53,7 @@
   var AXES = [['tipo', 'Por tipo'], ['marca', 'Por marca'], ['tienda', 'Por tienda']];
   var AUD = null;            // the department's switch (from the static head)
   var LAST_U = null;         // the audience the axes / explore were drawn for
+  var LAST_B = null;         // the brand pill Explorar todo was narrowed to
 
   /* ---------- the bar under the hero: switch + jump ---------- */
   var hero = document.getElementById('deptHero');
@@ -105,12 +106,25 @@
   }
 
   /* ---------- the audience switch ---------- */
+  /* AUDN: the switch's counts under the page's other selections (a brand
+     pill, a type...), from the department's answer; null on the landing.
+     THE SELECTIONS STACK (#443 c.6629785432, the Diseñador filter parity):
+     «Miu Miu» chosen, Hombre counts Miu Miu's men's pieces, and an
+     audience the selection leaves empty is not offered (no zero path). */
+  var AUDN = null;
   function paintAud(){
     var nav = document.getElementById('dhAud');
     if (!AUD || AUD.length < 2){ nav.hidden = true; return; }
     var cur = D.audience();
+    var nOf = function(o){
+      if (!AUDN) return o.n;
+      for (var i = 0; i < AUDN.length; i++) if (AUDN[i].k === o.k) return AUDN[i].n;
+      return 0;
+    };
     nav.innerHTML = '<button type="button" data-u="" aria-pressed="' + (!cur) + '">Todo</button>'
-      + AUD.map(function(o){ return '<button type="button" data-u="' + esc(o.k) + '" aria-pressed="' + (cur === o.k) + '">' + esc(o.label) + '<small>' + num(o.n) + '</small></button>'; }).join('');
+      + AUD.filter(function(o){ return o.k === cur || nOf(o) > 0; }).map(function(o){
+        return '<button type="button" data-u="' + esc(o.k) + '" aria-pressed="' + (cur === o.k) + '">' + esc(o.label) + '<small>' + num(nOf(o)) + '</small></button>';
+      }).join('');
     nav.hidden = false;
   }
   document.getElementById('dhAud').addEventListener('click', function(e){
@@ -253,6 +267,7 @@
   /* ---------- every head the page draws ---------- */
   D.onHead(function(head, filtered){
     if (head && head.aud && !AUD) AUD = head.aud;
+    AUDN = head && head.audn ? head.audn : null;
     if (!AUD && !filtered && head && !head.aud) AUD = [];
     if (AUD === null){
       /* Opened already filtered: the switch comes from the static head. */
@@ -261,6 +276,14 @@
     }
     paintStats(head);
     paintAud();
+    /* A new brand pill narrows Explorar todo to it, as the audience does
+       (#443 c.6629785432): the page's selections and Explorar todo's stack. */
+    var brand = D.brand ? String(D.brand() || '').trim().toLowerCase() : '';
+    if (LAST_B !== brand){
+      LAST_B = brand; EX.b = brand;
+      var ex0 = document.getElementById('dh-explorar');
+      if (LAST_U === String(D.audience())){ EX.drawnFor = null; if (IO){ IO.unobserve(ex0); IO.observe(ex0); } else runExplore(0); }
+    }
     /* A new audience redraws the axes and Explorar todo for it. */
     var cur = String(D.audience());
     if (LAST_U !== cur){

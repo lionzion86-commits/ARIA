@@ -1002,14 +1002,16 @@ function slPriceHTML(p){
 }
 function slPriceInner(f, wasF){
   if (!isFinite(f)) return '<div class="pen">Precio no disponible</div><div class="usd">&nbsp;</div>';
+  /* Soles only, the IMP line under them (#443 c.6629812301, Danny: "we
+     only show soles"): the crossed-out price, in soles, is the only
+     second row. Without a rate the rows hold their place -- never dollars. */
   if (fxVenta){
     return '<div class="pen">' + fmtPen(f * fxVenta) + '</div>' +
-      '<div class="usd">' + (wasF ? '<s>' + fmtPen(wasF * fxVenta) + '</s> &middot; ' : '') + 'US' + fmtUSD(f) + '</div>';
+      '<div class="usd">' + (wasF ? '<s>' + fmtPen(wasF * fxVenta) + '</s>' : '&nbsp;') + '</div>';
   }
-  return '<div class="pen">' + (fxFailed ? 'US' + fmtUSD(f) : '&nbsp;') + '</div><div class="usd">' +
-    (fxFailed && wasF ? '<s>US' + fmtUSD(wasF) + '</s>' : '&nbsp;') + '</div>';
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  return '<div class="pen">' + (F ? F.slot(f) : '&nbsp;') + '</div><div class="usd">&nbsp;</div>';
 }
-var fxFailed = false;
 function renderSlPrices(){
   var els = document.querySelectorAll('.sl .card-prices[data-usd]');
   for (var i = 0; i < els.length; i++){
@@ -1412,12 +1414,17 @@ function bootSliced(){
   slSkeleton();
   /* The rate the home page and search already cached, then the live one. */
   fxVenta = cachedFx();
-  fetchJson(FX_URL).then(function(j){
+  /* The shared rate (/import-tax.js AriaImportTax.fx): the live one, SUNAT's
+     last good one, then a retry -- a late rate repaints the prices. */
+  var FXS = window.AriaImportTax && window.AriaImportTax.fx;
+  if (FXS){
+    FXS.on(function(v){ fxVenta = v; renderSlPrices(); });
+    FXS.get().then(function(v){ if (v > 0 && v !== fxVenta){ fxVenta = v; renderSlPrices(); } });
+  } else fetchJson(FX_URL).then(function(j){
     var v = Number(j && (j.venta || j.Venta));
     if (Number.isFinite(v) && v > 0){ fxVenta = v; storeFx(v); }
-    else if (!fxVenta) fxFailed = true;
     renderSlPrices();
-  }, function(){ if (!fxVenta){ fxFailed = true; renderSlPrices(); } });
+  }, function(){});
   fetchJson(BASE + sliceDir() + 'index.json').then(function(j){
     slIndex = j;
     if (!j || !j.count){ renderNoCatalog(); loadHeroPhoto(); return; }

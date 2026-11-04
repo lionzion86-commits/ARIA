@@ -419,7 +419,9 @@ function renderInvite(){
    «Ver más» opens that product's store inside Aria
    (tienda.html?tienda=<key>), never a retailer's site. */
 function onSale(store){ try { return !(window.AriaOffSale && window.AriaOffSale.isOffSaleRetailer(store)); } catch (e) { return true; } }
-function cardPrice(usd){ return fx ? pen(usd * fx) : 'US$ ' + Number(usd).toFixed(2); }
+/* Soles only (#443 c.6629812301); without a rate, a soles placeholder
+   that /import-tax.js fills when one lands -- never dollars. */
+function cardPrice(usd){ return fx ? pen(usd * fx) : (window.AriaImportTax ? AriaImportTax.fx.slot(usd) : 'S/ \u2026'); }
 function pickHTML(c){
   var href = '/tienda.html?tienda=' + encodeURIComponent(String(c.store || '').toLowerCase());
   return '<a class="pick" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +

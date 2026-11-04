@@ -1420,7 +1420,8 @@ function cardImgAttrs(url, sizes){
       throw new Error(data.error || 'No se pudo obtener el tipo de cambio');
     }
     const withTimestamp = { ...data, fetchedAt: Date.now() };
-    try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(withTimestamp)); } catch { /* storage full/unavailable — non-fatal, just won't cache */ }
+    /* A stored (stale) SUNAT rate is shown, never cached as today's. */
+    if (!data.stale) { try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(withTimestamp)); } catch { /* storage full/unavailable — non-fatal, just won't cache */ } }
     return withTimestamp;
   }
 
@@ -1429,7 +1430,7 @@ function cardImgAttrs(url, sizes){
       fxRates = await loadFxRates();
       fxCompra.textContent = pen.format(fxRates.compra);
       fxVenta.textContent = pen.format(fxRates.venta);
-      fxOrigen.textContent = fxRates.origen ? `(${fxRates.origen})` : '';
+      fxOrigen.textContent = fxRates.origen ? `(${fxRates.origen}${fxRates.stale && fxRates.fecha ? ', ' + fxRates.fecha : ''})` : '';
       fxRatesWrap.hidden = false;
     } catch (err) {
       // No real rate available — leave fxRates null. renderSummary falls
