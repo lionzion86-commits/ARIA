@@ -21,7 +21,45 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
-export const PAGES = ["index.html", "ofertas.html"];
+/* MOSAIC EVERYWHERE (#443 c.6636742648, scope pin c.6636752661): the
+   mosaic is the site-wide backdrop. Every listing page also gets the tile
+   as its page field (FIELD, below) plus its own ink rules (PAGE_INK), so
+   the text that sat on the old white reads navy on the mosaic. Product
+   cards, photo heroes, navy bands and themed pages (flagship stores, the
+   perfume room) keep their own backgrounds: the field rule carries no
+   !important and is weaker than any class-scoped background. */
+export const PAGES = ["index.html", "ofertas.html", "tienda.html", "departamento.html", "categorias.html", "tiendas.html", "search.html", "marca.html", "motos.html", "auto.html"];
+const FIELD_SEL = "html body";
+/* Danny named the perfume room too: its cream field (body.lux-perfumes)
+   takes the mosaic; its dark photo hero stays. */
+const FIELD_EXTRA = { "departamento.html": ",html body.lux-perfumes" };
+/* Navy ink for what now sits on the mosaic (the #659/#662 treatment):
+   muted grey turns slate navy, small blue links turn a deeper blue, the
+   gold word in a page title turns dark champagne. Scoped "html body ..."
+   so it outranks the runtime header styles (dept-header.js, nav-filter.js)
+   but not a themed page's own class rules (html.store-flagship ...,
+   body.lux-perfumes ..., .nf-dark ...). Product cards are never named. */
+const MUTE = "#3A4A6B", LINK = "#1E3FAE", GOLD_INK = "#7A5A12";
+const on = (sels) => sels.split(",").map((x) => "html body " + x.trim()).join(",");
+const DEPT_LIKE = `${on(".count,.dh-sec>h2,.dh-sec .dh-note,.dh-count,.dh-empty,.re-more,.state p,.nf-count,.nf-msg,.tp-row .tp-lead,footer")}{color:${MUTE}}
+${on("footer a,.rail-head .ver-todo,.lens-head a")}{color:${LINK}}`;
+const DIRECTORY = `${on("main")}{--muted:${MUTE};--gold:${GOLD_INK}}
+${on(".store-card")}{background:#fff}`;
+const LISTING = `${on("#status,#meta-line,.search-hero p,.fc-sub,.lane-n,.ch-head p,.empty,.re-more,.nf-count,.nf-msg,.tp-row .tp-lead")}{color:${MUTE}}
+${on("#status .ok")}{color:#0F6B34}`;
+export const PAGE_INK = {
+  "ofertas.html": "",
+  "tienda.html": `${on(".count-line,.nf-count,.nf-msg,.tp-row .tp-lead,.footer-inner")}{color:${MUTE}}
+${on(".site-footer")}{background:transparent}
+${on(".rail-ver,.site-footer a")}{color:${LINK}}`,
+  "departamento.html": DEPT_LIKE,
+  "motos.html": DEPT_LIKE,
+  "categorias.html": DIRECTORY,
+  "tiendas.html": DIRECTORY,
+  "search.html": LISTING,
+  "marca.html": LISTING,
+  "auto.html": `${on(".note")}{color:${MUTE}}`,
+};
 export const GROUT = "#CEDAE8";
 export const TILES = ["#C4D4E6", "#D2E0F0", "#B2C6E0", "#DEE9F6", "#BCCEE8", "#A8BEDC", "#E9F0F8", "#C8D6EA"];
 export const GOLD = "#D8C08A";
@@ -84,19 +122,27 @@ export const mosaicSvgs = () => LAYERS.map((l) => svgOf(layerGrid(l.name), l.nam
 const uri = (svg) => "data:image/svg+xml," + svg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23");
 export const mosaicDataUris = () => mosaicSvgs().map(uri);
 
-export function mosaicCss() {
+export function mosaicCss(page) {
   const sizes = LAYERS.map((l) => `${l.n * CELL}px ${l.n * CELL}px`).join(",");
+  const ink = page && PAGE_INK[page];
   return `/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */\n` +
     `:root{--aria-mosaic:${mosaicDataUris().map((u) => `url("${u}")`).join(",")}}\n` +
     `.ariaMosaic{background-color:${GROUT} !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:${sizes} !important;background-position:0 0 !important}\n` +
+    (ink != null ? `${FIELD_SEL}${FIELD_EXTRA[page] || ""}{background-color:${GROUT};background-image:var(--aria-mosaic);background-repeat:repeat;background-size:${sizes};background-position:0 0}\n` + (ink ? ink.trim() + "\n" : "") : "") +
     `/* aria-mosaic:end */`;
 }
 
 const RE = /\/\* aria-mosaic:start[\s\S]*?\/\* aria-mosaic:end \*\//;
-export function applyTo(text) {
+export function applyTo(text, page) {
   const crlf = text.includes("\r\n");
-  const block = crlf ? mosaicCss().replace(/\n/g, "\r\n") : mosaicCss();
-  if (!RE.test(text)) throw new Error("aria-mosaic markers missing");
+  const block = crlf ? mosaicCss(page).replace(/\n/g, "\r\n") : mosaicCss(page);
+  if (!RE.test(text)) {
+    /* A listing page gets its own <style id="aria-mosaic-css"> just before
+       </head>, outside the header generators' style blocks. */
+    if (!page || PAGE_INK[page] == null || !text.includes("</head>")) throw new Error("aria-mosaic markers missing");
+    const eol = crlf ? "\r\n" : "\n";
+    return text.replace("</head>", () => `<style id="aria-mosaic-css">${eol}${block}${eol}</style>${eol}</head>`);
+  }
   return text.replace(RE, () => block);
 }
 
@@ -104,7 +150,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const check = process.argv.includes("--check");
   let stale = 0;
   for (const p of PAGES) {
-    const f = join(ROOT, p), before = readFileSync(f, "latin1"), after = applyTo(before);
+    const f = join(ROOT, p), before = readFileSync(f, "latin1"), after = applyTo(before, p);
     if (before !== after) { stale++; if (!check) writeFileSync(f, after, "latin1"); }
     console.log(`${p}: ${before === after ? "up to date" : check ? "STALE" : "written"}`);
   }
