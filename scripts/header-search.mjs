@@ -184,10 +184,30 @@ function syncCart(src, eol, f) {
   return out;
 }
 
+/* ==================================================================
+   «← REGRESAR», ON EVERY PAGE THAT RENDERS CARDS (#443 c.6641939238).
+   assets/js/regresar.js (defer) writes the origin down at the card tap
+   and puts it back on the way home; producto.html carries the pill. The
+   tag goes right after card-grow.js (every carousel page loads it), or
+   before </head>; --check fails while a page lacks it.
+   ================================================================== */
+export const RG_PAGES = [
+  "index.html", "tienda.html", "marca.html", "departamento.html", "search.html", "producto.html",
+  "ofertas.html", "disenadores.html", "ropa-interior.html",
+];
+export const RG_SCRIPT = '<script src="/assets/js/regresar.js" defer></script>';
+
+function syncRegresar(src, eol) {
+  if (src.includes(RG_SCRIPT)) return src;
+  const grow = '<script src="/assets/js/card-grow.js" defer></script>';
+  if (src.includes(grow)) return src.replace(grow, (m) => m + eol + RG_SCRIPT);
+  return src.replace("</head>", () => RG_SCRIPT + eol + "</head>");
+}
+
 /* Rewrites (or checks) the inline copies; returns the stale pages. */
 export function syncPages({ write = false } = {}) {
   const stale = [];
-  for (const f of [...HS_PAGES, ...Object.keys(HC_SLOT_PAGES)]) {
+  for (const f of [...new Set([...HS_PAGES, ...Object.keys(HC_SLOT_PAGES), ...RG_PAGES])]) {
     const p = join(ROOT, f);
     const src = readFileSync(p, "utf8");
     const eol = src.includes("\r\n") ? "\r\n" : "\n";
@@ -198,6 +218,7 @@ export function syncPages({ write = false } = {}) {
     if (HC_PAGES.includes(f)) {
       try { out = syncCart(out, eol, f); } catch (e) { throw new Error(f + ": " + e.message); }
     }
+    if (RG_PAGES.includes(f)) out = syncRegresar(out, eol);
     if (out !== src) { stale.push(f); if (write) writeFileSync(p, out); }
   }
   return stale;

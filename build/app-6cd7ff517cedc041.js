@@ -20654,6 +20654,11 @@ function goBack(){
   // On a deep link (nothing of ours in the stack) fall back to the view
   // we came from rather than throwing the visitor off the site.
   if (routeDepth > 0){ history.back(); return; }
+  /* Nothing of ours behind it (a shared link, #443 c.6641939238): the
+     product's type section, never a dead end (/assets/js/regresar.js). */
+  const p = pendingProduct;
+  if (p && window.AriaRegresar && AriaRegresar.fallback({ name: p.name, retailer: p.retailer, brand: p.brand,
+    fam: latinoProductTypeOfItem({ name: p.name, retailer: p.retailer, brand: p.brand }) })) return;
   showPage(pendingProduct?.returnView || 'homeView');
 }
 
