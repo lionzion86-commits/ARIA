@@ -938,6 +938,24 @@ export function equivalentQuery(ctx, q) {
     const W = worldAnswer(ctx, cw);
     if (W.hits.length) out = { state: "results", query: (out && out.query) || q, kinds: ["brand"], hits: W.hits, _world: W };
   }
+  /* A PHRASE THE CATALOGUE WRITES IS NOT A MISSPELLED BRAND (class 2):
+     «air max» (170 titles carry it, side by side) was joined by the
+     engine into "airmax", one edit from the hair-laser brand Hairmax, and
+     the answer was two hair-growth caps. When the whole answer is one
+     brand the query does not name, and the query's words are a phrase
+     PHRASE_MIN titles of other brands carry, the answer is the products
+     carrying that phrase. */
+  if (out && out.state === "results" && !cw) {
+    const qt = ctx.S.searchTokens(q);
+    const bs = new Set(out.hits.slice(0, 50).map((p) => brandKey(p.brand)));
+    const [only] = bs;
+    if (qt.length >= 2 && qt.length <= 4 && bs.size === 1 && only && !qt.some((t) => only.split(" ").includes(t)) && pairCount(ctx, ...qt) >= PHRASE_MIN) {
+      const carry = (p) => { const t = ctx.S.searchTokens(String(p.title || "")); for (let k = 0; k + qt.length <= t.length; k++) if (qt.every((w, m) => t[k + m] === w)) return true; return false; };
+      const W = windexOf(ctx), small = qt.map((t) => W.get(t) || []).sort((x, y) => x.length - y.length)[0];
+      const hits = small.filter((p) => p.image && carry(p)).sort((x, y) => (Number(y.reviews) || 0) - (Number(x.reviews) || 0));
+      if (hits.length >= PHRASE_MIN) out = { state: "results", query: q, kinds: ["phrase"], hits: hits.slice(0, ctx.resultLimit || hits.length) };
+    }
+  }
   /* A type's answer is exactly its products (typeAnswer). */
   const tw = !cw && typeWorldOf(q);
   if (tw && (!out || out.state !== "error")) {
@@ -1149,8 +1167,75 @@ export function canonicalTokens(ctx, q) {
   }
   /* 5. every word for one idea, English or Spanish: its concept's word
      (again: a word step 4 joined or parted). 6. one brand, one name
-     (foldSubBrands). */
-  return foldAliasTokens(ctx, conceptTokens(ctx, res));
+     (foldSubBrands). 7. a model in the plural is the model; a model's
+     initials are the model (modelForms). */
+  const done = modelForms(ctx, foldAliasTokens(ctx, conceptTokens(ctx, res)));
+  if (typed) { const t2 = typeWorldOf(done.join(" ")); if (!t2 || t2.type.id !== typed.type.id) return out; }
+  return done;
+}
+/* ONE MODEL, ONE FORM (#443 c.6621646383, class 2: «sambas» found a
+   Samba perfume, «gazelles» Gameness jackets, «superstars» a serum set,
+   «af1» skate hardware). By rule, from the catalogue's own counts:
+     - a plural is its singular when the catalogue writes the singular
+       PLURAL_RATIO times as often and at least PLURAL_MIN times
+       («sambas» -> "samba", «gazelles» -> "gazelle», «carters» ->
+       "carter", the Carter's brand) -- a dictionary word (Spanish) is
+       never touched («carteras» stays handbags), and a plural the
+       catalogue writes as often stays («jeans», «boots»);
+     - two or three letters before a number are a model's initials when
+       the catalogue writes one word pair with those initials before that
+       number more often than the initials themselves, and INITIALS_RATIO
+       times as often as the initials apart («af1» -> "air force 1": 145
+       titles write it, 94 write "af1"). */
+const PHRASE_MIN = 3;
+const PLURAL_RATIO = 3, PLURAL_MIN = 10, INITIALS_RATIO = 3, INITIALS_MIN = 10;
+function initialsTable(ctx) {
+  if (ctx._initials) return ctx._initials;
+  const m = new Map();
+  for (const p of ctx.products) {
+    const t = ctx.S.searchTokens(String(p.title || ""));
+    const seen = new Set();
+    for (let i = 0; i + 2 < t.length; i++) {
+      const a = t[i], b = t[i + 1], n = t[i + 2];
+      if (!/^\d{1,2}$/.test(n) || !/^[a-z]{2,}$/.test(a) || !/^[a-z]{2,}$/.test(b)) continue;
+      const key = a[0] + b[0] + "|" + n, ph = a + " " + b + " " + n;
+      if (seen.has(ph)) continue;
+      seen.add(ph);
+      if (!m.has(key)) m.set(key, new Map());
+      m.get(key).set(ph, (m.get(key).get(ph) || 0) + 1);
+    }
+  }
+  return (ctx._initials = m);
+}
+function modelForms(ctx, toks) {
+  const dict = dictWords(ctx), C = conceptTable(ctx);
+  const out = [];
+  toks = toks.flatMap((t) => { const m = /^([a-z]{2})(\d{1,2})$/.exec(t); return m ? [m[1], m[2], "\u0000" + t] : [t]; });
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i], n = toks[i + 1];
+    if (t[0] === "\u0000") continue;
+    if (/^[a-z]{2}$/.test(t) && n && /^\d{1,2}$/.test(n) && !dict.has(t)) {
+      const joinedForm = toks[i + 2] && toks[i + 2][0] === "\u0000" ? toks[i + 2].slice(1) : null;
+      const ph = initialsTable(ctx).get(t + "|" + n);
+      if (ph) {
+        const [best, c] = [...ph.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (c >= INITIALS_MIN && c >= INITIALS_RATIO * pairCount(ctx, t, n) && c >= wfreq(ctx, t + n)) { out.push(...best.split(" ")); i += joinedForm ? 2 : 1; continue; }
+      }
+      /* Not initials: the word as it was. */
+      if (joinedForm) { out.push(joinedForm); i += 2; continue; }
+    }
+    /* A model's letter run on into its name: «galaxys24» is "galaxy s24". */
+    if (/^[a-z]{4,}$/.test(t) && n && /^\d{1,3}$/.test(n) && wfreq(ctx, t) < 3 && wfreq(ctx, t.slice(0, -1)) >= PLURAL_MIN && pairCount(ctx, t.slice(0, -1), t.slice(-1) + n) >= 2) {
+      out.push(t.slice(0, -1), t.slice(-1) + n); i++; continue;
+    }
+    if (/^[a-z]{4,}s$/.test(t) && !dict.has(t) && !C.map.has(t) && !C.nameWords.has(t) && !storeNames(ctx).has(t) && !(n && /^\d/.test(n))) {
+      const one = t.endsWith("es") && wfreq(ctx, t.slice(0, -2)) > wfreq(ctx, t.slice(0, -1)) ? t.slice(0, -2) : t.slice(0, -1);
+      const f1 = wfreq(ctx, one);
+      if (f1 >= PLURAL_MIN && f1 >= PLURAL_RATIO * wfreq(ctx, t)) { out.push(one); continue; }
+    }
+    out.push(t);
+  }
+  return out;
 }
 /** The query in its canonical form: the typed text itself when it is
     already canonical (the engine reads it exactly as before). */
