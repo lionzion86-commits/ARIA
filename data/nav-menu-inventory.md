@@ -54,7 +54,7 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Mujer | Ropa · Zapatos · Accesorios · Marcas | 17,442 |
 | Hombre | Ropa · Zapatos · Accesorios · Marcas | 12,171 |
 | Niños | Ropa · Zapatos · Marcas | 1,922 |
-| Zapatos | Mujer · Hombre · Niños · Marcas | 10,700 |
+| Zapatos | Mujer · Hombre · Niños · Marcas | 11,046 |
 | Belleza | Tipos · Aria Perfumes · Cabello · Marcas | 5,681 |
 | Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,398 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas | 21,620 |
@@ -129,12 +129,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Zapatos
 
-- Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatillas: 3,138 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Zapatos: 778 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatos: 1,048 · `/departamento.html?dept=shoes&t=zapatos&para=women`
 - Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
-- Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
+- Chimpunes: 510 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
 ### Accesorios
@@ -912,11 +912,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Zapatos
 
-- Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,325 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 1,150 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
 - Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
-- Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
+- Chimpunes: 508 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 
 ### Accesorios
@@ -1368,10 +1368,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Zapatos
 
-- Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatillas: 491 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
-- Zapatos: 118 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatos: 157 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Sandalias: 113 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
@@ -1525,45 +1525,45 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ## Zapatos
 
-Abre: `/departamento.html?dept=shoes` (10,700 productos)
+Abre: `/departamento.html?dept=shoes` (11,046 productos)
 
 ### Mujer
 
-- Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatillas: 3,138 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Zapatos: 778 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatos: 1,048 · `/departamento.html?dept=shoes&t=zapatos&para=women`
 - Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
-- Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
+- Chimpunes: 510 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
 ### Hombre
 
-- Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,325 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 1,150 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
 - Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
-- Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
+- Chimpunes: 508 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 
 ### Niños
 
-- Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatillas: 491 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
-- Zapatos: 118 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatos: 157 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Sandalias: 113 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (481 marcas)
+### Marcas (483 marcas)
 
-- Nike: 911 · `/departamento.html?dept=shoes&b=Nike`
-- adidas: 683 · `/departamento.html?dept=shoes&b=adidas`
-- New Balance: 565 · `/departamento.html?dept=shoes&b=New%20Balance`
+- Nike: 1,014 · `/departamento.html?dept=shoes&b=Nike`
+- adidas: 692 · `/departamento.html?dept=shoes&b=adidas`
+- New Balance: 577 · `/departamento.html?dept=shoes&b=New%20Balance`
+- Vans: 485 · `/departamento.html?dept=shoes&b=Vans`
 - Crocs: 458 · `/departamento.html?dept=shoes&b=Crocs`
-- Vans: 332 · `/departamento.html?dept=shoes&b=Vans`
-- Reef: 319 · `/departamento.html?dept=shoes&b=Reef`
+- Reef: 320 · `/departamento.html?dept=shoes&b=Reef`
 - Golden Goose: 306 · `/departamento.html?dept=shoes&b=Golden%20Goose`
 - JW PEI: 286 · `/departamento.html?dept=shoes&b=JW%20PEI`
 - Dolce & Gabbana: 211 · `/departamento.html?dept=shoes&b=Dolce%20%26%20Gabbana`
@@ -1574,8 +1574,8 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Miu Miu: 130 · `/departamento.html?dept=shoes&b=Miu%20Miu`
 - Skechers: 123 · `/departamento.html?dept=shoes&b=Skechers`
 - On: 115 · `/departamento.html?dept=shoes&b=On`
+- UGG: 111 · `/departamento.html?dept=shoes&b=UGG`
 - Brunello Cucinelli: 106 · `/departamento.html?dept=shoes&b=Brunello%20Cucinelli`
-- UGG: 105 · `/departamento.html?dept=shoes&b=UGG`
 - Asics: 99 · `/departamento.html?dept=shoes&b=Asics`
 - Converse: 94 · `/departamento.html?dept=shoes&b=Converse`
 - AMIRI: 84 · `/departamento.html?dept=shoes&b=AMIRI`
@@ -1584,7 +1584,8 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Saucony: 70 · `/departamento.html?dept=shoes&b=Saucony`
 - Aeyde: 67 · `/departamento.html?dept=shoes&b=Aeyde`
 - Balenciaga: 66 · `/departamento.html?dept=shoes&b=Balenciaga`
-- Rainbow Sandals: 64 · `/departamento.html?dept=shoes&b=Rainbow%20Sandals`
+- Rainbow Sandals: 65 · `/departamento.html?dept=shoes&b=Rainbow%20Sandals`
+- Reef Sandals: 64 · `/departamento.html?dept=shoes&b=Reef%20Sandals`
 - Toga Virilis: 60 · `/departamento.html?dept=shoes&b=Toga%20Virilis`
 - BOSS: 57 · `/departamento.html?dept=shoes&b=BOSS`
 - Sonoma Goods For Life: 56 · `/departamento.html?dept=shoes&b=Sonoma%20Goods%20For%20Life`
@@ -1600,9 +1601,9 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - HEREU: 46 · `/departamento.html?dept=shoes&b=HEREU`
 - Off-White: 46 · `/departamento.html?dept=shoes&b=Off-White`
 - Reebok: 46 · `/departamento.html?dept=shoes&b=Reebok`
+- Globe: 44 · `/departamento.html?dept=shoes&b=Globe`
 - Avia: 42 · `/departamento.html?dept=shoes&b=Avia`
 - Cobian: 42 · `/departamento.html?dept=shoes&b=Cobian`
-- Globe: 42 · `/departamento.html?dept=shoes&b=Globe`
 - Jimmy Choo: 42 · `/departamento.html?dept=shoes&b=Jimmy%20Choo`
 - Converse Skateboarding: 41 · `/departamento.html?dept=shoes&b=Converse%20Skateboarding`
 - Isabel Marant: 41 · `/departamento.html?dept=shoes&b=Isabel%20Marant`
@@ -1624,6 +1625,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Tony Bianco: 30 · `/departamento.html?dept=shoes&b=Tony%20Bianco`
 - Under Armour: 29 · `/departamento.html?dept=shoes&b=Under%20Armour`
 - IPath: 27 · `/departamento.html?dept=shoes&b=IPath`
+- Lakai: 27 · `/departamento.html?dept=shoes&b=Lakai`
 - MM6 Maison Margiela: 26 · `/departamento.html?dept=shoes&b=MM6%20Maison%20Margiela`
 - No Boundaries: 25 · `/departamento.html?dept=shoes&b=No%20Boundaries`
 - Valentino Garavani: 25 · `/departamento.html?dept=shoes&b=Valentino%20Garavani`
@@ -1634,7 +1636,6 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Diemme: 22 · `/departamento.html?dept=shoes&b=Diemme`
 - BY FAR: 21 · `/departamento.html?dept=shoes&b=BY%20FAR`
 - Maryam Nassir Zadeh: 21 · `/departamento.html?dept=shoes&b=Maryam%20Nassir%20Zadeh`
-- Reef Sandals: 21 · `/departamento.html?dept=shoes&b=Reef%20Sandals`
 - Ancient Greek Sandals: 20 · `/departamento.html?dept=shoes&b=Ancient%20Greek%20Sandals`
 - Paris Texas: 20 · `/departamento.html?dept=shoes&b=Paris%20Texas`
 - ALAÏA: 19 · `/departamento.html?dept=shoes&b=ALA%C3%8FA`
@@ -1664,6 +1665,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Quiksilver: 14 · `/departamento.html?dept=shoes&b=Quiksilver`
 - TOM FORD: 14 · `/departamento.html?dept=shoes&b=TOM%20FORD`
 - Chloé: 13 · `/departamento.html?dept=shoes&b=Chlo%C3%A9`
+- DC: 13 · `/departamento.html?dept=shoes&b=DC`
 - eS: 13 · `/departamento.html?dept=shoes&b=eS`
 - Givenchy: 13 · `/departamento.html?dept=shoes&b=Givenchy`
 - JUDE: 13 · `/departamento.html?dept=shoes&b=JUDE`
@@ -1677,7 +1679,6 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Alohas: 12 · `/departamento.html?dept=shoes&b=Alohas`
 - BALMAIN: 12 · `/departamento.html?dept=shoes&b=BALMAIN`
 - Hours Is Yours: 12 · `/departamento.html?dept=shoes&b=Hours%20Is%20Yours`
-- Lakai: 12 · `/departamento.html?dept=shoes&b=Lakai`
 - QSSS/FLOJOS: 12 · `/departamento.html?dept=shoes&b=QSSS%2FFLOJOS`
 - Stella McCartney: 12 · `/departamento.html?dept=shoes&b=Stella%20McCartney`
 - About Arianne: 11 · `/departamento.html?dept=shoes&b=About%20Arianne`
@@ -1719,7 +1720,6 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Brahma: 7 · `/departamento.html?dept=shoes&b=Brahma`
 - C1rca: 7 · `/departamento.html?dept=shoes&b=C1rca`
 - Charly: 7 · `/departamento.html?dept=shoes&b=Charly`
-- DC: 7 · `/departamento.html?dept=shoes&b=DC`
 - Le Monde Beryl: 7 · `/departamento.html?dept=shoes&b=Le%20Monde%20Beryl`
 - Lotto: 7 · `/departamento.html?dept=shoes&b=Lotto`
 - mfpen: 7 · `/departamento.html?dept=shoes&b=mfpen`
@@ -1810,6 +1810,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Song for the Mute: 3 · `/departamento.html?dept=shoes&b=Song%20for%20the%20Mute`
 - UGG®: 3 · `/departamento.html?dept=shoes&b=UGG%C2%AE`
 - UNDERCOVER: 3 · `/departamento.html?dept=shoes&b=UNDERCOVER`
+- Vans Girls: 3 · `/departamento.html?dept=shoes&b=Vans%20Girls`
 - VAQUERA: 3 · `/departamento.html?dept=shoes&b=VAQUERA`
 - ADQ: 2 · `/departamento.html?dept=shoes&b=ADQ`
 - ALAINPAUL: 2 · `/departamento.html?dept=shoes&b=ALAINPAUL`
@@ -1838,6 +1839,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Generic: 2 · `/departamento.html?dept=shoes&b=Generic`
 - Gonex: 2 · `/departamento.html?dept=shoes&b=Gonex`
 - Herman Survivors: 2 · `/departamento.html?dept=shoes&b=Herman%20Survivors`
+- HEYDUDE: 2 · `/departamento.html?dept=shoes&b=HEYDUDE`
 - HOKA: 2 · `/departamento.html?dept=shoes&b=HOKA`
 - Hydro Flask: 2 · `/departamento.html?dept=shoes&b=Hydro%20Flask`
 - KEVCHE: 2 · `/departamento.html?dept=shoes&b=KEVCHE`
@@ -1940,7 +1942,6 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - HAOTAGS: 1 · `/departamento.html?dept=shoes&b=HAOTAGS`
 - HARVEST LAND: 1 · `/departamento.html?dept=shoes&b=HARVEST%20LAND`
 - Her Waves: 1 · `/departamento.html?dept=shoes&b=Her%20Waves`
-- HEYDUDE: 1 · `/departamento.html?dept=shoes&b=HEYDUDE`
 - Hicooer: 1 · `/departamento.html?dept=shoes&b=Hicooer`
 - HSBDNZQ: 1 · `/departamento.html?dept=shoes&b=HSBDNZQ`
 - HTHLVMD: 1 · `/departamento.html?dept=shoes&b=HTHLVMD`
@@ -1987,6 +1988,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Obnoxi: 1 · `/departamento.html?dept=shoes&b=Obnoxi`
 - ONCAI: 1 · `/departamento.html?dept=shoes&b=ONCAI`
 - Papillio: 1 · `/departamento.html?dept=shoes&b=Papillio`
+- Parrot Surf & Skate: 1 · `/departamento.html?dept=shoes&b=Parrot%20Surf%20%26%20Skate`
 - Patara: 1 · `/departamento.html?dept=shoes&b=Patara`
 - Pejock: 1 · `/departamento.html?dept=shoes&b=Pejock`
 - Penny Sue: 1 · `/departamento.html?dept=shoes&b=Penny%20Sue`
@@ -7194,7 +7196,7 @@ Abre: `/ofertas.html` (33,505 productos)
 - Hombre: sus columnas se superponen (no suman 12,171), no muestran número de productos
 - Niños → Ropa: Accesorios (242) en Joyas y Accesorios, Carteras (14) en Carteras, Sandalias (12) en Zapatos, Lencería (6) en Lencería, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
 - Niños: sus columnas se superponen (no suman 1,922), no muestran número de productos
-- Zapatos: sus columnas se superponen (no suman 10,700), no muestran número de productos
+- Zapatos: sus columnas se superponen (no suman 11,046), no muestran número de productos
 - Belleza → Tipos: Fragancia (300) en Perfumes: cada uno vive en su propia sección
 - Belleza: sus columnas se superponen (no suman 5,681), no muestran número de productos
 - Accesorios: sus columnas se superponen (no suman 8,398), no muestran número de productos

@@ -27,6 +27,8 @@
     "census:classification": "node scripts/census-classification.mjs",
     "test:freight-misfire": "node scripts/test/freight-misfire-tests.mjs",
     "test:store-pills": "node scripts/test/store-pills-tests.mjs",
+    "test:store-audit": "node scripts/test/store-audit-tests.mjs",
+    "audit:stores": "node scripts/store-audit.mjs",
     "test:assistant-turns": "node scripts/test/assistant-turn-tests.mjs",
     "test:ofertas-feed": "node scripts/test/ofertas-feed-tests.mjs",
     "build:ofertas-feed": "node scripts/build-ofertas-feed.mjs",
