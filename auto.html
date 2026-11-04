@@ -127,6 +127,16 @@
 @media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
 </style>
 <script src="/assets/js/nav-menu.js" defer></script>
+<style id="hc-css">
+.hc{--hc-fg:#0A1F44;--hc-dot:#2456A0;--hc-dotfg:#fff;position:relative;flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border-radius:10px;color:var(--hc-fg);text-decoration:none;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.hc-dark{--hc-fg:#F4F6FB;--hc-dot:#F4C463;--hc-dotfg:#0A1F44}
+.hc:hover{text-decoration:none}
+.hc svg{display:block;flex:0 0 auto}
+.hc-n{position:absolute;top:1px;right:-1px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--hc-dot);color:var(--hc-dotfg);font-family:inherit;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-sizing:border-box}
+.hc-n[hidden]{display:none}
+.hc:focus-visible{outline:2px solid var(--hc-fg);outline-offset:1px}
+</style>
+<script src="/assets/js/header-cart.js" defer></script>
 </head>
 <body>
 
@@ -146,16 +156,20 @@
   </div>
 </div>
 
-<nav class="mainnav" aria-label="Principal">
+<!-- The page's site header (a <header>, so the cart sits in the header like every page). -->
+<header class="mainnav">
   <div class="wrap">
     <a class="brand" href="index.html">ARIA<span>SHOP</span></a>
-    <div class="navlinks">
+    <nav class="navlinks" aria-label="Principal">
       <a href="index.html">Inicio</a>
       <a href="aria-auto.html">Aria Auto</a>
-      <a href="checkout.html" id="cartLink">Carrito</a>
-    </div>
+    </nav>
+    <!-- THE CART, TOP-RIGHT ON EVERY PAGE (#443 c.6619105467): the header
+         cart (scripts/header-search.mjs) replaces the old «Carrito» text
+         link, which skipped the cart and went straight to checkout. -->
+    <!-- hc:start --><a class="hc" href="/?carrito=1" aria-label="Carrito" data-hc><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="hc-n" hidden>0</span></a><!-- hc:end -->
   </div>
-</nav>
+</header>
 
 <header class="hero">
   <div class="wrap">
@@ -556,7 +570,9 @@ function readCartLocal(){
   }catch(e){ return []; }
 }
 function saveCartLocal(c){
-  try{ localStorage.setItem(CART_KEY, JSON.stringify(c)); return true; }catch(e){ return false; }
+  try{ localStorage.setItem(CART_KEY, JSON.stringify(c)); }catch(e){ return false; }
+  if (window.ariaHeaderCart) window.ariaHeaderCart();   // the header cart's count (assets/js/header-cart.js)
+  return true;
 }
 function cartLineKey(it){ return [it.retailer || '', it.title || '', it.selectedSize || ''].join('::'); }
 function addPartToCart(it, btn){
@@ -591,18 +607,15 @@ function addPartToCart(it, btn){
   if (btn){ btn.textContent = 'Agregado'; setTimeout(function(){ btn.textContent = 'Agregar al carrito'; }, 2500); }
   renderCartLink();
 }
+/* The count lives on the header cart now (assets/js/header-cart.js). */
 function renderCartLink(){
-  var a = $('cartLink');
-  if (!a) return;
-  var n = 0;
-  readCartLocal().forEach(function(x){ n += Math.max(0, Math.floor(Number(x && x.qty) || 0)); });
-  a.textContent = n ? 'Carrito (' + n + ')' : 'Carrito';
+  if (window.ariaHeaderCart) window.ariaHeaderCart();
 }
 var toastTimer = null;
 function toast(msg, withCart){
   var t = $('toast');
   if (!t) return;
-  t.innerHTML = esc(msg) + (withCart ? ' <a href="checkout.html">Ver carrito</a>' : '');
+  t.innerHTML = esc(msg) + (withCart ? ' <a href="/?carrito=1">Ver carrito</a>' : '');
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3200);

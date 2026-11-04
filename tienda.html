@@ -304,7 +304,17 @@ html{scroll-padding-top:76px}
 @media (min-width:768px) and (max-width:1023.98px){.hs-lgpill{flex-basis:220px}.hs-lgpill .hs-pill,.hs-lgpill .hs-x{display:none}.hs-lgpill .hs-form{display:flex;flex:1 1 auto;position:static;padding:0;background:none}}
 @media (min-width:1024px){.hs-lgpill{flex:0 0 40px;margin-left:0}}
 </style>
+<style id="hc-css">
+.hc{--hc-fg:#0A1F44;--hc-dot:#2456A0;--hc-dotfg:#fff;position:relative;flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border-radius:10px;color:var(--hc-fg);text-decoration:none;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.hc-dark{--hc-fg:#F4F6FB;--hc-dot:#F4C463;--hc-dotfg:#0A1F44}
+.hc:hover{text-decoration:none}
+.hc svg{display:block;flex:0 0 auto}
+.hc-n{position:absolute;top:1px;right:-1px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--hc-dot);color:var(--hc-dotfg);font-family:inherit;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-sizing:border-box}
+.hc-n[hidden]{display:none}
+.hc:focus-visible{outline:2px solid var(--hc-fg);outline-offset:1px}
+</style>
 <script src="/assets/js/header-search.js" defer></script>
+<script src="/assets/js/header-cart.js" defer></script>
 <style id="nm-css">
 .nm{--nm-fg:#0A1F44;--nm-mute:#5B6475;--nm-line:#E4E6EC;--nm-bg:#fff;--nm-hi:#B8860B;position:relative;background:var(--nm-bg);border-top:1px solid var(--nm-line);font-family:inherit}
 .nm-dark{--nm-fg:#F4F6FB;--nm-mute:rgba(236,241,250,.8);--nm-line:rgba(255,255,255,.16);--nm-bg:#0A1F44;--nm-hi:#F4C463}
@@ -331,6 +341,7 @@ html{scroll-padding-top:76px}
     </nav>
     <div class="hs" data-hs><button type="button" class="hs-pill" aria-label="Buscar productos, marcas o tiendas" aria-expanded="false" aria-controls="hsForm"><span class="hs-pi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span class="hs-lbl">Buscar</span></span></button><form class="hs-form" id="hsForm" role="search" action="/search.html" method="get"><span class="hs-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><input class="hs-in" id="hsInput" type="search" name="q" placeholder="Buscar productos, marcas o tiendas" aria-label="Buscar productos, marcas o tiendas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="120"><button type="submit" class="hs-go" aria-label="Buscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></span><button type="button" class="hs-x" aria-label="Cerrar búsqueda"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
     <span class="header-meta">Perú · PEN</span>
+    <!-- hc:start --><a class="hc" href="/?carrito=1" aria-label="Carrito" data-hc><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="hc-n" hidden>0</span></a><!-- hc:end -->
   </div>
 <!-- nm:start -->
 <nav class="nm" data-nm aria-label="Categorías"><div class="nm-in"><a class="nm-tab" href="/departamento.html?dept=women" data-nm-tab="mujer" aria-expanded="false" aria-haspopup="true">Mujer</a><a class="nm-tab" href="/departamento.html?dept=men" data-nm-tab="hombre" aria-expanded="false" aria-haspopup="true">Hombre</a><a class="nm-tab" href="/departamento.html?dept=kids" data-nm-tab="ninos" aria-expanded="false" aria-haspopup="true">Niños</a><a class="nm-tab" href="/departamento.html?dept=shoes" data-nm-tab="zapatos" aria-expanded="false" aria-haspopup="true">Zapatos</a><a class="nm-tab" href="/departamento.html?dept=beauty" data-nm-tab="belleza" aria-expanded="false" aria-haspopup="true">Belleza</a><a class="nm-tab" href="/departamento.html?dept=joyas_accesorios" data-nm-tab="accesorios" aria-expanded="false" aria-haspopup="true">Accesorios</a><a class="nm-tab" href="/departamento.html?dept=luxury" data-nm-tab="disenador" aria-expanded="false" aria-haspopup="true">Diseñador</a><a class="nm-tab" href="/departamento.html?dept=sporting_goods" data-nm-tab="deportes" aria-expanded="false" aria-haspopup="true">Deportes</a><a class="nm-tab" href="/departamento.html?dept=curvy" data-nm-tab="tallas-plus" aria-expanded="false" aria-haspopup="true">Tallas Plus</a><a class="nm-tab" href="/ropa-interior.html#mujer" data-nm-tab="lenceria" aria-expanded="false" aria-haspopup="true">Lencería</a><a class="nm-tab" href="/departamento.html?dept=home_goods" data-nm-tab="hogar" aria-expanded="false" aria-haspopup="true">Hogar</a><a class="nm-tab" href="/departamento.html?dept=electronics" data-nm-tab="electronica" aria-expanded="false" aria-haspopup="true">Electrónica</a><a class="nm-tab" href="/departamento.html?dept=toys" data-nm-tab="juguetes" aria-expanded="false" aria-haspopup="true">Juguetes</a><a class="nm-tab" href="/motos.html" data-nm-tab="auto-motos" aria-expanded="false" aria-haspopup="true">Auto y Motos</a><a class="nm-tab" href="/ofertas.html" data-nm-tab="ofertas" aria-expanded="false" aria-haspopup="true">Ofertas</a><a class="nm-tab" href="/keyclub.html" data-nm-tab="key-club" aria-expanded="false" aria-haspopup="true">Key Club</a></div></nav>
@@ -362,7 +373,7 @@ html{scroll-padding-top:76px}
     <div id="carrierAlert" class="usps-alert" hidden></div>
     <div class="toolbar" data-pat="search">
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
-      <select id="sort" aria-label="Ordenar">
+      <select id="sort" aria-label="Ordenar" hidden style="display:none">
         <option value="relevance">Destacados</option>
         <option value="discount" selected>Mayor descuento</option>
         <option value="priceAsc">Menor precio</option>
@@ -1555,7 +1566,19 @@ function boot(isRetry){
   /* Every store answers from its slices; the registry's `files` only tell the
      build which catalogues to read. */
   bootSliced();
+  nfBoot({ src: 'tienda=' + encodeURIComponent(key), title: function(){ return storeMeta.label || key; },
+    anchor: document.querySelector('#storeWrap .toolbar'), hide: ['#deptChips', '#salesTop', '#countLine', '#content'],
+    cardHTML: slCardHTML, after: function(r){ watchPhotos(r); } });
 }
+/* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js,
+   told what this page lists, where the bar goes and how a card draws. */
+function nfBoot(h){
+  if (window.AriaNFHost) return;
+  h.endpoint = h.endpoint || '/.netlify/functions/nav-filter'; h.prefix = 'f';
+  window.AriaNFHost = h;
+  var s = document.createElement('script'); s.src = '/assets/js/nav-filter.js'; s.defer = true; document.head.appendChild(s);
+}
+
 function bindUI(){
   var q = $('q'), s = $('sort'), t = null;
   if (q) q.addEventListener('input', function(){
