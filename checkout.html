@@ -111,7 +111,17 @@ html{scroll-padding-top:76px}
 @media (min-width:768px) and (max-width:1023.98px){.hs-lgpill{flex-basis:220px}.hs-lgpill .hs-pill,.hs-lgpill .hs-x{display:none}.hs-lgpill .hs-form{display:flex;flex:1 1 auto;position:static;padding:0;background:none}}
 @media (min-width:1024px){.hs-lgpill{flex:0 0 40px;margin-left:0}}
 </style>
+<style id="hc-css">
+.hc{--hc-fg:#0A1F44;--hc-dot:#2456A0;--hc-dotfg:#fff;position:relative;flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border-radius:10px;color:var(--hc-fg);text-decoration:none;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.hc-dark{--hc-fg:#F4F6FB;--hc-dot:#F4C463;--hc-dotfg:#0A1F44}
+.hc:hover{text-decoration:none}
+.hc svg{display:block;flex:0 0 auto}
+.hc-n{position:absolute;top:1px;right:-1px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--hc-dot);color:var(--hc-dotfg);font-family:inherit;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-sizing:border-box}
+.hc-n[hidden]{display:none}
+.hc:focus-visible{outline:2px solid var(--hc-fg);outline-offset:1px}
+</style>
 <script src="/assets/js/header-search.js" defer></script>
+<script src="/assets/js/header-cart.js" defer></script>
 </head>
 <body class="antialiased">
 
@@ -127,6 +137,7 @@ html{scroll-padding-top:76px}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       Volver a la tienda
     </a>
+    <!-- hc:start --><a class="hc" href="/?carrito=1" aria-label="Carrito" data-hc><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="hc-n" hidden>0</span></a><!-- hc:end -->
   </div>
 </header>
 
@@ -2443,6 +2454,7 @@ function cardImgAttrs(url, sizes){
     const held = loadNextOrder();
     if (held.length){
       try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(held)); } catch {}
+      if (window.ariaHeaderCart) window.ariaHeaderCart();
       saveNextOrder([]);
       fetch('/.netlify/functions/cart-save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: held }),
@@ -2451,6 +2463,7 @@ function cardImgAttrs(url, sizes){
       return;
     }
     try { localStorage.removeItem(CART_STORAGE_KEY); } catch {}
+    if (window.ariaHeaderCart) window.ariaHeaderCart();   // the header cart's count (assets/js/header-cart.js)
     // Best-effort — clears the logged-in user's server cart too, a no-op
     // (401, ignored) if they're not logged in.
     fetch('/.netlify/functions/cart-save', {
@@ -2482,6 +2495,7 @@ function cardImgAttrs(url, sizes){
   }
   function saveCart(){
     try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartForSaving())); } catch {}
+    if (window.ariaHeaderCart) window.ariaHeaderCart();
     // Best-effort — keeps the logged-in user's server cart in step, a
     // no-op (401, ignored) if they're not logged in.
     fetch('/.netlify/functions/cart-save', {
