@@ -38,8 +38,15 @@ button{font:inherit;cursor:pointer}
 .pe-badge{display:none;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
 @media(min-width:640px){.pe-badge{display:inline-flex}}
 .inpage-nav{display:flex;gap:4px}
-.inpage-nav a{text-decoration:none;font-size:13.5px;font-weight:700;color:var(--navy);padding:8px 12px;border-radius:10px}
-.inpage-nav a:hover{background:#EEF2F7}
+.inpage-nav button{border:0;background:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--navy);padding:8px 12px;border-radius:10px}
+.inpage-nav button:hover{background:#EEF2F7}
+.inpage-nav button[aria-pressed="true"]{background:var(--navy);color:#fff}
+/* THE VIEW SWITCH (#443 c.6635829511): the header's Por tipo /
+   Diseñadores / Próximamente replace the page's view in place, from its
+   top -- never an anchor jump. The active one tapped again shows it all. */
+main[data-view="tipo"] #designerChips,main[data-view="tipo"] #proximamente,
+main[data-view="disenadores"] #vestidor,main[data-view="disenadores"] #proximamente,
+main[data-view="proximamente"] #vestidor,main[data-view="proximamente"] #designerChips,main[data-view="proximamente"] #galeria,main[data-view="proximamente"] #emptyState{display:none!important}
 @media(max-width:560px){.inpage-nav{display:none}}
 
 /* ---------- fatal / load error (never blank) ---------- */
@@ -286,9 +293,9 @@ html body .soon>p{color:#3A4A6B}
       <span class="w1">Aria</span><span class="w2">Shop</span>
     </a>
     <nav class="inpage-nav" aria-label="En esta página">
-      <a href="#vestidor">Por tipo</a>
-      <a href="#galeria">Diseñadores</a>
-      <a href="#proximamente">Próximamente</a>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="disenadores" aria-pressed="false">Diseñadores</button>
+      <button type="button" data-view="proximamente" aria-pressed="false">Próximamente</button>
     </nav>
     <div class="hs" data-hs><button type="button" class="hs-pill" aria-label="Buscar productos, marcas o tiendas" aria-expanded="false" aria-controls="hsForm"><span class="hs-pi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span class="hs-lbl">Buscar</span></span></button><form class="hs-form" id="hsForm" role="search" action="/search.html" method="get"><span class="hs-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><input class="hs-in" id="hsInput" type="search" name="q" placeholder="Buscar productos, marcas o tiendas" aria-label="Buscar productos, marcas o tiendas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="120"><button type="submit" class="hs-go" aria-label="Buscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></span><button type="button" class="hs-x" aria-label="Cerrar búsqueda"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -918,9 +925,24 @@ function closeRoomRail(){
   }catch(e){}
 }
 if (typeof window !== 'undefined'){ window.closeRoomRail = closeRoomRail; }
+/* The header's view switch: the view changes under the sticky header;
+   the scroll stays, unless the shopper is past the view's top -- then it
+   starts at its top, under the header (never mid-section). */
+function setView(v){
+  var main = document.querySelector('main');
+  if (!main) return;
+  if (v === (main.getAttribute('data-view') || '')) v = '';
+  if (v) main.setAttribute('data-view', v); else main.removeAttribute('data-view');
+  Array.prototype.forEach.call(document.querySelectorAll('.inpage-nav button[data-view]'), function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-view') === v)); });
+  var hdr = document.querySelector('.site-header'), first = document.querySelector('main .wrap');
+  var under = hdr ? hdr.getBoundingClientRect().bottom : 0, top = first ? first.getBoundingClientRect().top : 0;
+  if (top < under - 1) window.scrollBy(0, top - under);
+}
 document.addEventListener('click', function(e){
   var t = e.target;
   if (!t || !t.closest) return;
+  var vb = t.closest('.inpage-nav button[data-view]');
+  if (vb){ setView(vb.getAttribute('data-view')); return; }
   try{
     if (t.closest('#reMore')){ moreRoomRail(false); return; }
     var r = t.closest('.room-retry');

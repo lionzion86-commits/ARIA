@@ -149,6 +149,12 @@
   .hub-pill{flex:0 0 auto;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit;white-space:nowrap}
   .hub-pill[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .lens{max-width:1240px;margin:8px auto 0;padding:6px 0 10px;border-bottom:1px solid var(--line)}
+  /* A PILL CHANGES THE WHOLE VIEW (#443 c.6635829511): a hub pill's lens
+     IS the page -- the department's own carousels (and its Por tipo /
+     marca / tienda views) step aside until «Todas» brings them back. */
+  html[data-lens] #salesTop,html[data-lens] #rails,html[data-lens] #perfumesLead,html[data-lens] #dhAxes,html[data-lens] #emptyState{display:none!important}
+  html[data-lens] .lens{border-bottom:0}
+  .lens-head .lens-n{font-size:13px;font-weight:700;color:#6B7487;white-space:nowrap}
   /* A search landing (?ver=, #443 "never a side-by-side grid"): the hero
      names the set and stays short; its own stats chips stay. */
   body.type-page .hero-in{padding:22px 16px 20px}
@@ -482,6 +488,39 @@ html body footer a,html body .rail-head .ver-todo,html body .lens-head a{color:#
 
   function show(el){ if(el) el.hidden = false; }
   function hide(el){ if(el) el.hidden = true; }
+  /* A PILL NEVER MOVES THE SHOPPER (#443 c.6635829511, Danny: "anything
+     that moves his scroll position fails"). While a pill's view loads the
+     page keeps its height, so the browser cannot pull the scroll up; the
+     scroll stays where the shopper had it (unless they scroll meanwhile);
+     a pill row that sits above the screen (never, unless it is sticky)
+     brings the view's top into sight. release() runs once the new view
+     is drawn; only the latest hold lets go of the height. */
+  var HOLD_ID = 0, PENDING_RELEASE = null;
+  function keepPlace(anchor){
+    var root = document.documentElement, y = window.pageYOffset || root.scrollTop || 0, done = false, mine = ++HOLD_ID, moved = false;
+    function user(){ moved = true; }
+    ['wheel', 'touchmove', 'keydown'].forEach(function(ev){ window.addEventListener(ev, user, { passive: true }); });
+    root.style.minHeight = root.scrollHeight + 'px';
+    function pin(){ if (!moved && Math.abs((window.pageYOffset || 0) - y) > 1) window.scrollTo(0, y); }
+    var t = setTimeout(release, 10000);
+    function release(){
+      if (done) return;
+      done = true; clearTimeout(t);
+      ['wheel', 'touchmove', 'keydown'].forEach(function(ev){ window.removeEventListener(ev, user); });
+      /* A newer pill owns the place now: this one lets go silently. */
+      if (mine !== HOLD_ID) return;
+      pin();
+      root.style.minHeight = '';
+      var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+      if (r && r.top < 0 && !moved) window.scrollBy(0, r.top);
+    }
+    if (window.requestAnimationFrame) requestAnimationFrame(pin); else pin();
+    return release;
+  }
+  function releasePending(){ var r = PENDING_RELEASE; PENDING_RELEASE = null; if (r) r(); }
+  /* A pill whose view loadAll() draws: hold the place until it is drawn
+     (a newer hold supersedes the pending one). */
+  function holdFor(anchor){ PENDING_RELEASE = keepPlace(anchor); }
 
   /* ---------- invalid department: show picker, never blank ---------- */
   if (!dept){
@@ -570,6 +609,7 @@ html body footer a,html body .rail-head .ver-todo,html body .lens-head a{color:#
   var batchBusy = false;
 
   function showError(msg){
+    releasePending();
     hide(loadingState); hide(emptyState); hide(toolbar);
     railsEl.innerHTML = '';
     if (msg) errorMsg.textContent = msg;
@@ -981,7 +1021,8 @@ function cardHTML(c){
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
       + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
       /* The door from a new-only shelf to Reacondicionados (c.6488544902). */
-      + (r.door ? '<p class="rail-door"><a href="#" data-to-refurb>' + esc(r.door) + ' &#8594;</a></p>' : '')
+      /* ...a real door: Reacondicionados' own page, opened at its top (never an anchor jump, #443 c.6635829511). */
+      + (r.door ? '<p class="rail-door"><a href="departamento.html?dept=reacondicionados">' + esc(r.door) + ' &#8594;</a></p>' : '')
       + '<div class="rail">' + cards + '</div></section>';
   }
   var MORE_IO = null;
@@ -1181,9 +1222,11 @@ function cardHTML(c){
       renderHead();
       /* The header (assets/js/dept-header.js): stats, switch, axes, Explorar todo. */
       try { HEAD_HOOKS.forEach(function(fn){ fn(HEAD, filtered()); }); } catch(e){}
+      releasePending();
       afterFirstPhotos(heroImage);
     }).catch(function(){
       if (seq !== SEQ) return;
+      releasePending();
       showError('No pudimos cargar los productos. Revisa tu conexión e inténtalo de nuevo.');
     });
   }
@@ -1262,8 +1305,18 @@ function cardHTML(c){
      that store's or brand's own carousels here, above the department's,
      and the department's carousels below stay exactly where they are.
      One small pre-built file per lens (lens-<slug>.json). */
+  /* ...and since #443 c.6635829511 a pill FILTERS: its lens replaces the
+     department's carousels in place (html[data-lens]), the hero's counts
+     become the lens's own (its stats), and «Todas» -- or the active pill
+     tapped again -- brings the whole department back. The shopper's
+     scroll never moves (keepPlace). */
   var hubEl = document.getElementById('hubPills'), lensEl = document.getElementById('lens');
-  var HUB = null, HUB_ALL = 'Todas', hubActive = '', lensSeq = 0;
+  var HUB = null, HUB_ALL = 'Todas', hubActive = '', lensSeq = 0, LENS_HOOKS = [];
+  function lensMode(l){
+    if (l) document.documentElement.setAttribute('data-lens', hubActive);
+    else document.documentElement.removeAttribute('data-lens');
+    try { LENS_HOOKS.forEach(function(fn){ fn(l || null); }); } catch(e){}
+  }
   function renderHub(){
     if (!HUB || !HUB.length){ hide(hubEl); return; }
     var h = '<button type="button" class="hub-pill" role="tab" data-k="" aria-selected="' + (!hubActive) + '">' + esc(HUB_ALL) + '</button>';
@@ -1276,14 +1329,16 @@ function cardHTML(c){
   function openLens(k){
     hubActive = k; renderHub();
     var seq = ++lensSeq;
-    if (!k){ lensEl.innerHTML = ''; hide(lensEl); return; }
+    var release = keepPlace(hubEl);
+    if (!k){ lensEl.innerHTML = ''; hide(lensEl); lensMode(null); release(); return; }
     lensEl.innerHTML = '<section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="sk-h"><i></i></h2></div><div class="rail">' + skeletons(4) + '</div></section>';
     show(lensEl);
+    lensMode({ k: k, loading: true });
     getJSON(SLICES + 'lens-' + encodeURIComponent(k) + '.json').then(function(l){
       if (seq !== lensSeq) return;
       if (!l || !Array.isArray(l.rails) || !l.rails.length){ openLens(''); return; }
       var door = l.link ? '<a href="' + esc(l.link) + '">' + (l.link.indexOf('tienda.html') === 0 ? 'Ver la tienda' : 'Ver todo') + ' &#8594;</a>' : '';
-      lensEl.innerHTML = '<div class="lens-head"><h2>' + esc(l.label) + '</h2>' + door + '</div>'
+      lensEl.innerHTML = '<div class="lens-head"><h2>' + esc(l.label) + '</h2><span class="lens-n" id="lensCount">' + Number(l.count).toLocaleString('es-PE') + (l.count === 1 ? ' producto' : ' productos') + '</span>' + door + '</div>'
         + l.rails.map(function(r){
           return '<section class="rail-sec" aria-label="' + esc(l.label + ': ' + r.title) + '">'
             + '<div class="rail-head"><h2>' + esc(r.title) + '</h2><span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span></div>'
@@ -1291,13 +1346,15 @@ function cardHTML(c){
             + '<div class="rail">' + r.cards.map(cardHTML).join('') + '</div></section>';
         }).join('');
       watchPhotos(lensEl);
+      lensMode(l);
+      release();
     }).catch(function(){ if (seq === lensSeq) openLens(''); });
   }
   hubEl.addEventListener('click', function(e){
     var b = e.target.closest('.hub-pill'); if (!b) return;
     var k = b.getAttribute('data-k') || '';
-    if (k === hubActive) return;
-    openLens(k);
+    /* The active pill tapped again clears it, as «Todas» does. */
+    openLens(k === hubActive ? '' : k);
   });
   function syncChips(){
     document.querySelectorAll('#retChips .chip').forEach(function(c){
@@ -1307,11 +1364,10 @@ function cardHTML(c){
   document.getElementById('retChips').addEventListener('click', function(e){
     var b = e.target.closest('.chip'); if(!b) return;
     if (b.dataset.r === fRet) return;
+    holdFor(this);
     fRet = b.dataset.r; syncChips(); loadAll();
   });
   function railsClick(e){
-    var door = e.target.closest('[data-to-refurb]');
-    if (door){ e.preventDefault(); var t = document.getElementById('rail-reacondicionados'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
     var g = e.target.closest('button.rail-next');
@@ -1411,9 +1467,10 @@ function cardHTML(c){
         var bk = btn.getAttribute('data-brand') || '';
         fB = (bk === fB) ? '' : bk;
       }
+      /* The view re-renders under the pills; the shopper stays put (#443 c.6635829511). */
+      holdFor(nav);
       renderScope(); renderPerfumePills(); loadAll();
       try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
-      var top = document.getElementById('toolbar'); if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start' });
     });
   });
 
@@ -1453,10 +1510,16 @@ function cardHTML(c){
     onHead: function(fn){ HEAD_HOOKS.push(fn); if (HEAD) { try { fn(HEAD, filtered()); } catch(e){} } },
     audience: function(){ return fU; },
     setAudience: function(u){
+      holdFor(document.getElementById('dhAud'));
       fU = u || '';
       try { var url = new URL(location.href); if (fU) url.searchParams.set('para', fU); else url.searchParams.delete('para'); history.replaceState(null, '', url); } catch(e){}
       loadAll();
     },
+    /* The hub pills' lens (a filter that replaces the view): who listens, and how to close it. */
+    onLens: function(fn){ LENS_HOOKS.push(fn); },
+    lensActive: function(){ return hubActive; },
+    closeLens: function(){ if (hubActive) openLens(''); },
+    keepPlace: function(anchor){ return keepPlace(anchor); },
     cardHTML: function(c){ return cardHTML(c); },
     watchPhotos: function(root){ watchPhotos(root); },
     paintPrices: function(root){ paintPrices(root); },

@@ -791,11 +791,17 @@ function renderBrandTools(sales){
     var ri = b.getAttribute("data-ri");
     if (b.getAttribute("aria-selected") === "true" && ri) ri = "";
     nav.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x.getAttribute("data-ri") === ri ? "true" : "false"); });
+    /* A pill is a filter (#443 c.6635829511): only its carousel shows --
+       the brand's Ofertas carousel, which spans every category, steps
+       aside too, and comes back with «Todo». The scroll stays put. */
+    var y = window.pageYOffset || 0, top = el("salesTop");
+    if (top && top.innerHTML) top.hidden = !!ri;
     el("rails").querySelectorAll(".rail-section[data-ri]").forEach(function(sec){
       var show = !ri || sec.getAttribute("data-ri") === ri;
       sec.hidden = !show;
       if (show) drawPending(sec);
     });
+    if (Math.abs((window.pageYOffset || 0) - y) > 1) window.scrollTo(0, y);
     if (ri){ var s = el("rails").querySelector('.rail-section[data-ri="' + ri + '"]'); if (s) watchPhotos(s); }
   };
 }

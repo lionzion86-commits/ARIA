@@ -122,8 +122,13 @@ body[data-aud="m"] .sec-w, body[data-aud="w"] .sec-m{display:none}
 .sec-w .jump{background:rgba(255,247,250,.94)}
 .jump-in{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
 .jump-in::-webkit-scrollbar{display:none}
-.jump a{flex:0 0 auto;text-decoration:none;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);background:var(--panel)}
-.jump a:hover{border-color:var(--accent);color:var(--accent)}
+.jump button{flex:0 0 auto;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);background:var(--panel);cursor:pointer;font-family:inherit}
+.jump button:hover{border-color:var(--accent);color:var(--accent)}
+.jump button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+/* THE VIEW SWITCH (#443 c.6635829511): Por tipo / marca / tienda /
+   Explorar todo replace the section's view in place, like the doors --
+   never an anchor jump. «Todo» shows every axis again. */
+.sec[data-view] .axis:not(.on),.sec[data-view] .explore:not(.on){display:none}
 
 /* Axis + carousel */
 .axis{padding:30px 0 6px}
@@ -305,10 +310,11 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
   </div>
   <nav class="jump" aria-label="Atajos de Mujer" id="w-jump" hidden>
     <div class="wrap jump-in">
-      <a href="#w-tipo">Por tipo</a>
-      <a href="#w-marca">Por marca</a>
-      <a href="#w-tienda">Por tienda</a>
-      <a href="#w-explorar">Explorar todo</a>
+      <button type="button" data-view="" aria-pressed="true">Todo</button>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="marca" aria-pressed="false">Por marca</button>
+      <button type="button" data-view="tienda" aria-pressed="false">Por tienda</button>
+      <button type="button" data-view="explorar" aria-pressed="false">Explorar todo</button>
     </div>
   </nav>
   <div class="state" id="w-loading">
@@ -361,10 +367,11 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
   </div>
   <nav class="jump" aria-label="Atajos de Hombre" id="m-jump" hidden>
     <div class="wrap jump-in">
-      <a href="#m-tipo">Por tipo</a>
-      <a href="#m-marca">Por marca</a>
-      <a href="#m-tienda">Por tienda</a>
-      <a href="#m-explorar">Explorar todo</a>
+      <button type="button" data-view="" aria-pressed="true">Todo</button>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="marca" aria-pressed="false">Por marca</button>
+      <button type="button" data-view="tienda" aria-pressed="false">Por tienda</button>
+      <button type="button" data-view="explorar" aria-pressed="false">Explorar todo</button>
     </div>
   </nav>
   <div class="state" id="m-loading">
@@ -763,7 +770,8 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
       if (parts[0] === 'brand') el('fBrand').value = parts[1];
       if (parts[0] === 'store') el('fStore').value = cfg.GROUP_STORES['group:' + parts[1]] ? 'group:' + parts[1] : parts[1];
       S.applyFilters();
-      el('explorar').scrollIntoView({ behavior:'smooth', block:'start' });
+      /* A rail's «Ver todo» opens Explorar todo as the section's view, from its top. */
+      setView(el('jump'), 'explorar', true);
     };
     S.repaintGrid = function(){
       var keep = S.SHOWN; S.SHOWN = 0; el('grid').innerHTML = '';
@@ -922,10 +930,35 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
     window.scrollTo(0, 0);
     if (window.ariaRefreshRails) window.ariaRefreshRails();
   });
+  /* A view replaces the section's axes in place. The scroll stays where
+     the shopper had it; only when the (sticky) bar is stuck over the
+     section does the new view start right under it -- its top, never its
+     middle (#443 c.6635829511). */
+  function setView(jump, v, force){
+    var sec = jump && jump.closest('.sec');
+    if (!sec) return;
+    if (!force && v === (sec.getAttribute('data-view') || '')) v = '';
+    if (v) sec.setAttribute('data-view', v); else sec.removeAttribute('data-view');
+    var P = sec.getAttribute('data-section') === 'hombre' ? 'm' : 'w';
+    ['tipo', 'marca', 'tienda', 'explorar'].forEach(function(k){ var x = document.getElementById(P + '-' + k); if (x) x.classList.toggle('on', k === v); });
+    var bs = jump.querySelectorAll('button[data-view]');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', String(bs[i].getAttribute('data-view') === v));
+    var main = document.getElementById(P + '-main'), jb = jump.getBoundingClientRect();
+    var top = main ? main.getBoundingClientRect().top : jb.bottom;
+    if (top < jb.bottom - 1) window.scrollBy(0, top - jb.bottom);
+    if (window.ariaRefreshRails) window.ariaRefreshRails();
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.jump button[data-view]');
+    if (b) setView(b.closest('.jump'), b.getAttribute('data-view'));
+  });
   function honourHash(){
     var h = location.hash.replace('#', '');
+    /* An old axis address (#w-marca) opens that view, from the section's top. */
+    var ax = /^([wm])-(tipo|marca|tienda|explorar)$/.exec(h);
+    if (ax){ setView(document.getElementById(ax[1] + '-jump'), ax[2], true); h = ax[1] === 'm' ? 'hombre' : 'mujer'; }
     var target = h && document.getElementById(h);
-    if (target && (h === 'hombre' || h === 'mujer' || /^[wm]-/.test(h))) target.scrollIntoView({ block:'start' });
+    if (target && (h === 'hombre' || h === 'mujer')) target.scrollIntoView({ block:'start' });
   }
 
   function start(){
