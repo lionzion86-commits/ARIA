@@ -115,6 +115,9 @@
     return !!(t && !t.cols.length);
   }
   var isGo = function(c){ return !c.links.length && !!c.href; };
+  /* A row's number: a Marcas row counts brands (its unit says so); any other row
+     carries one only when the menu gives it (its columns partition the tab). */
+  var colN = function(c){ return c.n ? '<small>' + num(c.n) + (/^Marcas( |$)/.test(c.h) ? ' marcas' : '') + '</small>' : ''; };
   function tabOf(k){ return MENU && (MENU.tabs || []).filter(function(t){ return t.k === k; })[0]; }
   function linkHTML(l){ return '<li><a href="' + esc(l[1]) + '" data-nm-leaf>' + esc(l[0]) + (l[2] ? '<small>' + num(l[2]) + '</small>' : '') + '</a></li>'; }
   var CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
@@ -138,8 +141,8 @@
         /* The phone's drill-down: the same columns, one level at a time;
            a collapsed column is a row that navigates. */
         + '<div class="nmf-drill">' + (one ? '' : '<ul class="nmf-l0" data-nm-l0>' + t.cols.map(function(c, i){
-          if (isGo(c)) return '<li><a class="nmf-go" href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</a></li>';
-          return '<li><button type="button" class="nmf-go" data-nm-go="' + i + '">' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</button></li>';
+          if (isGo(c)) return '<li><a class="nmf-go" href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + colN(c) + CHEV + '</a></li>';
+          return '<li><button type="button" class="nmf-go" data-nm-go="' + i + '">' + esc(c.h) + colN(c) + CHEV + '</button></li>';
         }).join('') + '</ul>') + t.cols.map(function(c, i){
           if (isGo(c)) return '';
           return '<div class="nmf-l1" data-nm-lvl="' + i + '"' + (one ? '' : ' hidden') + '>' + (one ? '' : '<button type="button" class="nmf-back" data-nm-back>' + BACK + esc(label) + '</button>') + '<h3>' + esc(c.h) + '</h3>'
