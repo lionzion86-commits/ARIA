@@ -125,10 +125,11 @@ await check("static: every page that draws such a card loads /import-tax.js befo
   pages.add("departamento.html");                             // dept-header.js draws AriaDept.cardHTML
   for (const p of pages) {
     const src = readFileSync(join(ROOT, p), "utf8");
-    const at = src.indexOf('<script src="/import-tax.js"></script>');
+    /* defer or not: a deferred tag still runs before the deferred bundle after it. */
+    const at = src.search(/<script src="\/import-tax\.js"[^>]*><\/script>/);
     assert.ok(at > 0, `${p} does not load /import-tax.js`);
   }
-  assert.ok(indexSrc.indexOf('<script src="/import-tax.js"></script>') < indexSrc.indexOf('src="/' + bundleRel + '"'), "index.html loads the bundle before /import-tax.js");
+  assert.ok(indexSrc.search(/<script src="\/import-tax\.js"[^>]*><\/script>/) < indexSrc.indexOf('src="/' + bundleRel + '"'), "index.html loads the bundle before /import-tax.js");
   const dh = readFileSync(join(ROOT, "assets/js/dept-header.js"), "utf8");
   assert.match(dh, /\.map\(D\.cardHTML\)/, "dept-header.js Explorar todo no longer draws departamento's own card");
 });

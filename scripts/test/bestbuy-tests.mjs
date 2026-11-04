@@ -54,7 +54,7 @@ const catalog = JSON.parse(read(OUT_FILE));
 const depts = catalog.retailers.bestbuy.departments;
 const items = Object.values(depts).flatMap((d) => d.items);
 const home = read("index.html");
-const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1];
+const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1];
 const bundle = read(bundleName);
 const tienda = read("tienda.html");
 const saleCtx = {}; saleCtx.globalThis = saleCtx;

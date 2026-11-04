@@ -131,7 +131,7 @@ await check("Lencería is the renamed Ropa Interior Mujer carousel; Ropa Interio
     assert.doesNotMatch(part, /Ropa Interior Mujer/, name + ": the old label is still on the homepage");
     assert.match(part, /aria-label="Ropa Interior Hombre"[\s\S]*?data-category-rail-row="ropa_interior"/, name + ": Ropa Interior Hombre moved");
   }
-  const bundle = /<script src="(\/build\/app-[0-9a-f]{16}\.js)"><\/script>/.exec(html)[1];
+  const bundle = /<script src="(\/build\/app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(html)[1];
   const b = read(bundle.slice(1));
   assert.match(b, /\{ key: 'ropa_interior_mujer', label: 'Lencería'/, "the carousel's end tile still says Ropa Interior Mujer");
   assert.match(b, /feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-women-feed\.json'\)/, "Lencería lost its feed");

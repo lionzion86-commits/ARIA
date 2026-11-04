@@ -87,6 +87,11 @@ export async function snapshotShelves() {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   try {
     const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+    /* THE SHELF BUILD IS THE ONE DOOR TO THE CATALOGUES (#443 freeze P0):
+       for a shopper a missing slice is an empty shelf (shelfFallback in the
+       bundle); only with this flag does the page compute shelves from the
+       catalogues, which is what this build reads. */
+    await page.addInitScript(() => { window.ARIA_SHELF_BUILD = true; });
     /* Only the repo: no live sales API, no retailer images, no fonts. */
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
     await page.route(/\.(png|jpe?g|webp|gif|avif)(\?|$)/i, (r) => r.fulfill({ status: 204, body: "" }));
@@ -287,6 +292,11 @@ export async function applyCategoryTruth(root = ROOT) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   try {
     const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+    /* THE SHELF BUILD IS THE ONE DOOR TO THE CATALOGUES (#443 freeze P0):
+       for a shopper a missing slice is an empty shelf (shelfFallback in the
+       bundle); only with this flag does the page compute shelves from the
+       catalogues, which is what this build reads. */
+    await page.addInitScript(() => { window.ARIA_SHELF_BUILD = true; });
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
     await page.route(/\.(png|jpe?g|webp|gif|avif)(\?|$)/i, (r) => r.fulfill({ status: 204, body: "" }));
     await page.goto(base + "/", { waitUntil: "load" });
@@ -323,7 +333,13 @@ export function noPerfumeLeak(key, list) {
 }
 
 /* The snapshot as files: one per store rail, one per family, an index.
-   «Moda de diseñador» left the homepage (Danny, #443 c.6568648466): no moda.json. */
+   «Moda de diseñador» left the homepage (Danny, #443 c.6568648466). Its
+   file stays, EMPTY and marked retired (#443 freeze P0, Lucifer
+   c.6615765591): a page that still carries the Moda rail (a stale copy, a
+   cached deploy) asked for moda.json, got a 404 and computed the shelf
+   from every catalogue -- 31MB gzipped, and perfume body lotions on a
+   «Moda Diseñador» shelf. An empty answer hides that section instead. */
+export const RETIRED_SHELVES = ["moda"];
 export function shelfFiles(snap) {
   const cards = (key, list) => noPerfumeLeak(key, list).map(cardOf);
   const files = {};
@@ -331,6 +347,7 @@ export function shelfFiles(snap) {
   files["category.json"] = { rails: Object.fromEntries(Object.entries(snap.category).map(([k, l]) => [k, cards(k, l)])) };
   files["fiestas.json"] = { rails: Object.fromEntries(Object.entries(snap.fiestas).map(([k, l]) => [k, cards(k, l)])) };
   for (const fam of ["bolsos", "joyas", "joyasLujo"]) files[`${fam}.json`] = { picks: cards(fam, snap[fam]) };
+  for (const fam of RETIRED_SHELVES) files[`${fam}.json`] = { picks: [], retired: true };
   files["index.json"] = {
     v: 1,
     stores: Object.keys(snap.store),

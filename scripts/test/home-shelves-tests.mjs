@@ -31,7 +31,7 @@ function check(name, fn) {
 }
 
 const home = readFileSync(ROOT + "index.html", "utf8");
-const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1];
+const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1];
 const bundle = readFileSync(ROOT + bundleName, "utf8");
 const read = (f) => JSON.parse(readFileSync(DIR + f, "utf8"));
 const index = read("index.json");
@@ -118,10 +118,12 @@ check("the slices stay small (the whole set under 100KB gzipped)", () => {
 
 check("every family reads its slice before any catalogue", () => {
   assert.match(bundle, /const HOME_SHELVES_DIR = '\/assets\/home\/shelves\/';/);
-  assert.match(bundle, /const saved = await homeShelfPicks\('store-' \+ key\);[\s\S]{0,400}const pool = await poolForRetailers\(\[key\]\);/, "store rails");
-  assert.match(bundle, /const saved = await homeShelf\('category'\);[\s\S]{0,400}const pool = await relatedPool\(\);/, "category zone");
+  /* A missing slice is an empty shelf; only the shelf build computes from
+     the catalogues (#443 freeze P0, no-full-catalog-tests.mjs). */
+  assert.match(bundle, /const saved = await homeShelfPicks\('store-' \+ key\);[\s\S]{0,700}if \(!isShelfBuild\(\)\) return \(storeRailsRendered\[key\] = \[\]\);\s*const pool = await poolForRetailers\(\[key\]\);/, "store rails");
+  assert.match(bundle, /const saved = await homeShelf\('category'\);[\s\S]{0,700}if \(!isShelfBuild\(\)\)\{[\s\S]{0,200}const pool = await relatedPool\(\);/, "category zone");
   assert.match(bundle, /homeShelf\('index'\);\s*let brands = /, "brand strip");
-  assert.match(bundle, /bolsosRendered = \(await homeShelfPicks\('bolsos'\)\) \|\| bolsosPicks\(await loadDepartmentCache\(\)\);/, "bolsos");
+  assert.match(bundle, /bolsosRendered = \(await homeShelfPicks\('bolsos'\)\) \|\| await shelfFallback\(async \(\) => bolsosPicks\(await loadDepartmentCache\(\)\)\);/, "bolsos");
   assert.match(bundle, /const saved = await homeShelfPicks\('joyas'\);/, "joyas");
   assert.match(bundle, /joyasLujoRendered = \(await homeShelfPicks\('joyasLujo'\)\) \|\| /, "joyas de lujo");
   assert.match(bundle, /modaRendered = \(await homeShelfPicks\('moda'\)\) \|\| /, "moda");

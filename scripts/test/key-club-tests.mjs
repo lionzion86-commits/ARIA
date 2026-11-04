@@ -129,7 +129,7 @@ function stubWallet() {
 
 const SERVED_HTML = readdirSync(ROOT).filter((f) => f.endsWith(".html"));
 const indexHtml = readFileSync(join(ROOT, "index.html"), "utf8");
-const bundleName = /<script src="\/(build\/app-[0-9a-f]{16}\.js)"><\/script>/.exec(indexHtml)[1];
+const bundleName = /<script src="\/(build\/app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(indexHtml)[1];
 const bundle = readFileSync(join(ROOT, bundleName), "utf8");
 const door = readFileSync(join(ROOT, "keyclub.html"), "utf8");
 const cuenta = readFileSync(join(ROOT, "cuenta.html"), "utf8");

@@ -185,7 +185,7 @@ await check("the app bundle and the page mirror widen the same way", () => {
   const bundle = read("build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f)));
   assert.match(bundle, /window\.AriaStoreCarrier \? window\.AriaStoreCarrier\.widen\(k, row\) : row/);
   const idx = read("index.html");
-  assert.match(idx, /<script src="\/store-carrier-data\.js"><\/script>\r?\n<script src="\/store-carrier\.js"><\/script>/);
+  assert.match(idx, /<script src="\/store-carrier-data\.js"[^>]*><\/script>\r?\n<script src="\/store-carrier\.js"[^>]*><\/script>/);
   for (const f of ["producto.html", "tienda.html"]) assert.match(read(f), /<script src="\/store-carrier-data\.js"><\/script>\n<script src="\/store-carrier\.js"><\/script>/, f);
 });
 

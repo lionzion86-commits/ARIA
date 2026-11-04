@@ -203,7 +203,7 @@ await check("pages: no off-sale store rail, directory card or sitemap entry; the
     assert(!sitemap.includes(`tienda=${k}<`), "sitemap.xml lists " + k);
   }
   for (const f of ["index.html", "producto.html", "tienda.html"]) assert(/<script src="\/off-sale\.js"><\/script>/.test(read(f)), f + " does not load /off-sale.js");
-  const bundle = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"><\/script>/.exec(index);
+  const bundle = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(index);
   assert(bundle && index.indexOf('src="/off-sale.js"') < index.indexOf(bundle[0]), "/off-sale.js must load before the app bundle");
   assert(/from '\.\/scripts\/lib\/off-sale\.js'/.test(read("checkout.html")), "checkout.html does not import the list");
 });

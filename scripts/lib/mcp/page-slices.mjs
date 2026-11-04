@@ -49,7 +49,7 @@ function page() {
        text, so the bundle is inlined back at its tag -- the
        readers see the page exactly as it was written, and there
        is still only one copy of the code. */
-    const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(src);
+    const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(src);
     if (tag) {
       try {
         const bundle = readFileSync(repoFile(tag[1]), "utf8");

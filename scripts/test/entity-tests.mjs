@@ -44,7 +44,7 @@ check("every page decodes before it escapes", () => {
     assert.match(src, /function esc\(s\)\{ return escRaw\(decodeEntitiesText\(s\)\); \}/, `${f}: esc() does not decode`);
   }
   const home = readFileSync(ROOT + "index.html", "utf8");
-  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1], "utf8");
+  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1], "utf8");
   assert.match(bundle, /function escapeHtml\(str\)\{ return escapeHtmlRaw\(decodeEntitiesText\(str\)\); \}/, "the app's escapeHtml does not decode");
   assert.match(readFileSync(ROOT + "search.html", "utf8"), /var title = decodeEntities\(p\.title\)/, "search.html");
   assert.match(readFileSync(ROOT + "producto.html", "utf8"), /name: decodeEntities\(name\)/, "producto.html");
