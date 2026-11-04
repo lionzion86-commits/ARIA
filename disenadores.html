@@ -623,14 +623,17 @@ var DESIGNERS = [
   { key:'sarahchofakian',  label:'Sarah Chofakian',     match:'sarah chofakian',     country:'Brasil',   hero:'' },
   { key:'aguabyaguabendita', label:'Agua by Agua Bendita', match:'agua by agua bendita', country:'Colombia', hero:'' }
 ];
+/* The type of each product is product-type.js's (the head noun, then the
+   store's type), read by scripts/build-designer-slices.mjs: a type word in
+   a name never files a sandal or a top under Joyas (#443 c.6642247782). */
 var PRODUCT_TYPES = [
-  { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
-  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
-  { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
-  { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
-  { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
-  { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
-  { key:'ropa',        label:'Ropa',           keywords:[] }
+  { key:'trajes_bano', label:'Trajes de Baño' },
+  { key:'carteras',    label:'Carteras' },
+  { key:'joyas',       label:'Joyas' },
+  { key:'zapatos',     label:'Zapatos' },
+  { key:'sombreros',   label:'Sombreros' },
+  { key:'accesorios',  label:'Accesorios' },
+  { key:'ropa',        label:'Ropa' }
 ];
 var SLICES = 'assets/sections/disenadores/';
 var FX_URLS   = ['/.netlify/functions/exchange-rate', 'https://ariashop.pe/.netlify/functions/exchange-rate'];
@@ -959,7 +962,14 @@ function renderGallery(){
     var rooms = [];
     var anyVisible = false;
     var view = state.index.views[state.typeFilter] || {};
-    DESIGNERS.forEach(function(spec){
+    /* A pinned view order (Joyas: Johanna Ortiz first) from index.json;
+       the other designers follow in DESIGNERS order. */
+    var pin = (state.index.order && state.index.order[state.typeFilter]) || [];
+    var specs = DESIGNERS.slice().sort(function(a, b){
+      var ia = pin.indexOf(a.key), ib = pin.indexOf(b.key);
+      return (ia < 0 ? 1e3 : ia) - (ib < 0 ? 1e3 : ib) || DESIGNERS.indexOf(a) - DESIGNERS.indexOf(b);
+    });
+    specs.forEach(function(spec){
       var room = view[spec.key];
       if (!room || !room.count) return; // designers without data live in the "próximamente" strip
       if (state.designerFilter !== 'all' && state.designerFilter !== spec.key) return;

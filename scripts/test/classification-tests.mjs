@@ -132,7 +132,23 @@ check("scripts/lib/footwear.js mirrors this PR's footwear changes", () => {
   }
 });
 
-const MIN_CHECKS = 8;
+check("a type word in a name never files a shoe or a garment (#443 c.6642247782)", () => {
+  for (const [name, want] of [["Iara Jewelry Sandal", "zapatos"], ["ROSALIE JEWELRY CORSET TOP (RUNWAY)", "ropa"],
+    ["Straight Jeans with Metal Ring Closure in Dark Blue Cotton for Women", "ropa"], ["Tide Charm Skirt", "ropa"],
+    ["Top Cups Deep Charm", "ropa"], ["Bottom Cheeky Deep Charm", "ropa"], ["Bottom Side Tie Sea of Stella", "ropa"],
+    ["Top The Balconette Scrunchie Black", "ropa"], ["ELSA FLAT", "zapatos"], ["Richelieu Flat Ballerina", "zapatos"],
+    ["Born Betty Ballet Flat", "zapatos"],
+    /* Real jewellery named after a garment or a shoe stays jewellery. */
+    ["Jersey Custom Cluster Charm - Red", "joyas"], ["Peanuts Snoopy Puffer Jacket Necklace - Blue", "joyas"],
+    ["Just For Fun Cluster Charm - Sneaker", "joyas"], ["Love Is Flip Flop Bracelet", "joyas"], ["Yawanawa Beaded Necklace", "joyas"]])
+    assert.equal(m1(name, { type: "WOMEN" }), want, `"${name}" is ${m1(name, { type: "WOMEN" })}, not ${want}`);
+  /* Not a shoe and not a top: the guards on the two new rules. */
+  assert.notEqual(m1("Top Case Side Arms"), "ropa");
+  assert.notEqual(m1("OC Ramps Green Monster Skate Rail – 6ft Flat"), "zapatos");
+  assert.notEqual(m1("Monoprice Cat5e Ethernet Patch Cable - 10 Feet - Black | Network Internet Cord - RJ45, Flat,Stranded, 350Mhz"), "zapatos");
+});
+
+const MIN_CHECKS = 9;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
