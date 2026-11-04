@@ -159,19 +159,84 @@ export function buildSearchContext({ index, dict, glossary, read = readRepoFile,
   }
   dict = withPartsGlossary(dict, glossary);
   const products = productsFromIndex(index);
+  const subBrands = foldSubBrands(products);
   S.buildSearchWordIndex(products);
   const stores = [...new Set(products.map((p) => p.retailer).filter(Boolean))];
   /* Store names and logos (the index's `stores` table); the label map
      search.js passes wins for the name. */
   const storeInfo = index.stores || {};
   return {
-    S, P, products, labels, storeInfo,
+    S, P, products, labels, storeInfo, subBrands,
     retailers: stores.map((k) => ({ key: k, label: k })),
     dict: P.prepare(dict, S, products),
     resultLimit: RESULT_LIMIT,
     generatedAt: index.generatedAt || null,
     cache: new Map(),
   };
+}
+
+/* ONE BRAND, ONE NAME (#443 c.6621737932, c.6621809703 -- Danny's
+   «Nike Jordans»). A store files one Jordan as brand "Nike Jordan"
+   (SSENSE) and another as "Air Jordan" (PacSun); the engine took each
+   label for a brand of its own, so «nike jordans», «air jordan»,
+   «airjordan» and «nike air jordan 1» found that ONE product while the
+   catalogue holds 585 Jordans. A label is another brand's alias, by rule
+   and not by a list, when:
+     - it is a handful of products (SUB_MAX) and ends in the name of a big
+       brand (SUB_BIG products, SUB_RATIO times as many), and
+     - every word before that name is a big brand of its own (the maker:
+       "nike") or a word the big brand's own titles carry (SUB_TITLE_SHARE
+       of them: "air" in "Air Jordan 1 Mid").
+   "Jordan Craig" (57, its own clothing line) and "Michael Jordan" (books)
+   stay themselves. The products take the big brand's name, and a query
+   naming the big brand drops the alias words (canonicalTokens):
+   «nike jordans» is "jordan", «nike air jordan 1» "jordan 1". */
+const SUB_MAX = 3, SUB_BIG = 50, SUB_RATIO = 20, SUB_PARENT = 25, SUB_TITLE_SHARE = 0.15;
+export function foldSubBrands(products) {
+  const count = new Map(), label = new Map(), titles = new Map();
+  for (const p of products) {
+    const b = brandKey(p.brand);
+    if (!b) continue;
+    count.set(b, (count.get(b) || 0) + 1);
+    if (!label.has(b)) label.set(b, new Map());
+    label.get(b).set(p.brand, (label.get(b).get(p.brand) || 0) + 1);
+  }
+  const titleShare = (B, w) => {
+    if (!titles.has(B)) titles.set(B, products.filter((p) => brandKey(p.brand) === B).map((p) => " " + brandKey(p.title) + " "));
+    const T = titles.get(B);
+    return T.filter((t) => t.includes(" " + w + " ")).length / (T.length || 1);
+  };
+  const alias = new Map(), drop = new Map();
+  for (const [k, n] of count) {
+    const w = k.split(" ");
+    if (w.length < 2 || n > SUB_MAX) continue;
+    for (let i = 1; i < w.length; i++) {
+      const A = w.slice(0, i), B = w.slice(i).join(" "), nb = count.get(B) || 0;
+      if (nb < SUB_BIG || nb < SUB_RATIO * n) continue;
+      if (!A.every((a) => (count.get(a) || 0) >= SUB_PARENT || titleShare(B, a) >= SUB_TITLE_SHARE)) continue;
+      alias.set(k, B);
+      if (!drop.has(B)) drop.set(B, new Set());
+      for (const a of A) drop.get(B).add(a);
+      break;
+    }
+  }
+  if (!alias.size) return { alias, drop };
+  const shown = (B) => [...label.get(B).entries()].sort((a, b) => b[1] - a[1])[0][0];
+  for (const p of products) { const B = alias.get(brandKey(p.brand)); if (B) p.brand = shown(B); }
+  return { alias, drop };
+}
+/* A query naming a big brand loses its alias words; the brand's plural
+   is the brand («jordans»). */
+function foldAliasTokens(ctx, toks) {
+  const drop = ctx.subBrands && ctx.subBrands.drop;
+  if (!drop || !drop.size) return toks;
+  for (const [B, words] of drop) {
+    if (B.includes(" ")) continue;
+    const at = toks.findIndex((t) => t === B || t === B + "s");
+    if (at < 0) continue;
+    toks = toks.map((t, i) => (i === at ? B : t)).filter((t, i) => i === at || !words.has(t));
+  }
+  return toks;
 }
 
 let shared = null;
@@ -676,7 +741,34 @@ export function equivalentQuery(ctx, q) {
     const W = worldAnswer(ctx, cw);
     if (W.hits.length) out = { state: "results", query: (out && out.query) || q, kinds: ["brand"], hits: W.hits, _world: W };
   }
+  /* A brand's own name: its leading kind leads (brandLead). */
+  if (out && out.state === "results" && !out._world) out = brandLead(ctx, q, out);
   ctx.cache.set(key, out);
+  return out;
+}
+
+/* A BRAND LEADS WITH WHAT IT IS (#443 c.6621809703: «nike jordans»
+   resolve to "the Jordan set (shoes)"). A query that is a brand's own
+   name -- nothing else -- answers with that brand; when most of the
+   brand's answer is footwear (Jordan 59%, Crocs, Skechers, Converse) the
+   footwear leads every part of it -- the charts, the Ofertas rail, each
+   store's rail -- and its apparel follows, never dropped. A brand that
+   is mostly something else (adidas 40% shoes, Nike 45%) is left as the
+   engine ranked it. */
+const LEAD_SHARE = 0.5, LEAD_BRAND_SHARE = 0.9;
+const SHOE_TITLE_RX = /\b(shoes?|sneakers?|boots?|sandals?|slides?|cleats?|slip-?ons?|mules?|clogs?|loafers?|trainers?)\b/i;
+export function isFootwear(p) {
+  return /calzado|shoe|footwear|zapat/i.test((p.departments && p.departments[0]) || "") || p._cat === "footwear" || SHOE_TITLE_RX.test(p.title || "");
+}
+function brandLead(ctx, q, r) {
+  const qb = brandKey(q);
+  if (!qb || r.hits.length < LANE_MIN) return r;
+  const mine = r.hits.filter((p) => brandKey(p.brand) === qb).length;
+  if (mine < r.hits.length * LEAD_BRAND_SHARE) return r;
+  const lead = r.hits.filter(isFootwear);
+  if (lead.length < r.hits.length * LEAD_SHARE || lead.length === r.hits.length) return r;
+  const out = { ...r, hits: lead.concat(r.hits.filter((p) => !isFootwear(p))), _lead: isFootwear };
+  for (const k of Object.keys(out)) if (k.startsWith("_") && !["_device", "_pure", "_lead"].includes(k)) delete out[k];
   return out;
 }
 
@@ -848,8 +940,9 @@ export function canonicalTokens(ctx, q) {
     res.push(...formOf(ctx, a));
   }
   /* 5. every word for one idea, English or Spanish: its concept's word
-     (again: a word step 4 joined or parted). */
-  return conceptTokens(ctx, res);
+     (again: a word step 4 joined or parted). 6. one brand, one name
+     (foldSubBrands). */
+  return foldAliasTokens(ctx, conceptTokens(ctx, res));
 }
 /** The query in its canonical form: the typed text itself when it is
     already canonical (the engine reads it exactly as before). */
@@ -1394,7 +1487,8 @@ function doctrineLanes(ctx, q, r) {
   const idx = railIndex(ctx);
   const lanes = [];
   /* A real markdown only: the site's sale floor (/sale-rule.js MIN_PCT, 5%). */
-  const sales = saleFirst(hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p)));
+  const leadFirst = (list) => (r._lead ? list.filter(r._lead).concat(list.filter((p) => !r._lead(p))) : list);
+  const sales = leadFirst(saleFirst(hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p))));
   if (sales.length >= LANE_MIN) lanes.push({ key: "ofertas", title: "Ofertas", all: distinct(sales, RAIL_CAP) });
   const exactBy = new Map();
   for (const p of hits) { if (!exactBy.has(p.retailer)) exactBy.set(p.retailer, []); exactBy.get(p.retailer).push(p); }
@@ -1409,24 +1503,29 @@ function doctrineLanes(ctx, q, r) {
     const ex0 = exactBy.get(store) || [];
     const exact = ex0.filter(full).concat(ex0.filter((p) => !full(p)));
     const seen = new Set(exact);
-    const more = saleFirst((brandBy.get(store) || []).filter((p) => !seen.has(p)));
+    const more = leadFirst(saleFirst((brandBy.get(store) || []).filter((p) => !seen.has(p))));
     more.forEach((p) => seen.add(p));
-    /* Similar: the store's items named by the query's product words (its
-       other jeans); without such words, the answer's category. */
-    /* Similar: the store's items named by the query's product words (its
-       other jeans) and of the answer's category; without such words, the
-       answer's category. A store with none of the exact item shows the
-       brand only (the doctrine, item 5). */
+    /* NO SILENT FILLER (#443 c.6621737932, Danny's «Nike Jordans»: one
+       Jordan, then SSENSE sandals and trail sneakers dressed as the
+       answer). A store's rail holds the model, then the same brand --
+       nothing else. The store's similar items (named by the query's
+       product words, or of the answer's category) go to ONE rail headed
+       «También puedes ver», after every store rail, and only when the
+       store's rail holds the model itself. */
     const pure = (p) => (!r._pure || r._pure(p)) && (!cat || p._cat === cat);
-    const similar = !exact.length && brand ? [] : (wordRx.length
+    const similar = !exact.length ? [] : (wordRx.length
       ? saleFirst((idx.byStore.get(store) || []).filter((p) => !seen.has(p) && pure(p) && wordRx.every((rx) => rx.test(p.title))))
-      : cat ? saleFirst((idx.byCat.get(store + "|" + cat) || []).filter((p) => !seen.has(p) && (!r._pure || r._pure(p)))) : []).slice(0, SIMILAR_CAP);
-    const all = distinct(exact.concat(more, similar), RAIL_CAP);
+      : cat && !brand ? saleFirst((idx.byCat.get(store + "|" + cat) || []).filter((p) => !seen.has(p) && (!r._pure || r._pure(p)))) : []).slice(0, SIMILAR_CAP);
+    const all = distinct(exact.concat(more), RAIL_CAP);
     if (!all.length) continue;
-    storeLanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, exact: exact.length, all });
+    storeLanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, exact: exact.length, all, similar });
   }
   storeLanes.sort((a, b) => (b.exact - a.exact) || (b.all.length - a.all.length) || (a.title < b.title ? -1 : 1));
-  for (const l of storeLanes.slice(0, STORE_LANES_MAX)) lanes.push(l);
+  const shownLanes = storeLanes.slice(0, STORE_LANES_MAX);
+  for (const l of shownLanes) lanes.push(l);
+  const inRails = new Set(shownLanes.flatMap((l) => l.all));
+  const also = distinct(shownLanes.flatMap((l) => l.similar).filter((p) => !inRails.has(p)), RAIL_CAP);
+  if (also.length >= LANE_MIN) lanes.push({ key: "tambien", title: "También puedes ver", also: true, all: also });
   return (r._doctrine = { brand, cat, lanes });
 }
 /* A core product's lanes (worldAnswer): the product, its accessories by
@@ -1458,7 +1557,7 @@ export function lanesFor(ctx, q, r, fx) {
   /* The doctrine: Ofertas, then one rail per store (doctrineLanes). */
   const d = doctrineLanes(ctx, q, r);
   return { mode: "doctrine", lanes: d.lanes.map((l) => ({ key: l.key, title: l.title, ...(l.store ? { store: l.store } : {}), n: l.all.length,
-    ...(l.exact != null ? { exact: l.exact } : {}), ...(l.doorQ ? { doorQ: l.doorQ } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
+    ...(l.exact != null ? { exact: l.exact } : {}), ...(l.doorQ ? { doorQ: l.doorQ } : {}), ...(l.also ? { also: true } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
 }
 /* (The earlier lane builder, kept for its callers' tests: generic /
    brand / specific lanes. The page now reads lanesFor.) */
