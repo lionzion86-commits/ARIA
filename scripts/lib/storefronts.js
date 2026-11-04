@@ -47,6 +47,7 @@
    great houses, one rail each. The house strip (real logo files only)
    opens each house's rail.
    ============================================================ */
+import { truthFamily } from "./store-reroutes.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { SUB_TAXONOMY } from "./store-subrails.js";
@@ -157,6 +158,9 @@ export const NO_FAMILY = "otros";
 export function familyOf(p, R, cfg = {}) {
   let f = "ropa";
   try { f = R.productTypeOf(p); } catch {}
+  /* Shoes are Zapatos, a garment clothing (the full store audit, #443
+     c.6635296341; scripts/lib/store-reroutes.js truthFamily). */
+  f = truthFamily(p, f, cfg.key || p.retailer);
   if ((cfg.split || []).includes("belleza") && f !== "perfumes" && f !== "belleza" && beautyAisle(p)) return "belleza";
   if (f === "ropa" && !garmentAisle(p, !!cfg.training) && !APPAREL_RX.test(String(p.name || p.title || ""))) return NO_FAMILY;
   return f;
@@ -176,8 +180,9 @@ export function storefrontRails(key, label, items, R, sort, cfg) {
   const thin = items.length <= THIN_STORE;
   const famMin = thin ? FAMILY_MIN_THIN : Math.max(FAMILY_MIN, Math.ceil(items.length * FAMILY_SHARE)), aisleMin = thin ? AISLE_MIN_THIN : AISLE_MIN;
   const byFam = new Map();
+  const fcfg = { ...cfg, key };
   for (const p of items) {
-    const f = familyOf(p, R, cfg);
+    const f = familyOf(p, R, fcfg);
     if (!byFam.has(f)) byFam.set(f, []);
     byFam.get(f).push(p);
   }
