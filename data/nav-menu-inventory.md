@@ -6070,7 +6070,7 @@ Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 
 Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
-### Tipos (5,234)
+### Tipos (5,917)
 
 - Accesorios tecnológicos: 477 · `/departamento.html?dept=electronics&t=accesorios-tecnologicos`
 - Cámaras: 449 · `/departamento.html?dept=electronics&t=camaras`
@@ -7353,12 +7353,12 @@ Abre: `/ofertas.html` (33,505 productos)
 ### Ofertas por categoría
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
-- Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
+- Ropa Mujer: 5,633 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
 - Ropa Niños: 1,422 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
 - Juguetes: 1,266 · `/ofertas.html?vista=categoria&cat=juguetes`
 - Zapatillas: 1,696 · `/ofertas.html?vista=categoria&cat=zapatillas`
 - Electrónica: 911 · `/ofertas.html?vista=categoria&cat=electronica`
-- Belleza: 5,508 · `/ofertas.html?vista=categoria&cat=belleza`
+- Belleza: 5,517 · `/ofertas.html?vista=categoria&cat=belleza`
 - Joyas y accesorios: 2,610 · `/ofertas.html?vista=categoria&cat=accesorios`
 - Zapatos: 2,091 · `/ofertas.html?vista=categoria&cat=zapatos`
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
