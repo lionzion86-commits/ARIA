@@ -58,7 +58,7 @@
   var hero = document.getElementById('deptHero');
   var bar = document.createElement('div'); bar.className = 'dh-bar'; bar.id = 'dhBar';
   bar.innerHTML = '<nav class="dh-aud" id="dhAud" aria-label="Para quién" hidden></nav>'
-    + '<nav class="dh-jump" id="dhJump" aria-label="Secciones">'
+    + '<nav class="dh-jump" id="dhJump" aria-label="Ir a">'
     + AXES.map(function(a){ return '<a href="#dh-' + a[0] + '">' + a[1] + '</a>'; }).join('')
     + '<a href="#dh-explorar">Explorar todo</a></nav>';
   if (hero && hero.parentNode) hero.parentNode.insertBefore(bar, hero.nextSibling);
