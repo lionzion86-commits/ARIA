@@ -28,14 +28,22 @@ const ROOT = fileURLToPath(new URL("../", import.meta.url));
    cards, photo heroes, navy bands and themed pages (flagship stores, the
    perfume room) keep their own backgrounds: the field rule carries no
    !important and is weaker than any class-scoped background. */
-export const PAGES = ["index.html", "ofertas.html", "tienda.html", "departamento.html", "categorias.html", "tiendas.html", "search.html", "marca.html", "motos.html", "auto.html", "aria-auto.html", "disenadores.html", "ropa-interior.html"];
+export const PAGES = ["index.html", "ofertas.html", "tienda.html", "departamento.html", "categorias.html", "tiendas.html", "search.html", "marca.html", "motos.html", "auto.html", "aria-auto.html", "disenadores.html", "ropa-interior.html",
+  /* EVERY DASHBOARD (#443 c.6638583799): the Aria Compradores panel and
+     its ops board, the Ops dashboard, Mi cuenta. */
+  "agente.html", "admin-agentes.html", "admin.html", "cuenta.html"];
 const FIELD_SEL = "html body";
 /* Danny named the perfume room too: its cream field (body.lux-perfumes)
    takes the mosaic; its dark photo hero stays. */
 const FIELD_EXTRA = { "departamento.html": ",html body.lux-perfumes" };
 /* Ropa Interior keeps its dark body and Hombre room (navy stays navy);
    the Mujer room's pale-pink field is the one that takes the mosaic. */
-const FIELD_OWN = { "ropa-interior.html": "html body .sec-w" };
+const FIELD_OWN = { "ropa-interior.html": "html body .sec-w", "cuenta.html": "html.theme-amanecer body" };
+/* The dashboards follow the phone's dark mode with their own tokens; the
+   mosaic is an icy, light field, so it (and its ink) only applies in light
+   mode. Dark mode keeps its dark field, like navy stays navy. Mi cuenta's
+   default Lounge theme is dark too; its light Amanecer theme takes it. */
+const FIELD_MEDIA = { "agente.html": "(prefers-color-scheme: light)", "admin-agentes.html": "(prefers-color-scheme: light)", "admin.html": "(prefers-color-scheme: light)" };
 /* Navy ink for what now sits on the mosaic (the #659/#662 treatment):
    muted grey turns slate navy, small blue links turn a deeper blue, the
    gold word in a page title turns dark champagne. Scoped "html body ..."
@@ -66,6 +74,11 @@ ${on(".rail-ver,.site-footer a")}{color:${LINK}}`,
 ${on(".aa-sec h2 a")}{color:#8A4B00}`,
   "disenadores.html": `${on(".soon>p")}{color:${MUTE}}`,
   /* The Mujer room keeps its plum palette: its muted ink just deepens. */
+  /* A ghost button sat on the old field; on the tile it gets the card fill. */
+  "agente.html": `${on(".btn.ghost")}{background:var(--card)}`,
+  "admin-agentes.html": `${on(".btn.ghost")}{background:var(--card)}`,
+  "admin.html": "",
+  "cuenta.html": "",
   "ropa-interior.html": `${on(".sec-w .axis h3,.sec-w .rail-head .sub,.sec-w .explore .lead,.sec-w .count,.sec-w .state")}{color:#4A2236}`,
 };
 export const GROUT = "#CEDAE8";
@@ -130,13 +143,14 @@ export const mosaicSvgs = () => LAYERS.map((l) => svgOf(layerGrid(l.name), l.nam
 const uri = (svg) => "data:image/svg+xml," + svg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23");
 export const mosaicDataUris = () => mosaicSvgs().map(uri);
 
+const wrap = (page, css) => FIELD_MEDIA[page] ? `@media ${FIELD_MEDIA[page]}{\n${css}}\n` : css;
 export function mosaicCss(page) {
   const sizes = LAYERS.map((l) => `${l.n * CELL}px ${l.n * CELL}px`).join(",");
   const ink = page && PAGE_INK[page];
   return `/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */\n` +
     `:root{--aria-mosaic:${mosaicDataUris().map((u) => `url("${u}")`).join(",")}}\n` +
     `.ariaMosaic{background-color:${GROUT} !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:${sizes} !important;background-position:0 0 !important}\n` +
-    (ink != null ? `${FIELD_OWN[page] || FIELD_SEL}${FIELD_EXTRA[page] || ""}{background-color:${GROUT};background-image:var(--aria-mosaic);background-repeat:repeat;background-size:${sizes};background-position:0 0}\n` + (ink ? ink.trim() + "\n" : "") : "") +
+    (ink != null ? wrap(page, `${FIELD_OWN[page] || FIELD_SEL}${FIELD_EXTRA[page] || ""}{background-color:${GROUT};background-image:var(--aria-mosaic);background-repeat:repeat;background-size:${sizes};background-position:0 0}\n` + (ink ? ink.trim() + "\n" : "")) : "") +
     `/* aria-mosaic:end */`;
 }
 
