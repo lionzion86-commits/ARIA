@@ -865,7 +865,12 @@ function withAlternatives(ctx, D, query, dest, hits, extra = []) {
      only -- no brand or store guess that contradicts the word. */
   const alternatives = dest.ptype ? typeAlternatives(D, dest.ptype) : alternativesFor(ctx, D, query, dest, hits, extra);
   const { ptype, ...clean } = dest;
-  return { q: query, destination: { ...clean, ...(ptype ? { type: ptype } : {}), href: hrefWith(dest.url, alternatives) }, alternatives };
+  /* ONE SEARCH REGIMEN (#443 c.6621809703): a search for a brand alone
+     lands focused on the brand itself (&q=<the brand>) -- the same
+     Comparador, Ofertas and one rail per store a model search gets
+     (assets/js/marca-focus.js). The page's own url stays the brand's. */
+  const landing = dest.kind === "brand" && !dest.q ? dest.url + "&q=" + enc(dest.label) : dest.url;
+  return { q: query, destination: { ...clean, ...(ptype ? { type: ptype } : {}), href: hrefWith(landing, alternatives) }, alternatives };
 }
 /* The landing url with its «También puede ser» list (&tp=). */
 export function hrefWith(url, alternatives) {
