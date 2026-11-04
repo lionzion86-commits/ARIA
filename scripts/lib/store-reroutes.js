@@ -22,6 +22,8 @@
    below are build-store-slices' rail families ("t-<family>").
    ============================================================ */
 
+import { isShoeItem, garmentFamily, notShoeNoun } from "./store-truth.js";
+
 export const BOARD_FAMILIES = {
   tablas_skate: "Tablas de skate",
   tablas_surf: "Tablas de surf",
@@ -88,10 +90,39 @@ const NOT_CLOTHING_FAMILIES = new Set(["joyas", "accesorios", "carteras", "hogar
  * The family a store page files a product under: the shared classifier's
  * answer `fam`, unless a strong title noun says otherwise.
  */
-export function storeFamily(p, fam) {
+const SNOWBOARD_RX = /\b(directional|camber|rocker|flat\s+top|split\s*boards?|snowboards?)\b/i;
+/* Families a garment already belongs to. */
+const GARMENT_HOME = new Set(["ropa", "trajes_bano"]);
+const GARMENT_FROM = new Set(["accesorios", "joyas", "hogar", "juguetes"]);
+/**
+ * THE AUDIT'S RE-FILE (#443 c.6635296341, the full store audit), every
+ * storefront: shoes are Zapatos, and a garment is clothing.
+ *   - a shoe by its name or its house's model line (scripts/lib/store-
+ *     truth.js) -- Parrot's «Skate Old Skool 195», Val Surf's «Hi-Standard
+ *     OG», Reef's «Cushion Court» -- is Zapatos, whatever blind stamp
+ *     («Accesorios»), part word or décor word misfiled it;
+ *   - what Zapatos held that its own head noun says is not a shoe (a
+ *     glove liner, a goggle, a «Boot Jean», a cleaning kit) leaves it;
+ *   - a garment under an accessory, jewellery, home or toy family
+ *     («2% Hijinx Hoody», «Skimpy Bottom», Miu Miu's «Chino Bermudas»)
+ *     is clothing (or swimwear).
+ */
+export function truthFamily(p, fam, retailer = p?.retailer) {
+  const name = String(p?.name || p?.title || "");
+  if (fam !== "zapatos" && !BOARD_FAMILIES[fam] && isShoeItem(p, retailer)) return "zapatos";
+  if (fam === "zapatos" && notShoeNoun(p) && !isShoeItem(p, retailer)) return garmentFamily(name) || "accesorios";
+  if (GARMENT_FROM.has(fam)) { const g = garmentFamily(name); if (g) return g; }
+  return fam;
+}
+export function storeFamily(p, fam, retailer = p?.retailer) {
   const name = String(p?.name || p?.title || "");
   const board = boardFamily(p, fam);
   if (board) return board;
+  const t = truthFamily(p, fam, retailer);
+  if (t !== fam) return t;
+  /* A snowboard named by its profile («Fish 3D Directional Flat Top») is
+     gear, not a top (Val Surf's Hombre pill opened on it). */
+  if (fam === "ropa" && SNOWBOARD_RX.test(name) && !garmentFamily(name)) return "deportes";
   if (BOARD_SOCK_RX.test(name) && fam === "ropa") return "deportes";
   if ((fam === "belleza" || fam === "hogar" || fam === "accesorios") && MIST_RX.test(name) && !NOT_MIST_RX.test(name)) return "perfumes";
   if (NOT_CLOTHING_FAMILIES.has(fam) && INTIMATE_RX.test(name) && !NOT_INTIMATE_RX.test(name.replace(/\bin\s+a\s+bag\b/i, ""))) return "ropa";

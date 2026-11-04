@@ -54,7 +54,8 @@ import { photoCount } from "./lib/photo-counts.js";
 import { imageKey, titleKey, urlKey } from "./lib/product-identity.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { conditionOfTitle } from "./lib/condition.js";
-import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
+import { subRails, subKey, dominantFamily, audienceOf } from "./lib/store-subrails.js";
+import { sectionKind, isShoeItem } from "./lib/store-truth.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
@@ -513,7 +514,7 @@ export function genericRails(key, label, items, rules) {
      a panty clothing, whatever part name misled the classifier
      (scripts/lib/store-reroutes.js). */
   const byType = {}, baseFam = new Map();
-  for (const p of items) { const f = R.productTypeOf(p); baseFam.set(p, f); const t = storeFamily(p, f); (byType[t] = byType[t] || []).push(p); }
+  for (const p of items) { const f = R.productTypeOf(p); baseFam.set(p, f); const t = storeFamily(p, f, key); (byType[t] = byType[t] || []).push(p); }
   /* A board rail stands only at rail size; fewer boards stay where the
      classifier put them (a «Deportes» skateboard, not the tail). */
   for (const b of Object.keys(BOARD_FAMILIES)) {
@@ -749,7 +750,7 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   /* A multi-family rail or department pill opens into labelled
      sub-carousels (scripts/lib/store-subrails.js); their pages are
      endpoint rails like any other. */
-  const familyOf = (p) => { try { return R.productTypeOf(p); } catch { return "ropa"; } };
+  const familyOf = (p) => { let f = "ropa"; try { f = R.productTypeOf(p); } catch { /* ropa */ } return storeFamily(p, f, key); };
   const withStore = (list) => list.map((p) => ({ p, v: { ...p, retailer: key } }));
   const subsOf = (railKey, list, family) => {
     const wrapped = withStore(list);
@@ -783,16 +784,59 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   } else {
     const keys = Object.keys(depts).sort((a, b) => String(depts[a]).localeCompare(String(depts[b]), "es"));
     chips = { mode: "dept", depts: keys.map((k) => ({ key: k, label: depts[k], count: count((p) => p.dept === k) })).filter((d) => d.count > 0) };
+    /* LABEL-TRUE, COUNT-TRUE PILLS (#443 c.6635296341, the full store
+       audit). A store's department pills are the buckets its catalogue was
+       scraped from: Parrot's «Hombre» was its 16-product «Moda Hombre»
+       bucket while the store sells thousands of men's pieces, and its
+       «Ropa» bucket held 203 shoes. A pill now holds what its label says:
+         - an audience pill (Hombre / Mujer / Niños) holds every wearable
+           of the store for that audience (store-subrails.js audienceOf:
+           the title, the store's facet, its bucket); a wearable whose
+           data names no audience is unisex and sits in both adult pills
+           (Danny's ruling for shoes, applied to the store's clothes,
+           shoes, swimwear and hats; UNISEX_FAMILIES);
+         - a type pill never holds another type's shoes, and a shoe pill
+           only shoes; the rest of a bucket stays in its own aisles.
+       Each pill's membership is listed (fn.chips) and its count is that
+       list's length -- the same data that opens. */
+    const fam = audienceFamilies(key, items, rails, R);
+    const lists = {};
+    for (const d of chips.depts) {
+      const a = audienceKey(d.key, d.label);
+      let idx;
+      if (a) idx = items.map((p, i) => (fam.wear(p) && inAud(fam.aud(p), a, fam.of(p)) ? i : -1)).filter((i) => i >= 0);
+      else {
+        const kind = sectionKind(d.label);
+        const fits = (f) => (kind === "shoe" ? f === "zapatos" : kind === "mixed" ? true : kind === "accesorios" ? !["zapatos", "ropa", "trajes_bano"].includes(f) : f !== "zapatos");
+        idx = items.map((p, i) => (p.dept === d.key && fits(fam.of(p)) ? i : -1)).filter((i) => i >= 0);
+      }
+      if (a || idx.length !== d.count) { lists[d.key] = idx; d.count = idx.length; }
+    }
+    chips.depts = chips.depts.filter((d) => d.count > 0);
+    fn.chips = lists;
     /* A pill that is mostly one splittable family (Walmart's Hogar)
        opens into its aisles, in the grid's own order (sale depth). */
     for (const d of chips.depts) {
-      const list = items.filter((p) => p.dept === d.key).sort(R.saleSort);
+      const list = (fn.chips[d.key] ? fn.chips[d.key].map((i) => items[i]) : items.filter((p) => p.dept === d.key)).sort(R.saleSort);
       const fam = dominantFamily(list, familyOf);
-      const subs = fam && subsOf("c-" + d.key, list, fam);
+      /* A pill's sub-carousels hold only that family: a sneaker is never a
+         «Tops y blusas» of the Hombre pill (SSENSE), a tee never a
+         «Sandalias» of the Mujer pill (Island Water Sports). */
+      const subs = fam && subsOf("c-" + d.key, list.filter((p) => familyOf(p) === fam), fam);
       if (!subs) continue;
       d.subs = subsMeta(subs);
       for (const s of subs) fn.rails[s.key] = s.items.map((p) => at.get(p));
     }
+  }
+  /* The filter bar's audience and type, from the store page's own files
+     (netlify/functions/_nav-filter-core.js tiendaRows): who each wearable
+     is for (a wearable whose data names no audience is unisex), and which
+     rows the store files as shoes -- so a «Guantes» or «Belleza» type the
+     department read from the store's stamp never holds its shoes. */
+  {
+    const fam = audienceFamilies(key, items, rails, R);
+    fn.aud = items.map((p) => (!fam.wear(p) ? "" : fam.aud(p) ? AUD_CODE[fam.aud(p)] : UNISEX_FAMILIES.has(fam.of(p)) ? "u" : ""));
+    fn.shoes = items.map((p, i) => (fam.of(p) === "zapatos" && isShoeItem(p, key) ? i : -1)).filter((i) => i >= 0);
   }
   const index = {
     v: 1, store: key, label: meta.label, count: items.length, pageSize: PAGE_SIZE, railPages: "fn",
@@ -810,6 +854,33 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
     if (hero) index.hero = hero;
   }
   return { files: { "index.json": index }, fn, products: items, rails };
+}
+
+/* ---------- who a store's product is for (the audience pills) ---------- */
+const AUD_CODE = { men: "m", women: "w", kids: "k", unisex: "u" };
+const AUD_WORDS = { men: /^(men|mens|hombre|moda hombre)$/i, women: /^(women|womens|mujer|moda mujer)$/i, kids: /^(kids|niños|ninos|moda niños)$/i };
+export function audienceKey(key, label) {
+  for (const [a, rx] of Object.entries(AUD_WORDS)) if (rx.test(String(key)) || rx.test(String(label || "").trim())) return a;
+  return null;
+}
+/* Families a person wears: an audience pill's scope. A piece whose data
+   names no audience is unisex only where the family is worn by anyone
+   (clothes, shoes, swimwear, hats); an accessory, bag or jewel joins an
+   audience only when its data says so -- a surf shop's «Accesorios»
+   stamp also covers efoils and fin keys. */
+export const WEAR_FAMILIES = new Set(["ropa", "zapatos", "trajes_bano", "sombreros", "accesorios", "carteras", "joyas"]);
+export const UNISEX_FAMILIES = new Set(["ropa", "zapatos", "trajes_bano", "sombreros"]);
+const inAud = (aud, a, f) => (a === "kids" ? aud === "kids" : aud === a || (!aud && UNISEX_FAMILIES.has(f)));
+function audienceFamilies(key, items, rails, R) {
+  const famOf = new Map();
+  for (const r of rails) if (/^t-/.test(r.key) && r.key !== TAIL_RAIL_KEY) { const f = r.cat ? r.cat.fam : r.key.slice(2); for (const p of r.items) if (!famOf.has(p)) famOf.set(p, f); }
+  const of = (p) => {
+    if (!famOf.has(p)) { let f = "ropa"; try { f = R.productTypeOf(p); } catch { /* ropa */ } famOf.set(p, storeFamily(p, f, key)); }
+    return famOf.get(p);
+  };
+  const audCache = new Map();
+  const aud = (p) => { if (!audCache.has(p)) audCache.set(p, audienceOf({ ...p, retailer: key }, of(p))); return audCache.get(p); };
+  return { of, aud, wear: (p) => WEAR_FAMILIES.has(of(p)) };
 }
 
 /* Every store in tienda.html's registry, built. */

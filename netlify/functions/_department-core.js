@@ -1122,7 +1122,8 @@ export function lensOf(key, pill) {
     : buildSections(pill.items, pill.opts || sectionOpts(key)))
     .filter((s) => !(/^tienda:/.test(s.key) && !pill.byStore) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
     .slice(0, LENS_RAILS);
-  return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length,
+  /* stats: the hero's counts while the lens is the page (a pill filters, #443 c.6635829511). */
+  return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length, stats: deptStats(pill.items),
     rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };
 }
 
