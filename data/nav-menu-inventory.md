@@ -7415,12 +7415,12 @@ Abre: `/ofertas.html` (33,505 productos)
 ### Ofertas por categoría (33,505)
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
-- Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
+- Ropa Mujer: 5,633 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
 - Ropa Niños: 1,422 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
 - Juguetes: 1,266 · `/ofertas.html?vista=categoria&cat=juguetes`
 - Zapatillas: 1,696 · `/ofertas.html?vista=categoria&cat=zapatillas`
 - Electrónica: 911 · `/ofertas.html?vista=categoria&cat=electronica`
-- Belleza: 5,508 · `/ofertas.html?vista=categoria&cat=belleza`
+- Belleza: 5,517 · `/ofertas.html?vista=categoria&cat=belleza`
 - Joyas y accesorios: 2,610 · `/ofertas.html?vista=categoria&cat=accesorios`
 - Zapatos: 2,091 · `/ofertas.html?vista=categoria&cat=zapatos`
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
