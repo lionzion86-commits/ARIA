@@ -282,7 +282,12 @@ await check("departamento.html's first script sends a nav=1 URL to the canonical
   const first = s.indexOf("<script"), redirect = s.indexOf("window.__ariaCanon = 1");
   assert.ok(redirect > first && redirect < s.indexOf("</script>", first), "the redirect is not the first script");
   assert.ok(redirect < s.indexOf("<title>"), "the redirect is not at the top of <head>");
-  for (const f of ["departamento.html", "ofertas.html", "ropa-interior.html"]) assert.ok(!/nav-filter\.js|nfBoot|AriaNFHost/.test(read(f)), f + " still loads the filter bar");
+  for (const f of ["departamento.html", "ropa-interior.html"]) assert.ok(!/nav-filter\.js|nfBoot|AriaNFHost/.test(read(f)), f + " still loads the filter bar");
+  /* Ofertas mounts the bar only inside one of its own categories (#443
+     c.6629871333: "Ofertas zapatos mujer / hombre / niños"), never on
+     its store view: no static script tag, only nfSync's category source. */
+  assert.doesNotMatch(read("ofertas.html"), /<script[^>]*src="\/assets\/js\/nav-filter\.js"/);
+  assert.match(read("ofertas.html"), /'ofertas=1&cat=' \+ encodeURIComponent\(S\.cat\)/);
   assert.ok(!/AriaDept|nav=1|'nav'/.test(read("assets/js/nav-filter.js")), "nav-filter.js still builds the department's filtered view");
 });
 await check("sizes are the store's own labels, read not invented", () => {
@@ -620,12 +625,14 @@ if (pw) {
       assert.equal(await page.$("#nf"), null);
       await c.close();
     });
-    await check("browser phone 390: Ofertas and Ropa Interior keep their own filters (no second rendering); ?ver=type:bra opens Lencería's own Explorar todo", async () => {
+    await check("browser phone 390: Ofertas keeps its own category pills and filters inside the chosen category (Mujer / Hombre / Niños, the bar on that category only); Ropa Interior keeps its own filters (no second rendering); ?ver=type:bra opens Lencería's own Explorar todo", async () => {
       const { c, page } = await ctx(false);
       const errors = []; page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(BASE + "/ofertas.html?vista=categoria&cat=zapatos", { waitUntil: "domcontentloaded" });
       await page.waitForSelector('#cats button[data-cat="zapatos"][aria-pressed="true"]', { timeout: 60000 });
-      assert.equal(await page.$("#nf"), null);
+      await page.waitForSelector("#nfAud .nf-pill", { timeout: 60000 });
+      assert.equal(await page.evaluate(() => window.AriaNFHost.src), "ofertas=1&cat=zapatos");
+      assert.equal(await page.$$eval("#cats", (x) => x.length), 1, "a second rendering of the category pills");
       await page.goto(BASE + "/ropa-interior.html?ver=type:bra#mujer", { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => { const s = document.getElementById("w-fType"); return s && s.value === "type:bra" && document.querySelectorAll("#w-grid .card, #w-grid a").length > 0; }, null, { timeout: 60000 });
       assert.equal(await page.$("#nf"), null);

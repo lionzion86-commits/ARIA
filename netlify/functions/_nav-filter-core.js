@@ -19,7 +19,9 @@
                    store size runs, _fn/<key>.sizes.json)
      tienda=<key>  assets/tienda/_fn/<key>.json (_tienda-core.js)
      marca=<key>   assets/sections/marca/_fn/items.json (_brand-core.js)
-     ofertas=1     assets/ofertas/deals.json (_ofertas-core.js)
+     ofertas=1     assets/ofertas/deals.json (_ofertas-core.js); &cat=<k>
+                   narrows it to one category of Ofertas' Por categoría
+                   view (the deal's own k, scripts/lib/offer-category.js)
      ri=mujer|hombre  ropa-interior(-women)-feed.json
      (search: netlify/functions/search.js, &nf=1, with this engine)
    A product's type, audience and sizes outside a department come from
@@ -41,7 +43,7 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { loadDept, inAudience, typeKeyOf, cardOf as deptCard, photosFirst, PAGE_SIZE, AUD, FN_DIR, lensSlug, typeLabel } from "./_department-core.js";
+import { loadDept, inAudience, audienceSwitch, typeKeyOf, cardOf as deptCard, photosFirst, PAGE_SIZE, AUD, FN_DIR, lensSlug, typeLabel } from "./_department-core.js";
 import { finalUsd } from "./_search-core.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 const storeLabel = (k) => (RETAILERS[k] && RETAILERS[k].label) || k;
@@ -364,7 +366,7 @@ export function facetAnswer(rows, f, sort = "deal", page = 0, card = (x) => x) {
   return {
     f: { u: f.u, t: f.t, s: f.s, b: f.b, z: f.z, p: f.p, o: f.o, r: f.r, w: f.w }, sort, tl,
     sl: f.s ? styleLabel(f.t, f.s) : "", sAll: f.t && STYLES[f.t] ? STYLES[f.t].all : "",
-    count: hits.length, page, pages, tAll: R.filter((r) => match(r, "t")).length,
+    count: hits.length, page, pages, tAll: R.filter((r) => match(r, "t")).length, uAll: R.filter((r) => match(r, "u")).length,
     cards: hits.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((r) => card(r.x)),
     facets,
   };
@@ -415,11 +417,13 @@ async function marcaRows(key, roots) {
   return mine.map((p) => ({ x: Bc.cardOf(p), title: p.name, brand: p.brand, retailer: p.retailer, usd: finalUsd(p.price, p.retailer), sale: p.pct || 0, image: p.image || "",
     ...withFacts(F, p.retailer, p.name, p.ptype ? typeOfRaw(p.ptype) : null) }));
 }
-async function ofertasRows(roots) {
+async function ofertasRows(roots, cat) {
   const O = await import("./_ofertas-core.js");
   const d = O.loadDeals(roots ? roots[0] : undefined);
   const F = loadFacts(roots);
-  return d.cards.map((c) => ({ x: c, title: c.title, brand: c.brand, retailer: c.store, usd: Number(c.usd) || 0, sale: Number(c.pct) || 0, image: c.image || "",
+  /* One category of the Por categoría view: the deals that carry its k. */
+  const cards = cat ? d.cards.filter((c) => c.k === cat) : d.cards;
+  return cards.map((c) => ({ x: c, title: c.title, brand: c.brand, retailer: c.store, usd: Number(c.usd) || 0, sale: Number(c.pct) || 0, image: c.image || "",
     ...withFacts(F, c.store, c.title, null) }));
 }
 /* Ropa Interior's own kinds (the feed's sub), in Spanish. */
@@ -444,7 +448,7 @@ export async function rowsOf(src, roots) {
   if (src.dept) return deptRows(src.dept, roots);
   if (src.tienda) return tiendaRows(src.tienda, roots);
   if (src.marca) return marcaRows(src.marca, roots);
-  if (src.ofertas) return ofertasRows(roots);
+  if (src.ofertas) return ofertasRows(roots, src.cat);
   if (src.ri) return riRows(src.ri, roots);
   return null;
 }
@@ -453,7 +457,7 @@ export function sourceOf(qs) {
   if (qs.dept) return { dept: k(qs.dept, /^[a-z_]{2,40}$/) };
   if (qs.tienda) return { tienda: k(qs.tienda, /^[a-z0-9_]{2,40}$/) };
   if (qs.marca) return { marca: k(qs.marca, /^[a-z0-9]{1,60}$/) };
-  if (qs.ofertas === "1") return { ofertas: true };
+  if (qs.ofertas === "1") return qs.cat ? { ofertas: true, cat: k(qs.cat, /^[a-z_]{2,40}$/) } : { ofertas: true };
   if (qs.ri) return { ri: k(qs.ri, /^(mujer|hombre)$/) };
   return {};
 }
@@ -473,6 +477,17 @@ export async function answerNav(qs, roots) {
   const f = readFilters(qs);
   const sort = NF_SORTS.some(([k]) => k === qs.sort) ? qs.sort : "deal";
   const out = facetAnswer(rows, f, sort, Math.max(0, Math.min(500, Number(qs.page) || 0)), cardFor(src));
+  /* OFERTAS KEEPS FILTERING INSIDE THE CATEGORY (#443 c.6629871333):
+     the audiences a category's offers really hold, by the department's
+     own rule (audienceSwitch: the audience is known for 60%+ of them and
+     2+ audiences hold 48+ each), counted on the whole category, never
+     under the other selections -- so the Mujer / Hombre / Niños pills
+     stay put while the shopper narrows. The audience is the product's
+     department fact (facts.json), never a brand or store guess. */
+  if (src.ofertas && src.cat) {
+    const sw = audienceSwitch(rows.filter((r) => r.image));
+    out.aud = sw ? sw.map((o) => o.k) : [];
+  }
   return { status: 200, body: { src, ...out } };
 }
 
