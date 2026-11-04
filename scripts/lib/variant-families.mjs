@@ -39,6 +39,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { variantIdOf, groupIdOf, colourSuffix, midColour } from "./variants.mjs";
+import { isShoeForDept } from "./footwear.js";
 
 export const FAMILIES_DIR = "scripts/data/variant-families";
 
@@ -703,7 +704,15 @@ export function applyFamilies(listings, families, all = null) {
         images: Array.isArray(m.images) && m.images.length ? m.images.slice(0, 12) : gallery && gallery.length ? gallery : [image], dept: anchor.dept || "",
         __family: fam.source || fam.key };
       if (m.wasPrice > price) x.wasPrice = m.wasPrice;
-      if (Array.isArray(m.sizes) && m.sizes.length) x.sizes = m.sizes.slice();
+      if (Array.isArray(m.sizes) && m.sizes.length) {
+        x.sizes = m.sizes.slice();
+        /* A shoe's colour carries the rest of its run, sold out at the
+           store (parseShopifyFamilies soldOutOf): shown agotada, never sold. */
+        if (Array.isArray(m.sizesOut) && m.sizesOut.length && isShoeForDept(anchor, anchor.retailer)) {
+          const out = m.sizesOut.filter((z) => typeof z === "string" && !x.sizes.includes(z));
+          if (out.length) x.sizesOut = out;
+        }
+      }
       /* A product sold by size never sells without one: no size list of
          its own, sizes por confirmar. */
       else if (m.sizesPending || (Array.isArray(anchor.sizes) && anchor.sizes.length) || anchor.sizesPending) x.sizesPending = true;
@@ -918,6 +927,13 @@ function shopifyUrl(p, base) {
   if (p.handle && base) return String(base).replace(/\/+$/, "") + "/products/" + p.handle;
   return "";
 }
+/* The rest of a colour's run, sold out at the store (#443 c.6633182280):
+   its sizes whose every variant says available:false. They ride as the
+   member's `sizesOut` -- shown agotada on a shoe's page, never sold. */
+function soldOutOf(m, vs, sizeOf) {
+  const out = [...new Set(vs.filter((v) => v.available === false).map(sizeOf).filter(Boolean))].filter((s) => !m.sizes.includes(s));
+  if (out.length && m.sizes.length) m.sizesOut = out;
+}
 function shopifyImage(x) { return httpUrl(typeof x === "string" ? x : x && (x.src || x.url)); }
 export function parseShopifyFamilies(products, opts = {}) {
   const retailer = String(opts.retailer || "").toLowerCase();
@@ -965,7 +981,7 @@ export function parseShopifyFamilies(products, opts = {}) {
         if (image) { m.image = image; m.images = m0images && m0images.length ? m0images.slice(0, 12) : [image]; }
         m0images = null;
         m.available = live.length > 0;
-        if (si >= 0) m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))];
+        if (si >= 0) { m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))]; soldOutOf(m, vs, (v) => optOf(v, si)); }
         if (!(m.price > 0 && m.image)) stats.awaitingDetail++;
         members.push(m);
       });
@@ -989,7 +1005,7 @@ export function parseShopifyFamilies(products, opts = {}) {
     if (p.handle) m.handle = String(p.handle);
     if (prices.length) m.price = Math.min(...prices);
     if (imgs.length) { m.image = imgs[0]; m.images = imgs; }
-    if (si >= 0) m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))];
+    if (si >= 0) { m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))]; soldOutOf(m, variants, (v) => optOf(v, si)); }
     singles.push({ key: low(brand) + "|" + low(model), m });
   }
   const byModel = new Map();
