@@ -12698,8 +12698,10 @@ check("the researched timings Danny approved are in the dataset", () => {
 check("the store delivery line reads naturally in Spanish", () => {
   eq(delivery.storeDeliveryLineEs("dicks"),
     "Llega a nuestro almacén en Miami en 3–6 días.", "range line");
+  /* Skims ships USPS-exposed (MIXED, #443 c.6612459871): its quoted "up to 7"
+     is shown widened by 5. */
   eq(delivery.storeDeliveryLineEs("skims"),
-    "Llega a nuestro almacén en Miami en 7 días como máximo.", "max-only line");
+    "Llega a nuestro almacén en Miami en 12 días como máximo.", "max-only line");
   if (/en hasta/.test(delivery.storeDeliveryLineEs("skims")))
     throw new Error('the awkward "en hasta" copy is back');
   eq(delivery.storeDeliveryLineEs("nosuchstore"), null, "unresearched store");
@@ -12726,7 +12728,8 @@ check("the page mirrors the delivery dataset", () => {
   for (const key of ["dicks", "yesstyle", "skims", "ssense", "sephora"]) {
     const row = new RegExp(`^\\s*${key}:\\s*\\{[^\\n]*`, "m").exec(m[1]);
     if (!row) throw new Error(`the page mirror lost its ${key} row`);
-    const mod = delivery.deliveryFor(key);
+    /* The mirror is the store's own quote; deliveryFor widens both alike. */
+    const mod = delivery.quotedDeliveryFor(key);
     for (const f of ["miamiMin", "miamiMax", "tier"]) {
       const want = String(mod[f]);
       if (!new RegExp(`${f}:\\s*["']?${want}["']?\\b`).test(row[0]))

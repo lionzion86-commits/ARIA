@@ -155,6 +155,13 @@
 [functions."department"]
   included_files = ["assets/sections/departamento/_fn/*.json"]
 
+# The header's category page (#443, the Nordstrom pattern): the filter
+# bar's stacked facets (audience x type x brand x talla x precio x
+# Ofertas) from the same full card lists plus the stores' own size runs
+# (_fn/<dept>.sizes.json). The phone gets one page of cards and counts.
+[functions."nav-filter"]
+  included_files = ["assets/sections/departamento/_fn/*.json"]
+
 # Ofertas (2026-10-19, #409): ofertas.html paints its first 48 deals from
 # static slices (assets/ofertas/slices/); this answers "Mostrar más" and
 # the page's search box from the packed deal list. Built by

@@ -121,7 +121,7 @@ check("the sales-tax rule matches the one the search core and the product page u
 
 check("the product page: the store's box FIRST, above Impuestos and Peso, with its meter; re-drawn on add", () => {
   const html = read("producto.html");
-  assert.match(html, /<script src="\/store-shipping\.js"><\/script>/);
+  assert.match(html, /<script src="\/store-shipping\.js"[^>]*><\/script>/);
   const i = html.indexOf("priceHtml += shipBoxHtml(p);"), t = html.indexOf(`priceHtml += '<div id="p-tax"`), w = html.indexOf(`priceHtml += '<div id="p-weight"`);
   assert.ok(i > 0 && i < t && t < w, "Costo de envío, then Impuestos, then Peso");
   assert.match(html, /Costo de envío de la tienda/);
@@ -131,18 +131,20 @@ check("the product page: the store's box FIRST, above Impuestos and Peso, with i
 
 check("the expanded card on the homepage carries the line", () => {
   assert.match(read("index.html"), /<div id="productViewShipping"/);
-  assert.match(read("index.html"), /<script src="\/store-shipping\.js"><\/script>/);
+  assert.match(read("index.html"), /<script src="\/store-shipping\.js"[^>]*><\/script>/);
   assert.match(bundle, /S\.ruleText\(retailer\)/);
 });
 
 check("checkout: one group per store with its meter, its own row in the total; orders-create charges the same", () => {
   const co = read("checkout.html");
-  assert.match(co, /const shipping = cartShipping\(cart\)\.totalUsd;/);
+  /* with the customer's pick among a USPS-exposed store's tiers (#443 c.6612548967) */
+  assert.match(co, /const shipping = cartShippingNow\(\)\.totalUsd;/);
+  assert.match(co, /function cartShippingNow\(\)\{ return cartShipping\(cart, undefined, \{ tiers: cartShipTiers\(\) \}\); \}/);
   assert.match(co, /totalUsd: round2\(goods \+ freight \+ tax \+ shipping\)/);
   assert.match(co, /id="storeShipPanel"/);
   assert.match(co, /storeShippingUsd: orderTotalsUsd\(\)\.shipping,/);
   const oc = read("netlify/functions/orders-create.js");
-  assert.match(oc, /const storeShipping = cartShipping\(items\);/);
+  assert.match(oc, /const storeShipping = cartShipping\(items, undefined, \{ tiers: storeShippingTiers \}\);/);
   assert.match(oc, /priceUsdTotal \+ freightUsdQuoted \+ taxEstimatedUsd \+ storeShippingUsd/);
 });
 

@@ -1678,6 +1678,17 @@ html{scroll-padding-top:76px}
      shopper's phone while the page sat white. Last in the head, where the
      runtime put its generated rules, so the cascade order is unchanged. -->
 <link rel="stylesheet" href="/assets/css/tailwind.css">
+<style id="nm-css">
+.nm{--nm-fg:#0A1F44;--nm-mute:#5B6475;--nm-line:#E4E6EC;--nm-bg:#fff;--nm-hi:#B8860B;position:relative;background:var(--nm-bg);border-top:1px solid var(--nm-line);font-family:inherit}
+.nm-dark{--nm-fg:#F4F6FB;--nm-mute:rgba(236,241,250,.8);--nm-line:rgba(255,255,255,.16);--nm-bg:#0A1F44;--nm-hi:#F4C463}
+.nm-in{max-width:1240px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.nm-in::-webkit-scrollbar{display:none}
+.nm-tab{flex:0 0 auto;display:inline-flex;align-items:center;height:40px;padding:0 10px;color:var(--nm-fg);font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;-webkit-tap-highlight-color:transparent}
+.nm-tab[aria-expanded="true"]{border-bottom-color:var(--nm-hi)}
+.nm-tab:focus-visible{outline:2px solid var(--nm-hi);outline-offset:-2px}
+@media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
+</style>
+<script src="/assets/js/nav-menu.js" defer></script>
 </head>
 <body class="antialiased">
 
@@ -1794,6 +1805,9 @@ html{scroll-padding-top:76px}
     <a href="#" onclick="showPage('keyclubView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Aria Key Club</a>
     <div id="authAreaMobile" class="p-5"></div>
   </nav>
+<!-- nm:start -->
+<nav class="nm" data-nm aria-label="Categorías"><div class="nm-in"><a class="nm-tab" href="/departamento.html?dept=women" data-nm-tab="mujer" aria-expanded="false" aria-haspopup="true">Mujer</a><a class="nm-tab" href="/departamento.html?dept=men" data-nm-tab="hombre" aria-expanded="false" aria-haspopup="true">Hombre</a><a class="nm-tab" href="/departamento.html?dept=kids" data-nm-tab="ninos" aria-expanded="false" aria-haspopup="true">Niños</a><a class="nm-tab" href="/departamento.html?dept=shoes" data-nm-tab="zapatos" aria-expanded="false" aria-haspopup="true">Zapatos</a><a class="nm-tab" href="/departamento.html?dept=beauty" data-nm-tab="belleza" aria-expanded="false" aria-haspopup="true">Belleza</a><a class="nm-tab" href="/departamento.html?dept=joyas_accesorios" data-nm-tab="accesorios" aria-expanded="false" aria-haspopup="true">Accesorios</a><a class="nm-tab" href="/departamento.html?dept=luxury" data-nm-tab="disenador" aria-expanded="false" aria-haspopup="true">Diseñador</a><a class="nm-tab" href="/departamento.html?dept=sporting_goods" data-nm-tab="deportes" aria-expanded="false" aria-haspopup="true">Deportes</a><a class="nm-tab" href="/departamento.html?dept=curvy" data-nm-tab="tallas-plus" aria-expanded="false" aria-haspopup="true">Tallas Plus</a><a class="nm-tab" href="/ropa-interior.html#mujer" data-nm-tab="lenceria" aria-expanded="false" aria-haspopup="true">Lencería</a><a class="nm-tab" href="/departamento.html?dept=home_goods" data-nm-tab="hogar" aria-expanded="false" aria-haspopup="true">Hogar</a><a class="nm-tab" href="/departamento.html?dept=electronics" data-nm-tab="electronica" aria-expanded="false" aria-haspopup="true">Electrónica</a><a class="nm-tab" href="/departamento.html?dept=toys" data-nm-tab="juguetes" aria-expanded="false" aria-haspopup="true">Juguetes</a><a class="nm-tab" href="/motos.html" data-nm-tab="auto-motos" aria-expanded="false" aria-haspopup="true">Auto y Motos</a><a class="nm-tab" href="/ofertas.html" data-nm-tab="ofertas" aria-expanded="false" aria-haspopup="true">Ofertas</a><a class="nm-tab" href="/keyclub.html" data-nm-tab="key-club" aria-expanded="false" aria-haspopup="true">Key Club</a></div></nav>
+<!-- nm:end -->
 </header>
 
 <!-- ============ HOME VIEW ============ -->
@@ -4406,8 +4420,11 @@ html{scroll-padding-top:76px}
          weren't broken, they were never rendered at that viewport width.
          Always visible now; it simply stacks above the grid on narrower
          screens since it's the grid's first child. -->
-    <div class="grid lg:grid-cols-[240px_1fr] gap-8">
-      <aside class="hidden lg:block">
+    <div class="grid gap-8">
+      <!-- NO CHECKBOX RAIL (#443 c.6616347095, the Nordstrom pattern): the
+           store checkboxes stay as the hidden state the chip row below
+           drives; the chips are the filter at every width now. -->
+      <aside hidden aria-hidden="true">
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px]" style="color:#fff">Filtros</div>
         </div>
@@ -4425,7 +4442,7 @@ html{scroll-padding-top:76px}
              above the grid on phones -- two screens of filters before the
              first product image. Below lg it is one horizontal chip row;
              the checkbox aside stays for desktop. -->
-        <div id="categoriesStoreChips" class="lg:hidden flex gap-2 overflow-x-auto pb-2 mb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+        <div id="categoriesStoreChips" class="flex gap-2 overflow-x-auto pb-2 mb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
         <div class="flex items-center justify-between mb-4 gap-3">
           <div id="categoriesCount" class="text-[13px]" style="color:#AFBBD6"></div>
           <select id="categoriesSort" onchange="renderCategoriesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:rgba(255,255,255,.25);background:#0A1F44;color:#fff">
@@ -6561,10 +6578,12 @@ html{scroll-padding-top:76px}
 <script src="/shade-gate.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
 <script src="/condition.js" defer></script>
+<script src="/store-carrier-data.js" defer></script>
+<script src="/store-carrier.js" defer></script>
 <script src="/store-shipping.js" defer></script>
 <script src="/fragrance.js" defer></script>
 <script src="/import-tax.js" defer></script>
-<script src="/build/app-40248141f3d3494b.js" defer></script>
+<script src="/build/app-3486bb4a8727eff7.js" defer></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 
