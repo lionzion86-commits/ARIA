@@ -70,6 +70,8 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { variantIdOf, groupColourways, beautyShade, shadeListing, listingShade, HAIR_COLOUR } from "./lib/variants.mjs";
 import { kindOf as shadeKindOf } from "./lib/shade-gate.js";
 import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
+import { isShoeForDept } from "./lib/footwear.js";
+import { sizesPendingKey } from "./lib/sizes-pending.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PDP_DIR = "assets/pdp";
@@ -196,6 +198,7 @@ function storeTypes(raw) {
 export function buildRecords(P, root = ROOT, families = null, sourceFilesOverride = null) {
   const byKey = new Map();          // norm(title) -> [{ rec, json, src: [[file, pos]] }]
   const byRetailer = new Map();     // retailer -> [normalised items], file order
+  const shoes = new Map();          // retailer::name -> { retailer, name, brand, sized }
   const files = sourceFiles(P);
   let items = 0;
   /* Pass 1: every listing, with its own id. */
@@ -231,6 +234,19 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     if (x.sp) it.sp = 1;
     if (!firstByV.has(it.__v)) { firstByV.set(it.__v, it); all.push({ f: "/" + x.__family, pos, it }); }
   });
+  /* NO SHOE SOLD WITHOUT ITS SIZE (#443 c.6635781472). Danny opened the
+     first cleat in Dick's Zapatos rail: no size anywhere, «Agregar al
+     carrito» live -- the #411 rule sells a record with no size list
+     plainly, and a shoe whose store never gave us its sizes is exactly
+     that record. A shoe (the Zapatos door, scripts/lib/footwear.js
+     isShoeForDept, on the store's own type) with no size list and no
+     sold-out run is sizes-pending: shown, «Tallas por confirmar», not
+     sold (scripts/lib/sizes-pending.js; the order door refuses it too).
+     Never a guessed size. Decided here, where every record the product
+     pages read is built, so no store can ship sizeless shoes again: when
+     a size pass lands, the record has sizes and the flag stays off. */
+  for (const it of firstByV.values()) markShoeSizesPending(P, it);
+  for (const { it } of all) markShoeSizesPending(P, it);
   const titleGrouping = groupColourways([...firstByV.values()].filter((it) => !fams.assign.has(it.__v))
     .map((it) => ({ v: it.__v, retailer: it.retailer, name: it.name, brand: it.brand, url: it.url, image: it.image, dept: it.dept })));
   const grouping = new Map([...titleGrouping, ...fams.assign]);
@@ -289,6 +305,12 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
       if (shade) { it.c = shade; it.ax = "Tono"; }
     }
     delete it.__v;
+    if (it.__shoe) {
+      const sk = it.retailer + "::" + it.name;
+      if (!shoes.has(sk)) shoes.set(sk, { retailer: it.retailer, name: it.name, brand: it.brand || "", sized: it.__shoe === true });
+      else if (it.__shoe === true) shoes.get(sk).sized = true;
+    }
+    delete it.__shoe;
     const rec = recordOf(it);
     const json = stableJson(rec);
     let cands = byKey.get(key);
@@ -299,7 +321,25 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     if (!byRetailer.has(it.retailer)) byRetailer.set(it.retailer, []);
     byRetailer.get(it.retailer).push(it);
   }
-  return { byKey, byRetailer, items, files, groups, pending: fams.pending, familyStats: fams.stats };
+  return { byKey, byRetailer, items, files, groups, pending: fams.pending, familyStats: fams.stats, shoes };
+}
+/* The shoe rule above, one listing at a time. `__shoe` marks every shoe
+   for the report (true: sized; "pending": no size data). */
+/* What the Zapatos door lets through that is not worn on a foot (its
+   store filed it with the shoes, or a shoe word is a perfume's or a
+   shade's name): sold as it always was, never "Tallas por confirmar". */
+export const NOT_A_SHOE_RX = /\b(eau de (parfum|toilette)|perfumes?|lip tint|lipstick|gun boot|boottector|brackets?|boot mount|snubber|duff(el|le)|gym bags?|travel bag|weekender)\b/i;
+/* ...and words that name a shoe's accessory, unless the title still ends
+   on a shoe ("Pouch Kitten Bootie", "Patch Girls ... Slippers"). */
+const ACCESSORY_RX = /\b(pouch|sprays?|shine|refresh|diffuser|cleaning kit|clean kit|care kit|cleaner|conditioner|patch|puck set|mitts|backpack|carry on|daypack|pants)\b|^right pack$/i;
+const ENDS_ON_SHOE_RX = /\b(shoes?|sneakers?|boots?|booties?|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|heels?|clogs?|slippers?|mules?|flats|pumps?|trainers?)\s*(\([^)]*\)|-[^-]*)?\s*$/i;
+const notAShoe = (name) => NOT_A_SHOE_RX.test(name) || (ACCESSORY_RX.test(name) && !ENDS_ON_SHOE_RX.test(name));
+export function markShoeSizesPending(P, it) {
+  if (!it || it.__shoe !== undefined) return;
+  if (notAShoe(String(it.name || "")) || !isShoeForDept({ name: it.name, type: it.__type || it.type || "" }, it.retailer)) { it.__shoe = false; return; }
+  const sized = P.truthfulSizes(it.sizes).length > 0 || (Array.isArray(it.sizesOut) && it.sizesOut.length > 0);
+  it.__shoe = sized ? true : "pending";
+  if (!sized) it.sizesPending = true;
 }
 
 function writeJson(rel, obj) {
@@ -455,12 +495,57 @@ export function ofertasRows(P, root = ROOT) {
     .map((row) => P.normalizeItem(row, row.retailer)).filter(Boolean);
 }
 
+/* ---------- shoes with no size data (#443 c.6635781472) ----------
+   scripts/lib/sizes-pending-shoes-data.js: the order door's list of them
+   (scripts/lib/sizes-pending.js reads it beside the pulls' list), and
+   reports/shoes-sizes-pending-2026-11-04.json: per store, its shoes sized
+   and sizes-pending, and the cannot-restore list -- the stores whose
+   size data was never captured in any source we hold, with examples. A
+   name some listing of that store sells in sizes is not on the list
+   (the order line carries the size it was bought in). */
+export const SHOES_REPORT = "reports/shoes-sizes-pending-2026-11-04.json";
+/* Every shoe's "<retailer>::<title>" as an FNV-1a hex, per store: which
+   card on a store page is a shoe, for scripts/test/shoe-first-click-tests.mjs. */
+export function shoeHash(retailer, name) {
+  const s = String(retailer) + "::" + String(name);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+function writeShoesSizesPending(shoes) {
+  const byStore = {}, keys = new Set(), cannot = {}, hashes = {};
+  for (const s of [...shoes.values()].sort((a, b) => a.retailer.localeCompare(b.retailer) || a.name.localeCompare(b.name))) {
+    const b = byStore[s.retailer] || (byStore[s.retailer] = { shoes: 0, sized: 0, sizesPending: 0, offSale: isOffSaleRetailer(s.retailer) || undefined });
+    b.shoes++;
+    (hashes[s.retailer] || (hashes[s.retailer] = [])).push(shoeHash(s.retailer, s.name));
+    if (s.sized) { b.sized++; continue; }
+    b.sizesPending++;
+    keys.add(sizesPendingKey(s.retailer, s.name));
+    const c = cannot[s.retailer] || (cannot[s.retailer] = { count: 0, titles: [] });
+    c.count++; c.titles.push(s.name);
+  }
+  for (const [k, c] of Object.entries(cannot)) c.examples = c.titles.slice(0, 5);
+  writeFileSync(join(ROOT, "scripts/lib/sizes-pending-shoes-data.js"),
+    "/* GENERATED by scripts/build-pdp-slices.mjs -- shoes with no size data from their store, shown but not sold\n" +
+    "   until their sizes are captured (scripts/lib/sizes-pending.js; #443 c.6635781472). Do not edit by hand. */\n" +
+    "export const SHOES_SIZES_PENDING = " + JSON.stringify([...keys].sort()) + ";\n");
+  const order = Object.keys(cannot).sort((a, b) => cannot[b].count - cannot[a].count || a.localeCompare(b));
+  writeFileSync(join(ROOT, SHOES_REPORT), JSON.stringify({
+    note: "Shoes whose store's size data was never captured in any source we hold (catalogue pulls, data/ pull waves, reports/, git history). Shown with «Tallas por confirmar», never sold sizeless, never given invented sizes. Built by scripts/build-pdp-slices.mjs.",
+    totals: { shoes: shoes.size, sized: [...shoes.values()].filter((s) => s.sized).length, sizesPending: keys.size },
+    footwearByStore: Object.fromEntries(Object.keys(byStore).sort().map((k) => [k, byStore[k]])),
+    cannotRestore: Object.fromEntries(order.map((k) => [k, { offSale: isOffSaleRetailer(k) || undefined, count: cannot[k].count, examples: cannot[k].examples, titles: cannot[k].titles }])),
+    shoeHashes: Object.fromEntries(Object.keys(hashes).sort().map((k) => [k, hashes[k].sort().join(" ")])),
+  }, null, 1) + "\n");
+}
+
 /* ---------- main ---------- */
 function main() {
   const t0 = Date.now();
   const P = liftPage();
-  const { byKey, byRetailer, items, files, groups, pending, familyStats } = buildRecords(P);
+  const { byKey, byRetailer, items, files, groups, pending, familyStats, shoes } = buildRecords(P);
   const stats = { items, titles: byKey.size, files: files.length, shards: P.PDP_SHARDS, autoShards: P.AUTO_SHARDS };
+  writeShoesSizesPending(shoes);
 
   resetDir(PDP_DIR + "/p");
   const shards = new Map();

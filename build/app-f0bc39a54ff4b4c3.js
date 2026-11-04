@@ -20631,8 +20631,12 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const rawSizes = truthfulSizes(sizes);
   drawSizes(rawSizes, []);
   if (!rawSizes.length){
-    pageProduct.sizeLookup = recordSizeList(retailer, name).then((list) => {
+    pageProduct.sizeLookup = recordSizeList(retailer, name).then(async (list) => {
       if (pendingProduct === pageProduct && list.length) drawSizes(list, []);
+      /* No list, and the record says its sizes are not confirmed (a shoe
+         whose store never gave them to us): «Tallas por confirmar», and
+         the cart refuses it -- never sold sizeless (#443 c.6635781472). */
+      if (!list.length && await recordSizesPending(retailer, name)) markSizesPending(pageProduct);
       return list;
     });
   }
@@ -20714,6 +20718,24 @@ function recordSizeList(retailer, title){
     return rec ? truthfulSizes(rec.sizes) : [];
   }).catch(() => []);
 }
+/* The same record's sizes-pending flag (producto.html reads it too):
+   true only for a record with no size list of its own. */
+function recordSizesPending(retailer, title){
+  const key = sizeRecordKey(title);
+  if (!key) return Promise.resolve(false);
+  const shard = sizeShardOf(key);
+  if (!SIZE_SHARD_CACHE[shard]){
+    SIZE_SHARD_CACHE[shard] = fetch(dataUrl('/assets/pdp/p/' + shard + '.json'))
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const rk = String(retailer || '').toLowerCase();
+  return SIZE_SHARD_CACHE[shard].then((d) => {
+    const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+    const own = cands.filter(c => c && String(c.retailer || '').toLowerCase() === rk);
+    const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+    return !!(rec && rec.sizesPending === true && !truthfulSizes(rec.sizes).length);
+  }).catch(() => false);
+}
 /* THE STORE'S SOLD-OUT SIZES (#443 c.6633182280; producto.html's
    soldOutSizes, #654). A store that lists its whole run with part of it
    sold out hands us those sizes as the record's `sizesOut`. Strings
@@ -20792,8 +20814,16 @@ async function isSizesPendingItem(retailer, title){
 }
 async function gateSizesPending(p){
   if (!p || !(await isSizesPendingItem(p.retailer, p.name))) return;
-  if (pendingProduct !== p || (Array.isArray(p.sizes) && p.sizes.length)) return;
+  markSizesPending(p);
+}
+/* The «Tallas por confirmar» state, in place of the size picker and the
+   cart button: from the list above, or from the product's own record
+   (its shard's sizesPending: a shoe whose store never gave us its sizes,
+   #443 c.6635781472, scripts/build-pdp-slices.mjs). */
+function markSizesPending(p){
+  if (!p || (Array.isArray(p.sizes) && p.sizes.length) || (Array.isArray(p.sizeList) && p.sizeList.length)) return;
   p.sizesPending = true;
+  if (pendingProduct !== p) return;
   const btn = document.getElementById('addToCartBtn');
   const note = document.getElementById('productNoPriceNote');
   if (btn){
