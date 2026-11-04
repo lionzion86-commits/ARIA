@@ -138,6 +138,28 @@ await check("sizes ride the record as the verified list (#411), never invented",
   assert.ok(sized > 0, "no sized record in the sampled shards");
 });
 
+/* ONE-SIZE SHOES (#443, Danny's QA on #648). A store's sold-out sizes
+   ride the record as `sizesOut`: never one that is also in `sizes`,
+   never without an in-stock size, and the SNIPES Air DT Max '96 carries
+   its whole run (1 in stock + 12 sold out) to the page. */
+await check("sold-out sizes ride the record apart from the sold ones (sizesOut), never overlapping", () => {
+  let out = 0;
+  for (const s of ["000", "3a7", "800", "fff"]) for (const cands of Object.values(shard(s))) for (const r of cands) {
+    if (!r.sizesOut) continue;
+    out++;
+    assert.ok(Array.isArray(r.sizes) && r.sizes.length, "sold-out sizes and none in stock: " + r.name);
+    assert.ok(r.sizesOut.every((x) => typeof x === "string" && !r.sizes.includes(x)), "a size both sold and sold out: " + r.name);
+  }
+  const key = P.norm("Air DT Max '96");
+  const dt = (shard(P.pdpShard(key))[key] || []).find((r) => r.retailer === "snipes");
+  assert.ok(dt, "the Air DT Max '96 is not in its shard");
+  assert.deepEqual(dt.sizes, ["M9/W10.5"]);
+  assert.equal(dt.sizesOut.length, 12);
+  const it = R.recordToItem(dt);
+  assert.deepEqual(it.sizesOut, dt.sizesOut, "the page drops the sold-out run");
+  assert.ok(out > 0 || dt, "no sold-out run in the sampled shards");
+});
+
 await check("every AutoZone part number and title resolves through its small shard, as the full cache scan did", async () => {
   const cache = JSON.parse(readFileSync(ROOT + "auto-cache.json", "utf8"));
   const lift = (sig) => {

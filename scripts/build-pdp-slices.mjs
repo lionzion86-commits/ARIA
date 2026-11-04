@@ -129,10 +129,13 @@ export function packImages(images, image) {
    apart (a title more than one listing carries) or names a colourway. */
 /* ax: the picker's word when it is not "Color" ("Tono" for a shade
    family); so: the store lists this variant as out of stock. */
+/* sizesOut: the rest of the store's own size run, sold out there
+   (SNIPES' disabled size buttons, #443): the picker shows them marked
+   agotada and never sells them (producto.html soldOutSizes). */
 /* sk: the product is sold in shades ("makeup" / "hair", /shade-gate.js),
    decided at build time with the store's own aisle ("type": Ulta's
    "Labios", "Ojos", "Rostro"), which the record does not otherwise carry. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c", "ax", "so", "sk"];
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesOut", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c", "ax", "so", "sk"];
 const absoluteUrl = (u) => (typeof u === "string" && /^https?:\/\/[^\s\/?#]+/i.test(u.trim()) ? u.trim() : "");
 function recordOf(it) {
   const out = {};
@@ -161,7 +164,7 @@ function stableJson(obj) {
 /* sp: a shade sold on the same listing's page (a YesStyle pid, a Victoria's
    Secret catalog id; scripts/lib/variant-families.mjs applyPageFamily):
    its photo is the page's, not a swatch of that shade. */
-const VARIANT_FIELDS = ["v", "c", "name", "price", "wasPrice", "salePct", "image", "images", "sizes", "sizesTier", "sizesSource", "sizesPending", "url", "so", "sp"];
+const VARIANT_FIELDS = ["v", "c", "name", "price", "wasPrice", "salePct", "image", "images", "sizes", "sizesOut", "sizesTier", "sizesSource", "sizesPending", "url", "so", "sp"];
 export function variantOf(it) {
   const out = {};
   for (const k of VARIANT_FIELDS) {
