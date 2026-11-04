@@ -19,6 +19,13 @@
    first leaves and «Ver todas las marcas (N)»: the complete list, from
    the department's real inventory (assets/data/nav-brands/<file>.json,
    fetched only on that tap), opens in the column, scrollable.
+
+   NO DEAD ENDS (#443 c.6623258189): a tab with no columns is a plain
+   link (data-nm-direct, or no columns in the menu): it navigates, no
+   sheet opens. A column the generator collapsed (links: [], href) is a
+   link on desktop and a row that navigates on the phone. On the phone a
+   tab of one column opens straight on its list (Ofertas: its
+   categories), with no drill screen in between.
    ================================================================== */
 (function(){
   'use strict';
@@ -102,6 +109,12 @@
       Array.prototype.forEach.call(panel.querySelectorAll('[data-nm-more="' + i + '"]'), function(b){ b.textContent = 'No pudimos cargar la lista. Toca para reintentar.'; });
     });
   }
+  function direct(a){
+    if (a.hasAttribute('data-nm-direct')) return true;
+    var t = MENU && tabOf(a.getAttribute('data-nm-tab'));
+    return !!(t && !t.cols.length);
+  }
+  var isGo = function(c){ return !c.links.length && !!c.href; };
   function tabOf(k){ return MENU && (MENU.tabs || []).filter(function(t){ return t.k === k; })[0]; }
   function linkHTML(l){ return '<li><a href="' + esc(l[1]) + '" data-nm-leaf>' + esc(l[0]) + (l[2] ? '<small>' + num(l[2]) + '</small>' : '') + '</a></li>'; }
   var CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
@@ -114,18 +127,26 @@
       + '<button type="button" class="nmf-x" aria-label="Cerrar menú"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
     var body;
     if (!t) body = '<p class="nmf-msg">Cargando…</p>';
-    else if (!t.cols.length) body = '<p class="nmf-msg">Abre la página de ' + esc(label) + ' para ver todo.</p>';
-    else body = '<div class="nmf-cols">' + t.cols.map(function(c, i){
-      return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></section>';
-    }).join('') + '</div>'
-      /* The phone's drill-down: the same columns, one level at a time. */
-      + '<div class="nmf-drill"><ul class="nmf-l0" data-nm-l0>' + t.cols.map(function(c, i){
-        return '<li><button type="button" class="nmf-go" data-nm-go="' + i + '">' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</button></li>';
-      }).join('') + '</ul>' + t.cols.map(function(c, i){
-        return '<div class="nmf-l1" data-nm-lvl="' + i + '" hidden><button type="button" class="nmf-back" data-nm-back>' + BACK + esc(label) + '</button><h3>' + esc(c.h) + '</h3>'
-          + (c.href ? '<a class="nmf-colall" href="' + esc(c.href) + '" data-nm-leaf>Ver todo: ' + esc(c.h) + CHEV + '</a>' : '')
-          + '<ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></div>';
-      }).join('') + '</div>';
+    else if (!t.cols.length) body = '';
+    else {
+      /* One column: the phone opens straight on its list (no drill screen). */
+      var one = t.cols.length === 1 && !isGo(t.cols[0]);
+      body = '<div class="nmf-cols">' + t.cols.map(function(c, i){
+        if (isGo(c)) return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3><a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a></h3></section>';
+        return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></section>';
+      }).join('') + '</div>'
+        /* The phone's drill-down: the same columns, one level at a time;
+           a collapsed column is a row that navigates. */
+        + '<div class="nmf-drill">' + (one ? '' : '<ul class="nmf-l0" data-nm-l0>' + t.cols.map(function(c, i){
+          if (isGo(c)) return '<li><a class="nmf-go" href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</a></li>';
+          return '<li><button type="button" class="nmf-go" data-nm-go="' + i + '">' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</button></li>';
+        }).join('') + '</ul>') + t.cols.map(function(c, i){
+          if (isGo(c)) return '';
+          return '<div class="nmf-l1" data-nm-lvl="' + i + '"' + (one ? '' : ' hidden') + '>' + (one ? '' : '<button type="button" class="nmf-back" data-nm-back>' + BACK + esc(label) + '</button>') + '<h3>' + esc(c.h) + '</h3>'
+            + (c.href ? '<a class="nmf-colall" href="' + esc(c.href) + '" data-nm-leaf>Ver todo: ' + esc(c.h) + CHEV + '</a>' : '')
+            + '<ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></div>';
+        }).join('') + '</div>';
+    }
     panel.innerHTML = '<div class="nmf-in">' + head + body + '</div>';
   }
   function place(){
@@ -136,6 +157,7 @@
   }
   function show(a, how){
     clearTimeout(tClose); clearTimeout(tOpen);
+    if (direct(a)) { hide(); if (how === 'click') window.location.assign(a.href); return; }
     if (open && open !== a) open.setAttribute('aria-expanded', 'false');
     open = a; mode = how;
     a.setAttribute('aria-expanded', 'true');
@@ -143,7 +165,12 @@
     panel.hidden = false; bd.hidden = false;
     requestAnimationFrame(function(){ bd.classList.add('on'); });
     document.documentElement.setAttribute('data-nm-open', a.getAttribute('data-nm-tab'));
-    if (!MENU) load().then(function(){ if (open === a) paint(a); }, function(){
+    if (!MENU) load().then(function(){
+      if (open !== a) return;
+      /* The menu says this tab has no columns: it is a link, go there. */
+      if (direct(a)) { var m = mode; hide(); if (m === 'click') window.location.assign(a.href); return; }
+      paint(a);
+    }, function(){
       if (open === a) panel.querySelector('.nmf-in').insertAdjacentHTML('beforeend', '<p class="nmf-msg">No pudimos cargar el menú. Toca «Ver todo» o inténtalo de nuevo.</p>');
     });
   }
@@ -160,7 +187,7 @@
   nav.addEventListener('pointerover', function(e){
     if (e.pointerType !== 'mouse') return;
     var a = e.target.closest && e.target.closest('.nm-tab');
-    if (!a) return;
+    if (!a || direct(a)) return;
     load().catch(function(){});
     clearTimeout(tClose); clearTimeout(tOpen);
     if (open === a) return;
@@ -191,6 +218,8 @@
   nav.addEventListener('click', function(e){
     var a = e.target.closest && e.target.closest('.nm-tab');
     if (!a) return;
+    /* A tab with no columns is a link: let it navigate. */
+    if (direct(a)) { hide(); return; }
     e.preventDefault();
     if (open === a && mode === 'click') { hide(); return; }
     show(a, 'click');
@@ -199,6 +228,7 @@
   nav.addEventListener('keydown', function(e){
     var a = e.target.closest && e.target.closest('.nm-tab');
     if (!a) return;
+    if ((e.key === 'Enter' || e.key === ' ') && direct(a)) return;
     if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){
       e.preventDefault();
       if (open !== a) show(a, 'click');

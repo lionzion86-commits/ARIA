@@ -449,6 +449,47 @@ export function sellableSort(R) {
   return (a, b) => (tier(a) - tier(b)) || ((b.reviews || 0) - (a.reviews || 0)) || ((b.rating || 0) - (a.rating || 0)) ||
     (R.discountPct(b) - R.discountPct(a)) || (a.price - b.price);
 }
+/* BRAND CAROUSELS INSIDE A STORE (Danny's format plan, #443 c.6504037778
+   §2; re-applied fresh 2026-11-04, c.6623383286 item 3). A store that
+   sells many brands opens, after its Ofertas and Más vendidos, on one
+   carousel per brand -- its biggest brands first, each brand's own
+   markdowns leading -- and then its type rails. A single-house store
+   (Victoria's Secret, YoungLA) has no brand rows: its types tell it.
+   A brand row is a brand a shopper reads (Lucifer, #443 c.6512244834):
+   never a vendor code ("QSSS/PP", Quiet Storm's buying codes), a
+   marketplace seller ("Spreetail", "WisairtDirect") or the store itself
+   ("Walmart" inside Walmart Bebé).
+   Not here, by Danny's later locked orders: the 2026-11-01 storefronts
+   (scripts/lib/storefronts.js: Ofertas, then the category rails, nothing
+   between) and the SLICED_STORES with their own department order. */
+export const STORE_BRAND_RAILS = 10, STORE_BRAND_MIN = 6;
+const NOT_A_BRAND_RX = /^(|unbranded|generic|n\/a|none|varios|various|other|others|misc|miscellaneous)$/i;
+export const VENDOR_CODE_RX = /^[a-z0-9]{2,6}\/\S+$/i;
+export const SELLER_RX = /^(spreetail)$|\S+direct$/i;
+/* A long word with no vowel is a buying code, not a name ("LNGFYLN" at BoxLunch). */
+export const CODE_WORD_RX = /^[^aeiouáéíóú\s]{6,}$/i;
+export const storeHouse = (label) => String(label || "").toLowerCase().trim().replace(/\s+(beb[eé]|baby|kids|niños|home|hogar)$/, "");
+export function isStoreBrand(brand, label) {
+  const b = String(brand || "").toLowerCase().trim();
+  return !(NOT_A_BRAND_RX.test(b) || VENDOR_CODE_RX.test(b) || SELLER_RX.test(b) || CODE_WORD_RX.test(b) || b === String(label || "").toLowerCase().trim() || b === storeHouse(label));
+}
+export function brandRails(label, items, sort, R) {
+  const groups = new Map();
+  for (const p of items) {
+    if (!isStoreBrand(p.brand, label)) continue;
+    const b = String(p.brand).toLowerCase().trim();
+    if (!groups.has(b)) groups.set(b, []);
+    groups.get(b).push(p);
+  }
+  const big = [...groups.values()].filter((l) => l.length >= STORE_BRAND_MIN);
+  if (big.length < 2) return [];
+  /* The title: the brand as the store writes it most often. */
+  const titleOf = (l) => { const n = new Map(); for (const p of l) { const t = String(p.brand).trim(); n.set(t, (n.get(t) || 0) + 1); } return [...n].sort((a, b) => b[1] - a[1])[0][0]; };
+  const onSale = (p) => (R.saleTier(p) > 0 ? 0 : 1);
+  return big.sort((a, b) => b.length - a.length).slice(0, STORE_BRAND_RAILS)
+    .map((l) => ({ key: "b-" + String(l[0].brand).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), title: titleOf(l),
+      items: l.slice().sort((x, y) => (onSale(x) - onSale(y)) || sort(x, y)) }));
+}
 export function genericRails(key, label, items, rules) {
   const { R, ctx } = rules;
   ctx.storeKey = key;
@@ -464,6 +505,7 @@ export function genericRails(key, label, items, rules) {
   }
   const shown = new Set(rails.flatMap((r) => r.items.slice(0, RAIL_HEAD)));
   const fresh = (arr) => arr.filter((p) => !shown.has(p)).concat(arr.filter((p) => shown.has(p)));
+  for (const r of brandRails(label, items, sellable, R)) rails.push(r);
   /* One carousel per PRODUCT TYPE, never per Aria department (Danny,
      2026-10-07: a Gymshark page shows Leggings/Tops/Shorts). */
   const byType = {};

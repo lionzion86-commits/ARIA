@@ -19,7 +19,15 @@
      - the bar is kept only where the page has no filters of its own
        (store, brand, search) and renders nowhere else;
      - 1366 and 390: the flyout opens over the page, a click off closes it
-       on the same URL, no catalogue is requested, carousels only.
+       on the same URL, no catalogue is requested, carousels only;
+     - NO DEAD ENDS (#443 c.6623258189): no tab without columns opens a
+       sheet (it navigates); no column is a single leaf or only repeats
+       its tab; the Ofertas flyout lists ofertas.html's own categories
+       (N >= 8), each on its real view with a count > 0; Key Club is not
+       a tab, its door is the utility bar -- audited on every tab, every
+       column and the phone drill-down at 1366 and 390.
+
+     SHOT_DIR also saves hdrfix-*.png (the tab row, Ofertas at 1366 and 390).
 
      node scripts/test/nordstrom-nav-tests.mjs
      SHOT_DIR=/some/dir node scripts/test/nordstrom-nav-tests.mjs   (also saves canon-*.png)
@@ -28,7 +36,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES, BRANDS_DIR, BLOCKED, deptRegistry } from "../build-nav-menu.mjs";
+import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES, BRANDS_DIR, BLOCKED, deptRegistry, noDeadEnds, nmMarkup } from "../build-nav-menu.mjs";
 import { navFilter, normSize, readFilters, answerNav } from "../../netlify/functions/_nav-filter-core.js";
 import { loadDept, filterList, answer as deptAnswer } from "../../netlify/functions/_department-core.js";
 import { SHOE_CLASSES, isGarmentTail } from "../lib/footwear.js";
@@ -69,9 +77,59 @@ await check("the menu is small and lazy: under 64KB, fetched by the script, neve
 await check("every section Danny named is a tab or a section in one", () => {
   const all = JSON.stringify(B.menu);
   for (const name of ["Deportes", "Gym Rat", "Fútbol", "Tenis", "Aria Fight Club", "Surf & Skate", "Diseñadores Latinos", "Tallas Plus", "Perfumes", "Aria Beauty",
-    "Mujer", "Hombre", "Niños", "Belleza", "Zapatos", "Zapatillas", "Accesorios", "Diseñador", "Joyas", "Hogar", "Electrónica", "Juguetes", "Lencería", "Ropa Interior Hombre", "Lentes de Sol", "Aria Auto", "Motos", "Ofertas", "Key Club"])
+    "Mujer", "Hombre", "Niños", "Belleza", "Zapatos", "Zapatillas", "Accesorios", "Diseñador", "Joyas", "Hogar", "Electrónica", "Juguetes", "Lencería", "Ropa Interior Hombre", "Lentes de Sol", "Aria Auto", "Motos", "Ofertas"])
     assert.ok(all.includes('"' + name), name + " is missing from the menu");
   assert.deepEqual(B.unplaced, [], "registry departments with products under no tab");
+});
+/* ---------- no dead ends (#443 c.6623258189) ---------- */
+const RX = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const RAILS = JSON.parse(read("assets/ofertas/rails.json"));
+const OFERTAS_CATS = (RAILS.cats || []).filter((c) => c && c.key && c.n > 0);
+await check("no dead ends: a tab without columns is a plain link (no sheet); no column is a single leaf; no column or section only repeats its tab", () => {
+  const row = read("index.html");
+  for (const t of B.menu.tabs) {
+    const tag = new RegExp('<a class="nm-tab" href="' + RX(t.href) + '" data-nm-tab="' + RX(t.k) + '"([^>]*)>').exec(row);
+    assert.ok(tag, t.k + ": no tab in index.html's row");
+    if (!t.cols.length) { assert.match(tag[1], /data-nm-direct/, t.k); assert.doesNotMatch(tag[1], /aria-haspopup/, t.k); }
+    else assert.match(tag[1], /aria-haspopup="true"/, t.k);
+    for (const c of t.cols) {
+      assert.notEqual(c.links.length, 1, `${t.label} > ${c.h}: a column of one leaf (a one-item drill)`);
+      if (!c.links.length) assert.ok(c.href && c.href !== t.href, `${t.label} > ${c.h}: an empty column, or one that is the tab itself`);
+      if (c.h === "Secciones") for (const l of c.links) assert.notEqual(l[1], t.href, `${t.label} > Secciones > ${l[0]} repeats the tab`);
+    }
+  }
+  /* The rule itself, and the markup of a tab without columns. */
+  const out = noDeadEnds("X", "/x", [{ h: "A", href: "/a", links: [["Solo", "/x", 3]] }, { h: "B", links: [["Uno", "/b", 2]] }, { h: "C", links: [["1", "/c1", 1], ["2", "/c2", 1]] }]);
+  assert.deepEqual(out.map((c) => [c.h, c.href || "", c.links.length]), [["Uno", "/b", 0], ["C", "", 2]]);
+  assert.match(nmMarkup({ tabs: [{ k: "z", label: "Z", href: "/z", cols: [] }] }), /<a class="nm-tab" href="\/z" data-nm-tab="z" data-nm-direct>Z<\/a>/);
+  /* The client: no placeholder sheet, a direct tab navigates. */
+  const js = read("assets/js/nav-menu.js");
+  assert.ok(!/para ver todo/.test(js), "nav-menu.js still paints the placeholder sheet");
+  assert.match(js, /data-nm-direct/);
+});
+await check("Ofertas lists every category of ofertas.html's own Por categoría view (N >= 8), each on ofertas.html?vista=categoria&cat=<k> with its count > 0, then «Ver todas las ofertas»", () => {
+  const t = B.menu.tabs.find((x) => x.k === "ofertas");
+  assert.equal(t.cols.length, 1, "Ofertas has " + t.cols.map((c) => c.h).join(" · "));
+  const col = t.cols[0], leaves = col.links.slice(0, -1);
+  assert.ok(OFERTAS_CATS.length >= 8, OFERTAS_CATS.length + " categories in rails.json");
+  assert.deepEqual(leaves, OFERTAS_CATS.map((c) => [c.label, "/ofertas.html?vista=categoria&cat=" + c.key, c.n]));
+  for (const l of leaves) assert.ok(l[2] > 0, l[0] + ": no count");
+  assert.deepEqual(col.links[col.links.length - 1], ["Ver todas las ofertas", "/ofertas.html", t.n]);
+  assert.ok(!col.more, "a «Ver todos» step in front of the categories");
+  /* ofertas.html opens that view from the URL and draws its pills from rails.json. */
+  const o = read("ofertas.html");
+  assert.match(o, /searchParams\.get\('vista'\) === 'categoria'/);
+  assert.match(o, /rails: BASE \+ '\/assets\/ofertas\/rails\.json'/);
+});
+await check("Key Club is not a tab (the menu, every page's tab row); its door is the utility bar's gold «Aria Key Club»", () => {
+  assert.ok(!B.menu.tabs.some((t) => /key/i.test(t.k) || /Key Club/i.test(t.label) || /keyclub/.test(t.href)), "a Key Club tab");
+  for (const f of NM_PAGES) if (existsSync(join(ROOT, f))) {
+    const blk = /<!-- nm:start -->([\s\S]*?)<!-- nm:end -->/.exec(read(f));
+    assert.ok(blk && !/keyclub|Key Club/i.test(blk[1]), f + ": Key Club in the tab row");
+  }
+  const s = read("index.html"), ub = s.slice(s.indexOf('<div id="utilityBar"'), s.indexOf("<header", s.indexOf('<div id="utilityBar"')));
+  assert.match(ub, /data-key-club/);
+  assert.match(ub, /color:#F4C463">Aria Key Club</);
 });
 await check("Zapatos opens Mujer / Hombre / Niños columns of real types and a Marcas column, on the real Zapatos department", () => {
   const z = B.menu.tabs.find((t) => t.k === "zapatos");
@@ -641,6 +699,133 @@ if (pw) {
         await c.close();
       });
     }
+    /* ---------- no dead ends, in the browser (#443 c.6623258189) ---------- */
+    const keyClubOut = async (page, where) => {
+      const tabs = await page.$$eval("[data-nm] .nm-tab", (as) => as.map((a) => a.textContent.trim()));
+      assert.ok(tabs.length >= 10 && !tabs.some((x) => /Key Club/i.test(x)), where + ": tab row " + tabs.join(" · "));
+      assert.ok(await page.isVisible("#utilityBar [data-key-club]"), where + ": the utility bar's «Aria Key Club» is not visible");
+      assert.match(await page.textContent("#utilityBar [data-key-club]"), /Aria Key Club/);
+    };
+    const landsOnCategory = async (page, k) => {
+      await page.waitForURL(new RegExp("/ofertas\\.html\\?vista=categoria&cat=" + k + "$"));
+      await page.waitForSelector('#cats button[data-cat="' + k + '"][aria-pressed="true"]', { timeout: 30000 });
+    };
+    await check("browser desktop 1366: Key Club is out of the tab row and in the utility bar; hover Ofertas lists its categories with counts (no Secciones, no lone pool); a category opens its real Ofertas view", async () => {
+      const { c, page, reqs } = await ctx(true);
+      await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      await page.waitForLoadState("load");
+      await keyClubOut(page, "1366");
+      if (SHOT) await page.screenshot({ path: join(SHOT, "hdrfix-tabrow-1366.png"), clip: { x: 0, y: 0, width: 1366, height: 200 } });
+      await page.hover('[data-nm-tab="ofertas"]');
+      await flyoutOpen(page, "Ofertas por categoría");
+      const cols = await page.$$eval("#nmFlyout .nmf-col h3", (h) => h.map((x) => x.textContent));
+      assert.deepEqual(cols, ["Ofertas por categoría"]);
+      const leaves = await page.$$eval('#nmFlyout [data-nm-col="Ofertas por categoría"] li a', (as) => as.map((a) => [a.firstChild.textContent, a.getAttribute("href"), Number(((a.querySelector("small") || {}).textContent || "0").replace(/\D/g, ""))]));
+      assert.ok(leaves.length - 1 >= 8, leaves.length + " leaves");
+      for (const [l, h, n] of leaves.slice(0, -1)) { assert.match(h, /^\/ofertas\.html\?vista=categoria&cat=[a-z_]+$/, l); assert.ok(n > 0, l + ": no count"); }
+      assert.deepEqual(leaves[leaves.length - 1].slice(0, 2), ["Ver todas las ofertas", "/ofertas.html"]);
+      if (SHOT) await page.screenshot({ path: join(SHOT, "hdrfix-ofertas-1366.png") });
+      const k = OFERTAS_CATS[1].key;
+      await Promise.all([landsOnCategory(page, k), page.click('#nmFlyout [data-nm-col="Ofertas por categoría"] a[href$="cat=' + k + '"]')]);
+      assert.deepEqual(reqs.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      await c.close();
+    });
+    await check("browser desktop 1366: audit every tab -- each opens columns of 2+ leaves or a direct link, never a placeholder", async () => {
+      const { c, page } = await ctx(true);
+      await page.goto(BASE + "/departamento.html?dept=shoes", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      for (const t of B.menu.tabs) {
+        await page.click('[data-nm-tab="' + t.k + '"]');
+        await page.waitForSelector("#nmFlyout:not([hidden]) .nmf-col");
+        const got = await page.$$eval("#nmFlyout .nmf-col", (cs) => cs.map((x) => ({ h: x.getAttribute("data-nm-col"), leaves: x.querySelectorAll("li a").length, head: !!x.querySelector("h3 a") })));
+        assert.equal(await page.$("#nmFlyout .nmf-msg"), null, t.label + ": a placeholder");
+        assert.equal(got.length, t.cols.length, t.label);
+        for (const col of got) assert.ok(col.leaves >= 2 || (col.leaves === 0 && col.head), `${t.label} > ${col.h}: ${col.leaves} leaves`);
+        await page.keyboard.press("Escape");
+        await page.waitForSelector("#nmFlyout", { state: "hidden" });
+      }
+      await c.close();
+    });
+    await check("browser phone 390: Key Club is out of the tab row and in the utility bar; a tap on Ofertas opens straight on its categories (no drill, no Secciones); a category opens its real Ofertas view", async () => {
+      const { c, page, reqs } = await ctx(false);
+      await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      await page.waitForLoadState("load");
+      await keyClubOut(page, "390");
+      if (SHOT) {
+        await page.screenshot({ path: join(SHOT, "hdrfix-tabrow-390.png"), clip: { x: 0, y: 0, width: 390, height: 220 } });
+        await page.$eval("[data-nm] .nm-in", (r) => { r.scrollLeft = r.scrollWidth; });
+        await page.screenshot({ path: join(SHOT, "hdrfix-tabrow-390-end.png"), clip: { x: 0, y: 0, width: 390, height: 220 } });
+      }
+      await page.$eval('[data-nm-tab="ofertas"]', (a) => a.scrollIntoView({ inline: "center", block: "nearest" }));
+      await page.tap('[data-nm-tab="ofertas"]');
+      const lvl = '#nmFlyout [data-nm-lvl="0"]:not([hidden])';
+      await page.waitForSelector(lvl + ' li a[href*="vista=categoria&cat="]', { timeout: 15000 });
+      assert.equal(await page.$("#nmFlyout [data-nm-l0]"), null, "a drill screen in front of the categories");
+      assert.equal(await page.$("#nmFlyout [data-nm-back]"), null, "a back button with nowhere to go back to");
+      const rows = await page.$$eval(lvl + " li a", (as) => as.filter((a) => a.getBoundingClientRect().height > 0).map((a) => [a.firstChild.textContent, a.getAttribute("href"), Number(((a.querySelector("small") || {}).textContent || "0").replace(/\D/g, ""))]));
+      assert.equal(rows.length, OFERTAS_CATS.length + 1);
+      for (const [l, h, n] of rows.slice(0, -1)) { assert.match(h, /cat=[a-z_]+$/, l); assert.ok(n > 0, l); }
+      if (SHOT) await page.screenshot({ path: join(SHOT, "hdrfix-ofertas-390.png") });
+      const k = OFERTAS_CATS[0].key, a = lvl + ' a[href$="cat=' + k + '"]';
+      await Promise.all([landsOnCategory(page, k), page.tap(a)]);
+      if (SHOT) await page.screenshot({ path: join(SHOT, "hdrfix-ofertas-390-landed.png") });
+      assert.deepEqual(reqs.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      await c.close();
+    });
+    await check("browser phone 390: audit the drill-down of every tab -- each row drills into 2+ leaves or is a link; never a placeholder or a one-row screen", async () => {
+      const { c, page } = await ctx(false);
+      await page.goto(BASE + "/departamento.html?dept=shoes", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      const url0 = page.url();
+      for (const t of B.menu.tabs) {
+        await page.$eval('[data-nm-tab="' + t.k + '"]', (a) => a.scrollIntoView({ inline: "center", block: "nearest" }));
+        await page.tap('[data-nm-tab="' + t.k + '"]');
+        await page.waitForSelector("#nmFlyout:not([hidden]) .nmf-drill > *");
+        assert.equal(await page.$("#nmFlyout .nmf-msg"), null, t.label + ": a placeholder");
+        const leavesIn = (sel) => page.$$eval(sel + " li a", (as) => as.filter((a) => a.getBoundingClientRect().height > 0).length);
+        if (!(await page.$("#nmFlyout [data-nm-l0]"))) {
+          assert.ok(await leavesIn('#nmFlyout [data-nm-lvl="0"]') >= 2, t.label + ": its one list");
+        } else {
+          const rows = await page.$$eval("#nmFlyout [data-nm-l0] > li > .nmf-go", (xs) => xs.map((x) => ({ tag: x.tagName, go: x.getAttribute("data-nm-go"), href: x.getAttribute("href") })));
+          assert.equal(rows.length, t.cols.length, t.label);
+          for (const r of rows) {
+            if (r.tag === "A") { assert.ok(r.href && r.href !== t.href, t.label + ": a row that is the tab"); continue; }
+            await page.tap('#nmFlyout [data-nm-go="' + r.go + '"]');
+            const lv = '#nmFlyout [data-nm-lvl="' + r.go + '"]:not([hidden])';
+            await page.waitForSelector(lv);
+            assert.ok(await leavesIn(lv) >= 2, `${t.label} > ${t.cols[r.go].h}: a one-row screen`);
+            await page.tap(lv + " [data-nm-back]");
+            await page.waitForSelector("#nmFlyout [data-nm-l0]:not([hidden])");
+          }
+        }
+        await page.keyboard.press("Escape");
+        await page.waitForSelector("#nmFlyout", { state: "hidden" });
+      }
+      assert.equal(page.url(), url0, "the audit navigated");
+      await c.close();
+    });
+    await check("browser phone 390 + desktop 1366: a tab whose menu has no columns navigates to its page and opens no sheet", async () => {
+      for (const desktop of [false, true]) {
+        const { c, page } = await ctx(desktop);
+        const m = JSON.parse(read(MENU_FILE));
+        m.tabs.find((t) => t.k === "tallas-plus").cols = [];
+        await page.route(/\/assets\/data\/nav-menu\.json$/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(m) }));
+        await page.goto(BASE + "/departamento.html?dept=shoes", { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+        /* The menu is in hand (the first focus fetches it), as after any hover. */
+        await Promise.all([page.waitForResponse(/nav-menu\.json$/), page.evaluate(() => document.querySelector("[data-nm]").dispatchEvent(new Event("focusin")))]);
+        const sheets = [];
+        await page.exposeFunction("__nmSheet", () => sheets.push(1));
+        await page.evaluate(() => new MutationObserver(() => { const f = document.getElementById("nmFlyout"); if (f && !f.hidden && f.textContent.trim()) window.__nmSheet(); }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] }));
+        const sel = '[data-nm-tab="tallas-plus"]';
+        await page.$eval(sel, (a) => a.scrollIntoView({ inline: "center", block: "nearest" }));
+        await Promise.all([page.waitForURL(/dept=curvy$/), desktop ? page.click(sel) : page.tap(sel)]);
+        assert.equal(sheets.length, 0, (desktop ? "1366" : "390") + ": a sheet opened");
+        await c.close();
+      }
+    });
   } finally {
     await browser.close();
     srv.close();

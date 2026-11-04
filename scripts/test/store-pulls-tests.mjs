@@ -94,11 +94,22 @@ await check("the committed catalogues: real photos, prices, estimated weights, S
       assert.ok(it.price > 0, it.name);
       assert.ok(it.weightKg > 0 && it.weightEstimated === true, it.name + " weight");
       assert.ok(!it.description || it.description_en, it.name + " shows English");
-      assert.ok(!it.sizes && !it.availableSizes, it.name + " carries a size list nobody pulled");
+      /* Sizes only from the SNIPES product-page pass (2026-10-28): the
+         in-stock buttons, never a guessed run; a sized item is sold. */
+      if (k === "snipes" && it.sizes) {
+        assert.equal(it.sizeSource, "snipes-pdp", it.name);
+        assert.ok(it.sizes.length && it.sizes.every((x) => typeof x === "string" && x.trim()), it.name);
+        assert.equal(it.sizesPending, undefined, it.name + " is sized but still pending");
+      } else assert.ok(!it.sizes && !it.availableSizes, it.name + " carries a size list nobody pulled");
+      /* A was-price only where the page struck one through, above the price. */
+      if (it.originalPrice != null) assert.ok(k === "snipes" && it.originalPrice > it.price && it.onSale === true, it.name);
       assert.equal(it.retailer, k);
     }
   }
   const snipes = cat("snipes");
+  assert.ok(snipes.filter((i) => i.sizes).length > 4500, "the SNIPES size pass");
+  assert.ok(snipes.filter((i) => i.originalPrice).length > 2000, "the SNIPES was-prices");
+  assert.ok(snipes.filter((i) => i.sizesPending).length < 20, "SNIPES still waits for sizes");
   assert.ok(!snipes.some((i) => RELEASE_RX.test(i.name) && i.sizesPending && /retro (high|low) og/i.test(i.name)), "a release SKU is listed");
 });
 
@@ -109,11 +120,13 @@ await check("shown, not sold: the order endpoint refuses an item whose sizes are
   assert.ok(isSizesPending("SNIPES", "  " + shoe.name.toUpperCase() + " "), "the key is case- and space-blind");
   assert.ok(!isSizesPending("snipes", cap.name));
   assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name }, { retailer: "snipes", title: cap.name }]).length, 1);
+  /* One name, two colourways (one sized by the pass): a line with a chosen size sells. */
+  assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name, selectedSize: "10" }]).length, 0);
   /* Every store whose catalogue marks items shown-not-sold: the page's
      list (assets/data/sizes-pending.json) and the order door's
      (scripts/lib/sizes-pending-data.js) are the same list, and hold
      exactly those items. */
-  const stores = ["snipes", "carolinaherrera", "calzedonia", "intimissimi", "dsw", "tenniswarehouse"].filter((k) => existsSync(ROOT + k + "-catalog.json"));
+  const stores = ["snipes", "carolinaherrera", "calzedonia", "intimissimi", "dsw", "tenniswarehouse", "pacsun"].filter((k) => existsSync(ROOT + k + "-catalog.json"));
   const pending = stores.flatMap((k) => cat(k)).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
   assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...new Set(pending)].sort(), "the page's list and the catalogues disagree");
   assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...SIZES_PENDING].sort(), "the page's list and the order door's disagree");
@@ -138,11 +151,13 @@ await check("wiring: registry rows, the app's mirror and catalogue lists, the st
   for (const k of ["snipes", "carolinaherrera"]) assert.equal(K.STORE_KNOWLEDGE[k].product_count, cat(k).length, k + ": Aria quotes the wrong catalogue size");
 });
 
-await check("the storefronts: SNIPES opens on Nike, Jordan, adidas, New Balance, then its aisles; no Ofertas rail made up; Carolina Herrera opens on Zapatos", () => {
+await check("the storefronts: SNIPES opens on its real Ofertas, then Nike, Jordan, adidas, New Balance, then its aisles; Carolina Herrera opens on Zapatos", () => {
   const s = JSON.parse(read("assets/tienda/snipes/index.json"));
   const keys = s.rails.map((r) => r.key);
-  assert.deepEqual(keys.slice(0, 4), ["b-nike", "b-jordan", "b-adidas", "b-new-balance"]);
-  assert.ok(!keys.includes("ofertas"), "an Ofertas rail with no sale data");
+  /* Danny's order (c.6450358688): Ofertas first -- real now, from the pass's struck-through prices. */
+  assert.deepEqual(keys.slice(0, 5), ["ofertas", "b-nike", "b-jordan", "b-adidas", "b-new-balance"]);
+  assert.equal(s.rails[0].title, "Ofertas de SNIPES");
+  assert.ok(s.rails[0].total > 2000 && s.rails[0].head.every((c) => c.was > c.price), "an Ofertas card without a real was-price");
   for (const d of ["d-calzado", "d-calzado_ninos", "d-ropa", "d-gorras"]) assert.ok(keys.includes(d), d);
   assert.ok(s.rails[0].head.slice(0, 6).every((c) => c.image && c.price > 0));
   const c = JSON.parse(read("assets/tienda/carolinaherrera/index.json"));
@@ -185,10 +200,22 @@ await check("the product page: a SNIPES sneaker says «Tallas por confirmar» an
   assert.ok(s.desc.includes(shoe.description.slice(0, 30)), "the Spanish description is not shown");
   if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-shoe.png" });
   await ctx.close();
-  const cap = cat("snipes").find((i) => !i.sizesPending);
+  const cap = cat("snipes").find((i) => !i.sizesPending && !i.sizes);
   const c = await pdp(cap);
   assert.equal(await c.pg.evaluate(() => document.querySelector("#add-cart-btn").disabled), false);
   await c.ctx.close();
+});
+
+await check("the product page: a sized SNIPES sneaker offers its in-stock sizes and the cart", async () => {
+  const shoe = cat("snipes").find((i) => i.sizes && i.sizes.length > 3 && /air jordan 1 mid/i.test(i.name)) || cat("snipes").find((i) => i.sizes && i.sizes.length > 3);
+  const { pg, ctx } = await pdp(shoe);
+  const s = await pg.evaluate(() => ({ opts: [...document.querySelectorAll("#size-select option")].map((o) => o.value).filter(Boolean),
+    btn: document.querySelector("#add-cart-btn").textContent, disabled: document.querySelector("#add-cart-btn").disabled }));
+  assert.equal(s.btn, "Agregar al carrito");
+  assert.equal(s.disabled, false);
+  assert.deepEqual([...s.opts].sort(), [...new Set(shoe.sizes)].sort());
+  if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-sized.png" });
+  await ctx.close();
 });
 
 await browser.close();
