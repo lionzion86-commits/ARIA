@@ -6068,7 +6068,7 @@ Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 
 Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
-### Tipos (5,234)
+### Tipos (5,917)
 
 - Accesorios tecnológicos: 477 · `/departamento.html?dept=electronics&t=accesorios-tecnologicos`
 - Cámaras: 449 · `/departamento.html?dept=electronics&t=camaras`
