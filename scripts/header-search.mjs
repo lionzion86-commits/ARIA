@@ -20,6 +20,7 @@
 
    After changing HS_CSS or header-search.js:
      node scripts/header-search.mjs          rewrites every page's copy
+                                             (the search AND the cart below)
      node scripts/header-search.mjs --check  exits 1 if any copy is stale
    scripts/test/header-search-tests.mjs runs the --check.
    ================================================================== */
@@ -90,16 +91,112 @@ export function hsMarkup({ mods = "", sheet = "" } = {}) {
 
 export const HS_JS = () => readFileSync(join(ROOT, "assets/js/header-search.js"), "utf8");
 
+/* ==================================================================
+   THE HEADER CART, ONE SOURCE FOR EVERY PAGE (#443 c.6619105467 and
+   c.6619111897, Danny's live check: the cart showed in the header on
+   the homepage only). The standalone pages (#327/#328, 2026-10-05) were
+   built without one, so the moment a shopper left the homepage the cart
+   was gone. Every page in HC_PAGES now carries, from this file:
+     - HC_CSS, inlined as <style id="hc-css"> right after the search's;
+     - hcMarkup(), the cart link, as the LAST item of the header row
+       (.hs-row), so it sits top-right, between <!-- hc:start/end -->;
+     - assets/js/header-cart.js (defer), which paints the live count
+       from localStorage 'aria_cart_v1' (no network, no catalogue).
+   The link opens the homepage's cart view, /?carrito=1, the one real
+   cart (carrito.html redirects there too). index.html keeps its own
+   cart button, which the app bundle drives (openCart, #cartCountBadge).
+   A page without the markers gets them at the end of its header row on
+   the next run; --check fails while any page lacks them.
+   ================================================================== */
+export const HC_HREF = "/?carrito=1";
+/* Pages whose own header has no search row: each carries a cart SLOT
+   (the hc:start/end markers) placed by hand in its header, top-right;
+   the generator fills it and --check fails while the slot is missing.
+   dark: the header behind the icon is dark. */
+export const HC_SLOT_PAGES = {
+  "aria-auto.html": { dark: true },
+  "auto.html": { dark: false },
+  "terminos.html": { dark: true },
+  "privacidad.html": { dark: true },
+};
+export const HC_PAGES = [...HS_PAGES.filter((f) => f !== "index.html"), ...Object.keys(HC_SLOT_PAGES)];
+export const HC_SCRIPT = '<script src="/assets/js/header-cart.js" defer></script>';
+
+export const HC_CSS = [
+  ".hc{--hc-fg:#0A1F44;--hc-dot:#2456A0;--hc-dotfg:#fff;position:relative;flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border-radius:10px;color:var(--hc-fg);text-decoration:none;box-sizing:border-box;-webkit-tap-highlight-color:transparent}",
+  ".hc-dark{--hc-fg:#F4F6FB;--hc-dot:#F4C463;--hc-dotfg:#0A1F44}",
+  ".hc:hover{text-decoration:none}",
+  ".hc svg{display:block;flex:0 0 auto}",
+  ".hc-n{position:absolute;top:1px;right:-1px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--hc-dot);color:var(--hc-dotfg);font-family:inherit;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-sizing:border-box}",
+  ".hc-n[hidden]{display:none}",
+  ".hc:focus-visible{outline:2px solid var(--hc-fg);outline-offset:1px}",
+].join("\n");
+
+const CART = '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+
+export function hcMarkup({ dark = false } = {}) {
+  return `<a class="hc${dark ? " hc-dark" : ""}" href="${HC_HREF}" aria-label="Carrito" data-hc>${CART}<span class="hc-n" hidden>0</span></a>`;
+}
+
+/* Index just past the closing tag of the element that opens at `at`. */
+function closeOf(src, at) {
+  const re = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+  re.lastIndex = at;
+  let depth = 0;
+  const VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/i;
+  for (let m; (m = re.exec(src));) {
+    if (!m[2]) continue;   // a comment
+    if (m[2].toLowerCase() === "svg" && !m[1]) { const e = src.indexOf("</svg>", m.index); re.lastIndex = e + 6; if (depth === 0) return e + 6; continue; }
+    if (VOID.test(m[2]) || m[3]) continue;
+    depth += m[1] ? -1 : 1;
+    if (depth === 0) return m.index;   // start of the closing tag
+  }
+  return -1;
+}
+
+function syncCart(src, eol, f) {
+  const slot = HC_SLOT_PAGES[f];
+  if (slot && !src.includes("<!-- hc:start -->")) throw new Error("no cart slot (<!-- hc:start --><!-- hc:end -->) in its header");
+  const dark = slot ? slot.dark : /<div class="hs[^"]*\bhs-dark\b/.test(src);
+  const block = `<!-- hc:start -->${hcMarkup({ dark })}<!-- hc:end -->`;
+  let out;
+  if (src.includes("<!-- hc:start -->")) {
+    out = src.replace(/<!-- hc:start -->[\s\S]*?<!-- hc:end -->/, () => block);
+  } else {
+    const row = src.search(/<[a-z]+ class="[^"]*\bhs-row\b[^"]*"[^>]*>/);
+    if (row < 0) throw new Error("no .hs-row header row");
+    const end = closeOf(src, row);
+    if (end < 0) throw new Error("the header row does not close");
+    const lineStart = src.lastIndexOf("\n", end) + 1, before = src.slice(lineStart, end);
+    const indent = before.match(/^[ \t]*/)[0];
+    out = /^[ \t]*$/.test(before)
+      ? src.slice(0, end) + "  " + block + eol + indent + src.slice(end)
+      : src.slice(0, end) + eol + indent + "  " + block + eol + indent + src.slice(end);
+  }
+  const css = `<style id="hc-css">${eol}${HC_CSS.split("\n").join(eol)}${eol}</style>`;
+  if (/<style id="hc-css">[\s\S]*?<\/style>/.test(out)) out = out.replace(/<style id="hc-css">[\s\S]*?<\/style>/, () => css);
+  else if (out.includes('<style id="hs-css">')) out = out.replace(/(<style id="hs-css">[\s\S]*?<\/style>)/, (m) => m + eol + css);
+  else out = out.replace("</head>", () => css + eol + "</head>");
+  if (!out.includes(HC_SCRIPT)) {
+    if (out.includes('<script src="/assets/js/header-search.js" defer></script>')) out = out.replace('<script src="/assets/js/header-search.js" defer></script>', (m) => m + eol + HC_SCRIPT);
+    else out = out.replace("</head>", () => HC_SCRIPT + eol + "</head>");
+  }
+  return out;
+}
+
 /* Rewrites (or checks) the inline copies; returns the stale pages. */
 export function syncPages({ write = false } = {}) {
   const stale = [];
-  for (const f of HS_PAGES) {
+  for (const f of [...HS_PAGES, ...Object.keys(HC_SLOT_PAGES)]) {
     const p = join(ROOT, f);
     const src = readFileSync(p, "utf8");
     const eol = src.includes("\r\n") ? "\r\n" : "\n";
     let out = src.replace(/<style id="hs-css">[\s\S]*?<\/style>/, () => `<style id="hs-css">${eol}${HS_CSS.split("\n").join(eol)}${eol}</style>`);
-    if (f === "index.html") {
+    if (HS_PAGES.includes(f) && f === "index.html") {
       out = out.replace(/<script id="hs-js">[\s\S]*?<\/script>/, () => `<script id="hs-js">${eol}${HS_JS().trim().split(/\r?\n/).join(eol)}${eol}</script>`);
+    }
+    if (HC_PAGES.includes(f)) {
+      try { out = syncCart(out, eol, f); } catch (e) { throw new Error(f + ": " + e.message); }
     }
     if (out !== src) { stale.push(f); if (write) writeFileSync(p, out); }
   }
@@ -109,6 +206,6 @@ export function syncPages({ write = false } = {}) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const check = process.argv.includes("--check");
   const stale = syncPages({ write: !check });
-  if (check && stale.length) { console.error("stale header search in: " + stale.join(", ") + " -- run: node scripts/header-search.mjs"); process.exit(1); }
+  if (check && stale.length) { console.error("stale header search or cart in: " + stale.join(", ") + " -- run: node scripts/header-search.mjs"); process.exit(1); }
   console.log(check ? "header search: every page is current" : (stale.length ? "rewrote: " + stale.join(", ") : "nothing to rewrite"));
 }

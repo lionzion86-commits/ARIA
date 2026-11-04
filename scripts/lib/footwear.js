@@ -172,11 +172,18 @@ const DEPT_VETO = /\b(enamel\s+pins?|blind\s+box|keychains?|key\s+chains?|sticke
    out, unless the title also names a shoe ("Jogger Sneakers", "Hoodie
    Slippers", "Trouser Boots"). */
 const GARMENT_VETO = /\b(trousers?|joggers?|sweatpants|hoodies?|t-?shirts?|jeans)\b/i;
+/* The head noun decides (#443 c.6621722209: Zapatos + Jordan showed
+   "Big Kids' MJ Sneaker School Knit Pants" second): a name that ENDS in
+   a garment or a cap is that garment, whatever shoe word it carries
+   earlier ("Flip Flop Womens Classic Tee", "Slide Tri Top", Haggar's
+   "Flat-Front Pants", DSW's "Baseball Cap"). A "High-Top" sneaker is a shoe. */
+const GARMENT_TAIL = /\b(pants?|trousers?|shorts|joggers?|sweatpants|leggings|hoodies?|sweatshirts?|t-?shirts?|tees?|shirts?|jackets?|jerseys?|(?<!(?:high|low|mid)[-\s])tops?|dress(?:es)?|skirts?|jeans|caps?|beanies?)\s*$/i;
+export function isGarmentTail(title) { return GARMENT_TAIL.test(String(title || "").trim()); }
 
 export function isShoeForDept(item, retailer) {
   if (!item || typeof item !== "object") return false;
   const title = item.title || item.name || "";
-  if (NOT_FOOTWEAR.test(title) || DEPT_VETO.test(title)) return false;
+  if (NOT_FOOTWEAR.test(title) || DEPT_VETO.test(title) || isGarmentTail(title)) return false;
   if (GARMENT_VETO.test(title) && !FOOTWEAR_NOUN_NOT_OXFORD.test(title)) return false;
   const type = String(item.type || "");
   if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type) && !MODEL_CODE_TYPE.test(type.trim())) return isFootwearType(type);

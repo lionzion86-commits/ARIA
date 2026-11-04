@@ -11,8 +11,8 @@
 
      - Tallas Plus «Lencería» rail (head / rails-N slices) and its pages;
      - Tallas Plus opened on lingerie: ?ver=tipo:mujer-lenceria, ?t=lenceria,
-       the «Por tipo» axis, the filter bar (t=lenceria, and a plus Talla
-       over lingerie in Moda Mujer);
+       the «Por tipo» axis; the filter bar (search, since #639) under a
+       plus Talla over lingerie;
      - the homepage Tallas Plus «Todas» (its first lingerie slots) and the
        Lencería carousel's Lane Bryant pill;
      - at 390px: the department rail, the ?ver= landing, the homepage.
@@ -28,7 +28,7 @@ import http from "node:http";
 import { intimateClass, isIntimate } from "../lib/section-allowlist.js";
 import { isLingerie, leadFirst, lingerieSlotsFirst, isLingerieSet, isPlusSizeLabel, PLUS_LINGERIE_LEAD, PLUS_LINGERIE_SLOTS } from "../lib/plus-lingerie.js";
 import { answer, plusLingerieView } from "../../netlify/functions/_department-core.js";
-import { navFilter } from "../../netlify/functions/_nav-filter-core.js";
+import { facetAnswer } from "../../netlify/functions/_nav-filter-core.js";
 import { buildCategoryPills } from "../build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -46,7 +46,6 @@ const FN = json("assets/sections/departamento/_fn/curvy.json");
 const TYPE = new Map(FN.rows.map((r) => [r[2] + "::" + r[0], r[7]]));
 const typeOfCard = (c) => TYPE.get(c.r + "::" + c.t) ?? "";
 const allowlisted = (c) => isIntimate({ title: c.t, type: typeOfCard(c) });
-const NONE = { u: "", t: "", s: "", b: "", z: "", p: "", o: "", fx: 0 };
 
 /* ---------- depth (printed, and the floor the rule stands on) ---------- */
 const depth = {};
@@ -124,15 +123,28 @@ await check("the «Por tipo» axis: Tallas Plus «Lencería» opens on Lane Brya
   }
 });
 
-await check("the filter bar: Tallas Plus lingerie, and a plus Talla over Moda Mujer's lingerie, open on Lane Bryant; a price sort stays a price sort", () => {
-  const plus = navFilter("curvy", { ...NONE, t: "lenceria" });
-  assert.ok(plus.cards.slice(0, 8).every((c) => c.r === LB), plus.cards.slice(0, 8).map((c) => c.r).join(","));
-  for (const z of ["1X", "2X", "3X"]) {
-    const w = navFilter("women", { ...NONE, t: "lenceria", z });
-    assert.ok(w.count > 0 && w.cards[0].r === LB, z + ": " + w.cards.slice(0, 4).map((c) => c.r).join(","));
+/* The filter bar lives on tienda, marca and search since #639 (the
+   department's bar is gone). Search is where lingerie from many stores
+   meets a Talla: a plus Talla over lingerie opens on Lane Bryant. */
+const search = await import("../../netlify/functions/search.js");
+const noFetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
+const nf = async (qs) => JSON.parse((await search.handler({ httpMethod: "GET", queryStringParameters: { nf: "1", ...qs } }, { fetchImpl: noFetch })).body);
+await check("the filter bar (search): a plus Talla over lingerie opens on Lane Bryant; a price sort stays a price sort; no Talla, no reorder", async () => {
+  for (const q of ["panty", "bralette"]) for (const z of ["1X", "2X", "3X"]) {
+    const b = await nf({ q, z });
+    assert.ok(b.count > 0 && b.cards[0].store === LB, `${q} ${z}: ` + b.cards.slice(0, 4).map((c) => c.store).join(","));
   }
-  const low = navFilter("curvy", { ...NONE, t: "lenceria" }, "low");
-  for (let i = 1; i < low.cards.length; i++) assert.ok(low.cards[i - 1].p <= low.cards[i].p, "price order broken at " + i);
+  const low = await nf({ q: "panty", z: "2X", sort: "low" });
+  for (let i = 1; i < low.cards.length; i++) assert.ok(Number(low.cards[i - 1].usd) <= Number(low.cards[i].usd) + 1e-9, "price order broken at " + i);
+  /* Regular size: the bar's own order, untouched (whatever leads, it is not forced). */
+  const plain = await nf({ q: "panty" });
+  assert.notEqual(plain.cards[0].store, LB, "a view without a plus Talla was reordered");
+  /* The engine itself, on synthetic rows: only a plus Talla over a lingerie set reorders. */
+  const rows = [{ x: { type: "Panties", retailer: "skims" }, title: "Cheeky Panty", retailer: "skims", usd: 10, sale: 50, image: "i", t: { k: "panties", label: "Panties" }, u: "women", run: ["2X"] },
+    { x: { type: "Panties", retailer: LB }, title: "Cotton Hipster Panty", retailer: LB, usd: 12, sale: 0, image: "i", t: { k: "panties", label: "Panties" }, u: "women", run: ["2X"] }];
+  const fa = (z) => facetAnswer(rows, { u: "", t: "", s: "", b: [], z, p: [], o: "", fx: 0, r: [], w: "" }).cards.map((c) => c.retailer);
+  assert.deepEqual(fa(["2X"]), [LB, "skims"]);
+  assert.deepEqual(fa([]), ["skims", LB]);
 });
 
 /* ---------- the homepage ---------- */

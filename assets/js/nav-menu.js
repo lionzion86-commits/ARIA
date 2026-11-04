@@ -12,6 +12,13 @@
    The columns come from assets/data/nav-menu.json, fetched once, on the
    first hover / focus / tap of a tab -- never with the page, and never a
    catalogue (the Mountain Test).
+
+   THE HEADER CREATES NOTHING (#443 c.6621544530, c.6621722209): every
+   leaf is the canonical section page with that page's own parameters
+   (build-nav-menu.mjs). A long column (a department's brands) shows its
+   first leaves and «Ver todas las marcas (N)»: the complete list, from
+   the department's real inventory (assets/data/nav-brands/<file>.json,
+   fetched only on that tap), opens in the column, scrollable.
    ================================================================== */
 (function(){
   'use strict';
@@ -36,15 +43,27 @@
     + '.nmf-col li a{display:block;padding:5px 0;font-size:14px;font-weight:600;color:#0A1F44;text-decoration:none;line-height:1.3}'
     + '.nmf-col li a:hover,.nmf-all:hover{text-decoration:underline}'
     + '.nmf-msg{padding:6px 0;color:#6B7487;font-size:14px}'
+    + '.nmf-more{display:inline-flex;align-items:center;gap:6px;margin:6px 0 0;padding:0;border:0;background:none;color:#2456A0;font:800 14px/1.3 sans-serif;font-family:inherit;cursor:pointer;text-align:left}'
+    + '.nmf-more small{font-weight:600;color:#6B7487;font-size:12px}'
+    + '.nmf-col ul.nmf-full{max-height:340px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}'
+    + '.nmf-drill{display:none}'
+    + '.nmf-col a:focus-visible,.nmf-all:focus-visible,.nmf-drill a:focus-visible,.nmf-drill button:focus-visible{outline:2px solid #B8860B;outline-offset:2px;border-radius:4px}'
+    /* PHONE: a full-height drill-down under the tab row -- the tab's
+       columns, then one column's leaves with a way back. */
     + '@media (max-width:767.98px){'
-    +   '.nmf{top:auto!important;bottom:0;max-height:82vh;border-radius:18px 18px 0 0;box-shadow:0 -12px 32px rgba(10,31,68,.22)}'
+    +   '.nmf{bottom:0;max-height:none!important;border-radius:16px 16px 0 0;box-shadow:0 -12px 32px rgba(10,31,68,.22)}'
     +   '.nmf-bd{top:0!important}'
-    +   '.nmf-in{padding:14px 16px 22px}'
-    +   '.nmf-head{position:sticky;top:-14px;background:#fff;padding:6px 0 10px;margin:0 0 6px;z-index:1}'
-    +   '.nmf-cols{display:block}'
-    +   '.nmf-col{max-width:none;padding:10px 0;border-top:1px solid #E4E6EC}'
-    +   '.nmf-col ul{display:flex;flex-wrap:wrap;gap:8px}'
-    +   '.nmf-col li a{padding:0 14px;height:40px;line-height:40px;border:1px solid #E4E6EC;border-radius:999px;font-size:14px;white-space:nowrap}'
+    +   '.nmf-in{padding:12px 16px 28px}'
+    +   '.nmf-head{position:sticky;top:-12px;background:#fff;padding:6px 0 10px;margin:0;z-index:1}'
+    +   '.nmf-cols{display:none}'
+    +   '.nmf-drill{display:block}'
+    +   '.nmf-l0,.nmf-l1 ul{list-style:none;margin:0;padding:0}'
+    +   '.nmf-go,.nmf-l1 li a,.nmf-colall{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 4px;border:0;border-top:1px solid #E4E6EC;background:none;color:#0A1F44;font:700 16px/1.25 sans-serif;font-family:inherit;text-align:left;text-decoration:none;cursor:pointer;box-sizing:border-box}'
+    +   '.nmf-go small,.nmf-l1 li a small{margin-left:auto;margin-right:8px;font-weight:600;color:#6B7487;font-size:13px}'
+    +   '.nmf-colall{color:#2456A0;font-weight:800}'
+    +   '.nmf-l1 .nmf-more{display:flex;width:100%;min-height:52px;margin:0;padding:0 4px;border-top:1px solid #E4E6EC;font-size:16px}'
+    +   '.nmf-back{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 4px;border:0;background:none;color:#0A1F44;font:800 15px/1 sans-serif;font-family:inherit;cursor:pointer}'
+    +   '.nmf-l1 h3{margin:6px 4px 8px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6B7487}'
     + '}';
   var st = document.createElement('style'); st.id = 'nmf-css'; st.textContent = CSS; document.head.appendChild(st);
 
@@ -65,8 +84,28 @@
       .then(function(j){ MENU = j; return j; }, function(e){ LOADING = null; throw e; });
     return LOADING;
   }
+  /* «Ver todas»: the column's complete list, one small file per department. */
+  var FULL = {};
+  function moreHTML(c, i){
+    if (!c.more || !(c.all > c.links.length)) return '';
+    return '<li><button type="button" class="nmf-more" data-nm-more="' + i + '">' + (c.h === 'Marcas' ? 'Ver todas las marcas' : 'Ver todos') + '<small>' + num(c.all) + '</small></button></li>';
+  }
+  function expand(i){
+    var t = open && tabOf(open.getAttribute('data-nm-tab')), c = t && t.cols[i];
+    if (!c || !c.more) return;
+    var a = open;
+    var got = FULL[c.more] || (FULL[c.more] = fetch(c.more).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).catch(function(e){ delete FULL[c.more]; throw e; }));
+    got.then(function(list){
+      if (open !== a) return;
+      Array.prototype.forEach.call(panel.querySelectorAll('ul[data-nm-ul="' + i + '"]'), function(ul){ ul.innerHTML = list.map(linkHTML).join(''); ul.classList.add('nmf-full'); });
+    }, function(){
+      Array.prototype.forEach.call(panel.querySelectorAll('[data-nm-more="' + i + '"]'), function(b){ b.textContent = 'No pudimos cargar la lista. Toca para reintentar.'; });
+    });
+  }
   function tabOf(k){ return MENU && (MENU.tabs || []).filter(function(t){ return t.k === k; })[0]; }
   function linkHTML(l){ return '<li><a href="' + esc(l[1]) + '" data-nm-leaf>' + esc(l[0]) + (l[2] ? '<small>' + num(l[2]) + '</small>' : '') + '</a></li>'; }
+  var CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+  var BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>';
   function paint(a){
     var k = a.getAttribute('data-nm-tab'), t = tabOf(k), label = a.textContent;
     panel.setAttribute('aria-label', label);
@@ -76,9 +115,17 @@
     var body;
     if (!t) body = '<p class="nmf-msg">Cargando…</p>';
     else if (!t.cols.length) body = '<p class="nmf-msg">Abre la página de ' + esc(label) + ' para ver todo.</p>';
-    else body = '<div class="nmf-cols">' + t.cols.map(function(c){
-      return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul>' + c.links.map(linkHTML).join('') + '</ul></section>';
-    }).join('') + '</div>';
+    else body = '<div class="nmf-cols">' + t.cols.map(function(c, i){
+      return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></section>';
+    }).join('') + '</div>'
+      /* The phone's drill-down: the same columns, one level at a time. */
+      + '<div class="nmf-drill"><ul class="nmf-l0" data-nm-l0>' + t.cols.map(function(c, i){
+        return '<li><button type="button" class="nmf-go" data-nm-go="' + i + '">' + esc(c.h) + (c.n ? '<small>' + num(c.n) + '</small>' : '') + CHEV + '</button></li>';
+      }).join('') + '</ul>' + t.cols.map(function(c, i){
+        return '<div class="nmf-l1" data-nm-lvl="' + i + '" hidden><button type="button" class="nmf-back" data-nm-back>' + BACK + esc(label) + '</button><h3>' + esc(c.h) + '</h3>'
+          + (c.href ? '<a class="nmf-colall" href="' + esc(c.href) + '" data-nm-leaf>Ver todo: ' + esc(c.h) + CHEV + '</a>' : '')
+          + '<ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></div>';
+      }).join('') + '</div>';
     panel.innerHTML = '<div class="nmf-in">' + head + body + '</div>';
   }
   function place(){
@@ -151,12 +198,66 @@
   nav.addEventListener('focusin', function(){ load().catch(function(){}); });
   nav.addEventListener('keydown', function(e){
     var a = e.target.closest && e.target.closest('.nm-tab');
-    if (a && (e.key === 'ArrowDown')) { e.preventDefault(); show(a, 'click'); var f = panel.querySelector('a'); if (f) f.focus(); }
+    if (!a) return;
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      if (open !== a) show(a, 'click');
+      var first = function(){ var f = panel.querySelector('.nmf-col a, .nmf-l0 button'); if (f && f.offsetParent !== null) f.focus(); else { f = panel.querySelector('.nmf-all'); if (f) f.focus(); } };
+      if (MENU) first(); else load().then(function(){ requestAnimationFrame(first); }, function(){});
+      return;
+    }
+    /* Left / right walk the tabs; an open flyout follows. */
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      var tabs = Array.prototype.slice.call(nav.querySelectorAll('.nm-tab')), i = tabs.indexOf(a);
+      var nx = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+      e.preventDefault(); nx.focus();
+      if (open) show(nx, 'click');
+    }
   });
 
   /* Off it: the backdrop, anywhere else, or Esc. */
   bd.addEventListener('click', function(e){ e.preventDefault(); hide(); });
-  panel.addEventListener('click', function(e){ if (e.target.closest('.nmf-x')) { e.preventDefault(); var a = open; hide(); if (a) a.focus(); } });
+  panel.addEventListener('click', function(e){
+    if (e.target.closest('.nmf-x')) { e.preventDefault(); var a = open; hide(); if (a) a.focus(); return; }
+    /* «Ver todas las marcas»: the whole list, in place. Nothing navigates. */
+    var more = e.target.closest('[data-nm-more]');
+    if (more){ e.preventDefault(); expand(more.getAttribute('data-nm-more')); return; }
+    /* The drill-down: into a column, and back out of it. Nothing navigates. */
+    var go = e.target.closest('[data-nm-go]');
+    if (go){
+      e.preventDefault();
+      panel.querySelector('[data-nm-l0]').hidden = true;
+      var lv = panel.querySelector('[data-nm-lvl="' + go.getAttribute('data-nm-go') + '"]');
+      lv.hidden = false; panel.scrollTop = 0;
+      var f = lv.querySelector('a, button'); if (f) f.focus({ preventScroll: true });
+      return;
+    }
+    if (e.target.closest('[data-nm-back]')){
+      e.preventDefault();
+      var cur = e.target.closest('[data-nm-lvl]'); cur.hidden = true;
+      panel.querySelector('[data-nm-l0]').hidden = false;
+      var back = panel.querySelector('[data-nm-go="' + cur.getAttribute('data-nm-lvl') + '"]'); if (back) back.focus({ preventScroll: true });
+    }
+  });
+  /* KEYBOARD (desktop): arrows walk the columns -- up / down inside one,
+     left / right to the same row of the next one; Home / End; Esc closes. */
+  panel.addEventListener('keydown', function(e){
+    if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(e.key) < 0) return;
+    var cols = Array.prototype.filter.call(panel.querySelectorAll('.nmf-col, .nmf-l0, .nmf-l1:not([hidden])'), function(c){ return c.offsetParent !== null; });
+    if (!cols.length) return;
+    var lists = cols.map(function(c){ return Array.prototype.slice.call(c.querySelectorAll('a, button')); });
+    var ci = -1, ri = -1;
+    lists.forEach(function(l, i){ var j = l.indexOf(document.activeElement); if (j >= 0){ ci = i; ri = j; } });
+    if (ci < 0){ ci = 0; ri = -1; }
+    var l = lists[ci];
+    if (e.key === 'ArrowDown') ri = Math.min(l.length - 1, ri + 1);
+    else if (e.key === 'ArrowUp'){ if (ri <= 0 && open){ e.preventDefault(); open.focus(); return; } ri = ri - 1; }
+    else if (e.key === 'Home') ri = 0;
+    else if (e.key === 'End') ri = l.length - 1;
+    else { ci = (ci + (e.key === 'ArrowRight' ? 1 : -1) + lists.length) % lists.length; l = lists[ci]; ri = Math.min(Math.max(0, ri), l.length - 1); }
+    e.preventDefault();
+    if (l[ri]) l[ri].focus();
+  });
   document.addEventListener('click', function(e){
     if (!open) return;
     if (nav.contains(e.target) || panel.contains(e.target)) return;

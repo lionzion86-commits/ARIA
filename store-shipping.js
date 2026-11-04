@@ -107,6 +107,11 @@
     surfstation: { feeUsd: 9.99, freeOverUsd: 49, source: 'Lucifer, #443 c.6524139671', note: 'paquetes pequeños; tablas aparte' },
     zumiez: { feeUsd: null, freeOverUsd: 64.94, source: 'Lucifer, #443 c.6524803125' },
     ezpz: { feeUsd: null, freeOverUsd: 70, source: 'Lucifer, #443 c.6524803125' },
+    /* VENUM waits on Lucifer's mock Miami 33166 checkout (#443 c.6620628148): no
+       under-$75 fee is captured anywhere (data/store-shipping-audit-2026-11-04.md).
+       When it lands: feeUsd = the observed standard fee, and the checkout added to
+       source; its paid options go in the carrier matrix row, then
+       npm run build:store-carrier. */
     venum: { feeUsd: null, freeOverUsd: 75, source: 'Lucifer, #443 c.6524803125' },
     mushie: { feeUsd: null, freeOverUsd: 75, source: 'Lucifer, #443 c.6524803125' },
     combatcorner: { feeUsd: null, freeOverUsd: 150, source: 'Lucifer, #443 c.6524803125', note: 'artículos grandes excluidos' },
@@ -119,7 +124,8 @@
     nautilus: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
     parrot: { feeUsd: null, freeOverUsd: 100, source: 'Parrot Surf Shop parrotsurfshop.com/collections/parrot-hoodies (#443 c.6568736516)', note: 'tablas aparte' },
     crateandbarrel: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671', note: 'tarifa por escala, desde $6' },
-    sleekshop: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671', note: 'tarifa por escala, $4.99 a $9.99' },
+    /* freeOverUsd 99: the carrier matrix 2026-11-03 row (sleekshop.com), #443 c.6620628148. */
+    sleekshop: { feeUsd: null, freeOverUsd: 99, source: 'Lucifer, #443 c.6524139671; threshold: carrier matrix 2026-11-03 (#443 c.6620628148)', note: 'tarifa por escala, $4.99 a $9.99' },
     /* #443 c.6568736516 -- each store's OWN published US policy (standard /
        ground, contiguous US). Read through search results on the store's own
        domain (direct fetches are blocked from the sandbox); a store whose own
@@ -161,10 +167,28 @@
     kindredbravely: { feeUsd: null, freeOverUsd: 75, source: 'Kindred Bravely kindredbravely.com/pages/kindred-bravely-offers (#443 c.6568736516)' },
     denniskirk: { feeUsd: null, freeOverUsd: 89, source: 'Dennis Kirk denniskirk.com (#443 c.6568736516)' },
     montce: { feeUsd: null, freeOverUsd: 100, source: 'Montce montce.com/pages/shipping-delivery-information (#443 c.6568736516)' },
-    gameness: { feeUsd: null, freeOverUsd: 100, source: 'Gameness gameness.com/policies/shipping-policy (#443 c.6568736516)', note: 'tarifa por escala: $12.90 debajo de $50, $15.90 de $50 a $99.99' },
+    /* #443 c.6620628148 (the store-shipping audit, data/store-shipping-audit-2026-11-04.md):
+       the store's own published ladder, captured Oct 31 and held in a note
+       only; the rung under the order's subtotal is the fee (feeLadder). */
+    gameness: { feeUsd: 12.9, feeLadder: [{ underUsd: 50, feeUsd: 12.9 }, { underUsd: 100, feeUsd: 15.9 }], freeOverUsd: 100, source: 'Gameness gameness.com/policies/shipping-policy (#443 c.6568736516; ladder wired #443 c.6620628148)' },
     silviatcherassi: { feeUsd: null, freeOverUsd: 500, source: 'Silvia Tcherassi silviatcherassi.com product pages + terms (#443 c.6568736516)' },
     tns: { feeUsd: null, freeOverUsd: 100, source: 'TNS tns.us/pages/special-offers (#443 c.6568736516)' },
     tennisexpress: { feeUsd: null, freeOverUsd: 50, source: 'Tennis Express tennisexpress.com/pages/faq (#443 c.6568736516)', note: 'artículos voluminosos excluidos' },
+    /* THE STORE-SHIPPING AUDIT (#443 c.6620628148, data/store-shipping-audit-2026-11-04.md):
+       live stores that read «por calcular» at checkout although Lucifer's
+       carrier matrix (data/usps-carrier-matrix-2026-11-03.md, each row quoting
+       the store's own published policy) already holds their standard rule.
+       Wired from that row, its URL cited; nothing beyond what the row says. */
+    capittana: { feeUsd: 10, freeOverUsd: 100, source: 'Capittana capittana.com/pages/shipping-conditions, carrier matrix 2026-11-03 (#443 c.6620628148)', basis: 'US Standard, 3 a 5 días hábiles; la única opción de la tienda' },
+    johannaortiz: { feeUsd: 0, freeOverUsd: 0, source: 'Johanna Ortiz johannaortiz.com/policies/shipping-policy, carrier matrix 2026-11-03 (#443 c.6620628148)', basis: 'US Standard gratis («complimentary»); 2 días $20 y Overnight $40 aparte' },
+    hatch: { feeUsd: 8, freeOverUsd: null, source: 'HATCH hatchcollection.com/pages/faq, carrier matrix 2026-11-03 (#443 c.6620628148)', basis: 'Economy $8 (4 a 7 días), la opción base de la tienda; Standard $12 (3 a 5 días), Express $25 y Priority $40 aparte -- el comprador elige Economy' },
+    /* Threshold only: the row publishes the free-shipping line and no fee
+       under it -- over it GRATIS, under it the store calculates it. */
+    ancora: { feeUsd: null, freeOverUsd: 140, source: 'Ancora ancoraswimwear.com/pages/ordering-faqs, carrier matrix 2026-11-03 (#443 c.6620628148)' },
+    bellybandit: { feeUsd: null, freeOverUsd: 40, source: 'Belly Bandit bellybandit.com/pages/shipping, carrier matrix 2026-11-03 (#443 c.6620628148)' },
+    elvie: { feeUsd: null, freeOverUsd: 35, source: 'Elvie support.elvie.com/en-us/general-support/shipping-returns, carrier matrix 2026-11-03 (#443 c.6620628148)' },
+    xtremesoccer: { feeUsd: null, freeOverUsd: 100, source: 'Xtreme Soccer xtremesocceronline.com/policies/shipping-policy, carrier matrix 2026-11-03 (#443 c.6620628148)', basis: 'USPS Ground Advantage' },
+    prosoccer: { feeUsd: null, freeOverUsd: 100, source: 'ProSoccer prosoccer.com/pages/shipping-delivery, carrier matrix 2026-11-03 (#443 c.6620628148)' },
   };
 
   /* The Miami sales tax Aria pays at each register (Walmart exempt), the
@@ -188,6 +212,22 @@
   }
 
   function isFree(r) { return !!r && r.freeOverUsd === 0; }
+  /* A store that publishes a ladder (feeLadder: [{underUsd, feeUsd}], in
+     order): the rung under the subtotal is the fee; feeUsd is its first
+     rung. Gameness, #443 c.6620628148. */
+  function feeAt(r, sub) {
+    var l = r && r.feeLadder;
+    if (l && l.length) {
+      for (var i = 0; i < l.length; i++) if (sub < l[i].underUsd) return l[i].feeUsd;
+      return l[l.length - 1].feeUsd;
+    }
+    return r.feeUsd;
+  }
+  function ladderText(r) {
+    return r.feeLadder.map(function (x, i) {
+      return money(x.feeUsd) + (i === 0 ? ' debajo de ' + money(x.underUsd) : ' de ' + money(r.feeLadder[i - 1].underUsd) + ' a ' + money(r2(x.underUsd - 0.01)));
+    }).join(' · ');
+  }
   function isCalculated(r) { return !!r && r.feeUsd == null && !isFree(r); }
 
   /** The card line, both numbers: «Envío gratis desde $35 · $7.99 debajo de ese monto». */
@@ -199,6 +239,7 @@
       ? 'Envío en EE.UU.: lo calcula la tienda al pagar'
       : 'Envío gratis desde ' + money(r.freeOverUsd) + ' · debajo de ese monto lo calcula la tienda al pagar';
     if (r.freeOverUsd == null) return 'Envío de la tienda en EE.UU.: ' + money(r.feeUsd);
+    if (r.feeLadder && r.feeLadder.length) return 'Envío gratis desde ' + money(r.freeOverUsd) + ' · ' + ladderText(r);
     return 'Envío gratis desde ' + money(r.freeOverUsd) + ' · ' + money(r.feeUsd) + ' debajo de ese monto';
   }
 
@@ -235,7 +276,7 @@
     var met = sub >= r.freeOverUsd;
     return {
       store: keyOf(store), rule: r, subtotalUsd: sub,
-      feeUsd: sub > 0 && !met && !isCalculated(r) ? r.feeUsd : 0,
+      feeUsd: sub > 0 && !met && !isCalculated(r) ? feeAt(r, sub) : 0,
       met: met,
       missingUsd: met ? 0 : r2(r.freeOverUsd - sub),
       progress: Math.min(1, sub / r.freeOverUsd),
