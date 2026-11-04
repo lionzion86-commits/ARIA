@@ -219,6 +219,10 @@
     if (S.s && DATA.sl) parts.push(DATA.sl); else if (S.t && DATA.tl) parts.push(DATA.tl);
     if (!parts.length) parts.push((H.title && H.title()) || 'Todo');
     if (S.u) parts.push(AUD[S.u]);
+    /* The brands chosen name the set (up to two; more are counted). */
+    var f = (DATA && DATA.facets) || {};
+    if (S.b.length) parts.push(S.b.length <= 2 ? S.b.map(function(v){ return labelOf(f.b, v); }).join(' y ') : S.b.length + ' marcas');
+    if (S.o) parts.push('Ofertas');
     return parts.join(' · ');
   }
 
@@ -407,6 +411,6 @@
     LAST_Q = location.search;
     run(0);
   }
-  window.AriaNF = { state: function(){ return S; }, set: set, box: box, resource: resource };
+  window.AriaNF = { state: function(){ return S; }, set: set, box: box, resource: resource, data: function(){ return DATA; }, url: function(){ return api(0); } };
   getFx().then(function(fx){ FX = fx || 0; run(0); });
 })();

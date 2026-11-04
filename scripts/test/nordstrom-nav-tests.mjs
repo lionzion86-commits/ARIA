@@ -26,7 +26,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES } from "../build-nav-menu.mjs";
-import { navFilter, normSize, readFilters } from "../../netlify/functions/_nav-filter-core.js";
+import { navFilter, normSize, readFilters, answerNav } from "../../netlify/functions/_nav-filter-core.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.chdir(ROOT);
@@ -106,6 +106,20 @@ await check("facets stack (Niños x Botas x a brand x a size) and every offered 
   if (p) assert.equal(navFilter("shoes", { ...base, b: [b], z: [z[0]], p: [p[0]] }, "deal", 0, [ROOT]).count, p[2]);
   const kids = navFilter("shoes", { ...base, u: "kids", b: ["ugg"] }, "deal", 0, [ROOT]);
   for (const c of kids.cards) assert.equal(String(c.b).toLowerCase(), "ugg");
+});
+await check("every listing: two brands give exactly the union of the two (within the listing), and every card is one of them", async () => {
+  for (const src of [{ dept: "women" }, { tienda: "macys" }, { marca: "nike" }, { ofertas: "1" }, { ri: "mujer" }]) {
+    const all = (await answerNav({ ...src, fx: "3.75" }, [ROOT])).body;
+    const two = all.facets.b.slice(0, 2);
+    if (two.length < 2) { assert.ok(src.marca, JSON.stringify(src) + " has fewer than two brands"); continue; }
+    const r = (await answerNav({ ...src, fx: "3.75", b: two.map((x) => x[0]).join("|") }, [ROOT])).body;
+    assert.equal(r.count, two[0][2] + two[1][2], JSON.stringify(src) + ": not the union");
+    assert.ok(r.count < all.count, JSON.stringify(src) + ": not narrowed");
+    for (let pg = 0; pg < Math.min(r.pages, 4); pg++) {
+      const cards = pg ? (await answerNav({ ...src, fx: "3.75", b: two.map((x) => x[0]).join("|"), page: String(pg) }, [ROOT])).body.cards : r.cards;
+      for (const c of cards) assert.ok(two.some((x) => x[0] === String(c.b || c.brand || "").trim().toLowerCase()), JSON.stringify(src) + ": a card of " + (c.b || c.brand));
+    }
+  }
 });
 await check("no filter UI renders a checkbox (the bar, the menu, the department page)", () => {
   for (const f of ["assets/js/nav-filter.js", "assets/js/nav-menu.js", "assets/js/dept-header.js", "departamento.html", "search.html", "marca.html", "tienda.html", "ofertas.html", "ropa-interior.html"])
@@ -357,6 +371,9 @@ if (pw) {
         const btns = await page.$$eval("#nfBar .nf-dd:not([hidden]) .nf-btn span", (x) => x.map((e) => e.textContent));
         assert.ok(btns.includes("Filtrar") && btns.includes("Ordenar") && btns.includes("Talla") || btns.includes("Precio"), btns.join(" | "));
         /* Two values of the multi facet the page offers: Marca, else Talla, else Precio. */
+        /* The unfiltered total: the «Todo» pill with nothing selected. */
+        const total = await page.evaluate(() => window.AriaNF.data().tAll);
+        assert.ok(total > 0, "no unfiltered total");
         const k = await page.evaluate(() => ["b", "z", "p"].find((k) => { const d = document.querySelector('[data-dd="' + k + '"]'); return d && !d.hidden; }));
         assert.ok(k, "no multi-value facet offered");
         await page.tap(`[data-nf-btn="${k}"]`);
@@ -371,6 +388,27 @@ if (pw) {
         }
         await page.tap(".nf-pan [data-nf-done]");
         await page.waitForSelector("#nfRail .card", { timeout: 60000 });
+        /* The filtered set is the true intersection, shown as such:
+           fewer than the unfiltered total, the server's own count on the
+           count line and the rail header, and every card in it carries a
+           chosen value (a brand facet: the card's brand). */
+        const shown = await page.evaluate(async () => {
+          const d = window.AriaNF.data(), st = window.AriaNF.state();
+          const server = await fetch(window.AriaNF.url()).then((r) => r.json());
+          const digits = (t) => Number(String(t || "").replace(/[^0-9]/g, ""));
+          const brands = (server.cards || []).map((c) => String(c.b || c.brand || "").trim().toLowerCase());
+          return { count: d.count, server: server.count, line: digits(document.getElementById("nfCount").textContent),
+            head: digits(document.getElementById("nfN").textContent), title: document.getElementById("nfTitle").textContent,
+            cards: document.querySelectorAll("#nfRail .card").length, page: (server.cards || []).length, chosen: st.b, brands };
+        });
+        assert.ok(shown.count > 0 && shown.count < total, `${name}: filtered ${shown.count} is not under the unfiltered ${total}`);
+        assert.equal(shown.count, shown.server, "the page's count is not the server's");
+        assert.equal(shown.line, shown.count, "the count line does not show the filtered count");
+        assert.equal(shown.head, shown.count, "the rail header does not show the filtered count");
+        assert.equal(shown.cards, shown.page, "the carousel does not hold the filtered page");
+        if (k === "b") {
+          for (const b of shown.brands) assert.ok(shown.chosen.includes(b), `${name}: a card of ${b} under ${shown.chosen.join(" + ")}`);
+        }
         const rows = await page.$$eval("#nfRail .card", (cs) => new Set(cs.map((x) => Math.round(x.getBoundingClientRect().top))).size);
         assert.equal(rows, 1, "cards in more than one row");
         assert.match(page.url(), new RegExp("[?&]f?" + k + "="));
