@@ -144,7 +144,7 @@ await check("the registries: tienda.html, producto.html, the app's source map; n
   assert.deepEqual(T.tenniswarehouse.files, ["/tenniswarehouse-catalog.json"]);
   assert.equal(T.tenniswarehouse.slices, "/assets/tienda/tenniswarehouse/");
   assert.match(read("producto.html"), /"tenniswarehouse": \["\/tenniswarehouse-catalog\.json"\]/);
-  const bundle = read(/<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(read("index.html"))[1]);
+  const bundle = read(/<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(read("index.html"))[1]);
   assert.match(bundle, /"\/tenniswarehouse-catalog\.json":\["tenniswarehouse"\]/);
   assert.match(bundle, /"\/tennis-catalog\.json":\["tennisexpress"\]/);
   const ctx = {}; vm.createContext(ctx); vm.runInContext(read("off-sale.js"), ctx);

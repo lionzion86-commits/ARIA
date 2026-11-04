@@ -145,7 +145,7 @@ const PK = liftDeclarations(page, ["cartLineKey"]);
 const checkoutSrc = readFileSync(ROOT + "checkout.html", "utf8");
 const ckFn = /function cartLineKey\(it\)\{[\s\S]*?\n  \}/.exec(checkoutSrc)[0];
 const CK = new Function(ckFn + "; return cartLineKey;")();
-const bundleName = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
+const bundleName = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
 const BK = liftDeclarations(readFileSync(ROOT + "build/" + bundleName, "utf8"), ["cartItemKey"]);
 await check("two colourways in one size are two cart lines, on every page; old lines keep their key", () => {
   const a = { retailer: "snipes", title: "Samba OG", selectedSize: "9", variantId: snipesOG[0].v, colorway: snipesOG[0].c };

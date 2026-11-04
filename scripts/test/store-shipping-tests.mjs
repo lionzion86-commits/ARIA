@@ -121,7 +121,7 @@ check("the sales-tax rule matches the one the search core and the product page u
 
 check("the product page: the store's box FIRST, above Impuestos and Peso, with its meter; re-drawn on add", () => {
   const html = read("producto.html");
-  assert.match(html, /<script src="\/store-shipping\.js"><\/script>/);
+  assert.match(html, /<script src="\/store-shipping\.js"[^>]*><\/script>/);
   const i = html.indexOf("priceHtml += shipBoxHtml(p);"), t = html.indexOf(`priceHtml += '<div id="p-tax"`), w = html.indexOf(`priceHtml += '<div id="p-weight"`);
   assert.ok(i > 0 && i < t && t < w, "Costo de envío, then Impuestos, then Peso");
   assert.match(html, /Costo de envío de la tienda/);
@@ -131,7 +131,7 @@ check("the product page: the store's box FIRST, above Impuestos and Peso, with i
 
 check("the expanded card on the homepage carries the line", () => {
   assert.match(read("index.html"), /<div id="productViewShipping"/);
-  assert.match(read("index.html"), /<script src="\/store-shipping\.js"><\/script>/);
+  assert.match(read("index.html"), /<script src="\/store-shipping\.js"[^>]*><\/script>/);
   assert.match(bundle, /S\.ruleText\(retailer\)/);
 });
 

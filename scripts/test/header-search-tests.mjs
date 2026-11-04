@@ -67,7 +67,7 @@ await check(`every page with the site header (${HS.HS_PAGES.length}) carries the
 await check("the homepage makes no new request for it: the behaviour is inline in <head>, before the hero search box and the app bundle", () => {
   const home = read("index.html");
   assert.ok(!home.includes('src="/assets/js/header-search.js"'), "index.html fetches header-search.js");
-  const js = home.indexOf('<script id="hs-js">'), box = home.indexOf('id="searchInput"'), bundle = home.search(/<script src="\/build\/app-[0-9a-f]+\.js">/);
+  const js = home.indexOf('<script id="hs-js">'), box = home.indexOf('id="searchInput"'), bundle = home.search(/<script src="\/build\/app-[0-9a-f]+\.js"[^>]*>/);
   assert.ok(js > 0 && js < home.indexOf("</head>") && js < box && box < bundle);
   assert.ok(!/<link[^>]+header-search/.test(home));
 });

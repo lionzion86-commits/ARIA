@@ -37,7 +37,7 @@ export async function minify(source) {
 /* The bundle index.html loads. */
 export function bundleName() {
   const html = readFileSync(join(ROOT, "index.html"), "utf8");
-  const m = /<script src="\/build\/(app-[0-9a-f]+\.js)"><\/script>/.exec(html);
+  const m = /<script src="\/build\/(app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(html);
   if (!m) throw new Error("index.html loads no build/app-<hash>.js");
   return m[1];
 }

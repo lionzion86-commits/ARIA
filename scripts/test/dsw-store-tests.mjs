@@ -57,7 +57,7 @@ async function check(name, fn) {
   } catch (e) { failures.push(`${name}\n         ${e && e.stack ? e.stack.split("\n").slice(0, 3).join("\n         ") : e}`); console.log("    FAIL " + name); }
 }
 
-const bundleName = () => /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(read("index.html"))[1];
+const bundleName = () => /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(read("index.html"))[1];
 const bundleSrc = () => read(bundleName());
 const tiendaStores = (html = read("tienda.html")) => JSON.parse(/var STORES = (\{.*\});/.exec(html)[1]);
 const catalogNow = () => JSON.parse(read(OUT_FILE));

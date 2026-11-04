@@ -140,7 +140,7 @@ await check("MCP tool descriptions name no off-sale store as an example", async 
   assert.deepEqual(hits, [], hits.join("; "));
 });
 
-const bundleName = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"><\/script>/.exec(read("index.html"))[1];
+const bundleName = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(read("index.html"))[1];
 const bundle = read("build/" + bundleName);
 function constBlock(src, name) {
   const at = src.indexOf("const " + name + " = ");
