@@ -576,8 +576,62 @@ export function toysLead(hits) {
 const DYM_RARE = 50;          // a word in fewer products than this is suspect
 const DYM_COMMON = 200;       // a suggestion must be in at least this many
 const DYM_RATIO = 20;         // ...and this many times more than the typed word
+/* DID-YOU-MEAN GUARDRAILS (#443 c.6621646383, class 6): «llantas aro 15»
+   was asked "pants pro 15?", «patines» "panties?", «dronn» "iron?",
+   «faro» "farm?". A suggestion is offered only when it names something
+   real -- every word it changes is a word of Aria's vocabulary (the
+   search dictionary, English and Spanish; a concept word; a brand or
+   store name) -- when it keeps the typed word's first letter, and when
+   it is not the same word in the other number («sales» -> "sale"). A
+   query the search already understood (a type, a store, a core product)
+   is never second-guessed. */
+function dymVocabulary(ctx) {
+  if (ctx._dymVocab) return ctx._dymVocab;
+  const out = new Set(dictWords(ctx));
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(DICT_FILE)); } catch { raw = null; }
+  for (const sec of Object.values(raw || {})) {
+    if (!sec || typeof sec !== "object" || Array.isArray(sec)) continue;
+    for (const v of Object.values(sec)) for (const x of [].concat(v)) if (typeof x === "string") for (const w of ctx.S.searchTokens(x)) out.add(w);
+  }
+  const C = conceptTable(ctx);
+  for (const k of C.map.keys()) for (const w of k.split(" ")) out.add(w);
+  for (const n of C.nameWords) out.add(n);
+  return (ctx._dymVocab = out);
+}
+const singularOf = (w) => w.replace(/(es|s)$/, "");
+/* The product words the engine reads as written: the dictionary's and
+   the concepts' English words («blouse», «blazer», «jeans») -- never a
+   Spanish word, which Spanish titles carry for other things. */
+const OFERTAS_WORD_MIN = 200;   // a word this many titles carry is the catalogue's own («blazer» 373; «cabello» 52)
+function englishVocabulary(ctx) {
+  if (ctx._enVocab) return ctx._enVocab;
+  const out = new Set();
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(DICT_FILE)); } catch { raw = null; }
+  for (const sec of Object.values(raw || {})) {
+    if (!sec || typeof sec !== "object" || Array.isArray(sec)) continue;
+    for (const v of Object.values(sec)) for (const x of [].concat(v)) if (typeof x === "string") for (const w of ctx.S.searchTokens(x)) out.add(w);
+  }
+  for (const canon of conceptTable(ctx).map.values()) for (const w of canon) out.add(w);
+  const dw = dictWords(ctx);
+  for (const w of [...out]) if (dw.has(w) && !/^(jeans|shorts|tops|leggings|blazer|top|short)$/.test(w)) out.delete(w);
+  return (ctx._enVocab = out);
+}
 export function didYouMean(ctx, q, r) {
-  if (!r || r.state !== "results" || r.shown) return null;
+  if (!r || r.state !== "results" || r.shown || r._type || r._world || r._store) return null;
+  const sugg = didYouMeanRaw(ctx, q, r);
+  if (!sugg) return null;
+  const vocab = dymVocabulary(ctx), typed = ctx.S.searchTokens(q), said = sugg.split(" ");
+  if (typed.length !== said.length) return null;
+  for (let i = 0; i < said.length; i++) {
+    const t = typed[i], w = said[i];
+    if (t === w) continue;
+    if (vocab.has(t) || singularOf(t) === singularOf(w) || t[0] !== w[0] || !(vocab.has(w) || vocab.has(singularOf(w)))) return null;
+  }
+  return sugg;
+}
+function didYouMeanRaw(ctx, q, r) {
   const S = ctx.S, windex = ctx.products && ctx.products._windex;
   if (!windex || typeof S.searchTokens !== "function" || typeof S.fuzzyEditDist !== "function") return null;
   const toks = S.searchTokens(q);
