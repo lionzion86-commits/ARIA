@@ -400,3 +400,5 @@ const MIN_CHECKS = 1 + 6 + 2 + 2 + 2 + 1 + SURFACES.length * 2 + 5;
 if (passed + failures.length < MIN_CHECKS) { console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`); process.exit(1); }
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }
+/* The in-process server's keep-alive sockets must not hold the run open. */
+process.exit(0);

@@ -178,13 +178,15 @@ await check("cards hold their shape: square photo box with the old-Safari fallba
   assert.ok((html.match(/<section class="rail-sec sk-sec"/g) || []).length >= 2, "first paint is not placeholder rails");
 });
 
-await check("soles first, struck-through soles was-price, small grey dollars, shared rate key", () => {
+await check("soles only, struck-through soles was-price, no dollar line, shared rate", () => {
   assert.match(script, /<span class="price">' \+ fmtPen\(usd \* fxVenta\)/);
   assert.match(script, /'<span class="price-old">' \+ fmtPen\(was \* fxVenta\)/);
-  assert.match(script, /'<div class="price-usd">' \+ fmtUsd\(usd\)/);
+  /* Soles only, no dollar line under them (#443 c.6629812301: "we only show soles"). */
+  assert.doesNotMatch(script.slice(script.indexOf('function priceHTML('), script.indexOf('function shownTitle(')), /price-usd|fmtUsd\(/);
   assert.match(html, /\.price-old\{[^}]*text-decoration:line-through/);
   assert.match(script, /FX_CACHE_KEY = 'aria_fx_rate_v1'/);
   assert.match(script, /fx:\s*BASE \+ '\/\.netlify\/functions\/exchange-rate'/);
+  assert.match(script, /AriaImportTax\.fx/);
 });
 
 await check("gold is the homepage's: the sale badge, the OFERTAS mark, the rail hairline; no emojis; no link out to a retailer", () => {
