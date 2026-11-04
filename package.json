@@ -18,6 +18,7 @@
     "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",
     "test:price-parity": "node scripts/test/price-parity-tests.mjs",
     "test:usps-carrier": "node scripts/test/usps-carrier-tests.mjs",
+    "test:store-shipping-audit": "node scripts/test/store-shipping-audit-tests.mjs",
     "build:store-carrier": "node scripts/build-store-carrier.mjs",
     "test:aria-auto": "node scripts/test/aria-auto-front-tests.mjs",
     "test:aria-auto-mountain": "node scripts/test/aria-auto-mountain-battery.mjs",

@@ -1840,6 +1840,10 @@ function cardImgAttrs(url, sizes){
   }
   window.ariaChooseShipTier = chooseShipTier;
   function cartShippingNow(){ return cartShipping(cart, undefined, { tiers: cartShipTiers() }); }
+  /* The store's name on its shipping row: the retailer registry's label, else
+     the name on Lucifer's carrier matrix (23 live stores have no registry
+     label; the row read the bare slug, «Envío de capittana»), #443 c.6620628148. */
+  function storeLabelOf(k){ return RETAILER_LABELS[k] || (SC.carrierOf(k) || {}).name || k; }
   /* An option's price: soles first, the dollar small; the store's own
      checkout price is said in words, never a number and never $0. */
   function shipOptionPriceHTML(o){
@@ -1909,7 +1913,7 @@ function cardImgAttrs(url, sizes){
         : `Tu tienda envía a nuestro almacén en Miami con su propia regla de envío.`)
       + `</p>`;
     panel.innerHTML = intro + ruled.map((st) => {
-      const label = RETAILER_LABELS[st.store] || st.store;
+      const label = storeLabelOf(st.store);
       const open = !st.rule || st.pending;
       /* Never "por confirmar" (Danny, #443 c.6547441472): a store with no
          published fee is calculated at its own checkout, like a pending one. */
@@ -2638,7 +2642,7 @@ function cardImgAttrs(url, sizes){
     const rows = keys.map(k => {
       const hot = keys.length > 1 && k === slowest;
       return `<div class="flex items-baseline justify-between gap-3 py-0.5">
-        <span class="text-[12.5px]" style="color:#5B6478">${escapeHtmlLocal(RETAILER_LABELS[k] || k)}</span>
+        <span class="text-[12.5px]" style="color:#5B6478">${escapeHtmlLocal(storeLabelOf(k))}</span>
         <span class="text-[12.5px] tabular ${hot ? 'font-extrabold' : 'font-semibold'}" style="color:${hot ? 'var(--navy)' : '#5B6478'}">${escapeHtmlLocal(tierSpeedOf(k) || miamiRangeEs(deliveryFor(k)))}</span>
       </div>`;
     }).join('');
@@ -2646,7 +2650,7 @@ function cardImgAttrs(url, sizes){
       <div class="text-[11px] font-extrabold uppercase tracking-wide mb-1" style="color:var(--navy)">Tiempos de entrega</div>
       ${rows}
       <div class="text-[12px] mt-1.5 pt-1.5 font-semibold" style="color:var(--navy); border-top:1px solid var(--line)">De Miami a tu puerta: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</div>
-      ${keys.length > 1 ? `<div class="text-[11.5px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${escapeHtmlLocal(RETAILER_LABELS[slowest] || slowest)}.</div>` : ''}
+      ${keys.length > 1 ? `<div class="text-[11.5px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${escapeHtmlLocal(storeLabelOf(slowest))}.</div>` : ''}
     </div>`;
   }
   renderDeliverySummary();
