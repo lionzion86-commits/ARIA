@@ -1325,7 +1325,11 @@ function slShowGroups(query, title, back){
     if (seq !== slView.seq) return;
     var groups = (j && j.groups) || [];
     var cnt = $('countLine');
-    if (cnt) cnt.textContent = Number(j.total || 0).toLocaleString('es-PE') + (j.total === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
+    /* COUNT-TRUE (#443, the full store audit): a scoped view (a brand, a
+       chip, a carousel's «Ver todo») counts ITS set and says so -- Parrot's
+       Vans view read «138 productos en Parrot Surf & Skate», a store of 3,835. */
+    if (cnt) cnt.textContent = Number(j.total || 0).toLocaleString('es-PE') + (j.total === 1 ? ' producto' : ' productos') +
+      (back && title ? ' en ' + title + ' (de ' + Number(slIndex.count).toLocaleString('es-PE') + ' en ' + storeMeta.label + ')' : ' en ' + storeMeta.label);
     if (!groups.length){
       host.innerHTML = head + '<div class="state"><h2>Sin resultados</h2><p>Ningún producto de ' + esc(storeMeta.label) + ' coincide con tu búsqueda.</p></div>';
       return;
