@@ -616,7 +616,7 @@ function storeDoor(store, q){
    lane brings its next cards into itself. Never a grid. */
 function laneHTML(l){
   var n = l.n ? '<span class="lane-n">' + Number(l.n).toLocaleString("es-PE") + "</span>" : "";
-  var store = l.store || (/^tienda:(.+)$/.exec(l.key || "") || [])[1] || "", door = store ? storeDoor(store, STATE.q) : "";
+  var store = l.store || (/^tienda:(.+)$/.exec(l.key || "") || [])[1] || "", door = store ? storeDoor(store, l.doorQ || STATE.q) : "";
   var more = !(l.n > l.items.length) ? "" : door
     ? '<a class="lane-more-card" href="' + esc(door) + '">Ver todo<span>' + Number(l.n).toLocaleString("es-PE") + " productos</span></a>"
     : '<button type="button" class="lane-more-card" data-lane="' + esc(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' +
