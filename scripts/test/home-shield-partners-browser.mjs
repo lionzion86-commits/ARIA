@@ -46,7 +46,10 @@ store.__setMailer(async () => ({ sent: false, error: "test" }));
 const W = await import(join(FN, "_hs-storm.js"));
 const FX = join(ROOT, "scripts/test/fixtures/hs-storm");
 W.__setFetch(async (url) => {
-  const f = url.includes("alerts/active?area=FL") ? "nws-alerts-FL.json" : url.includes("today_filtered") ? "spc-today.csv" : url.includes("yesterday_filtered") ? "spc-yesterday.csv" : null;
+  const pt = url.match(/alerts\/active\?point=([-\d.]+),/);
+  const f = url.includes("geocoding.geo.census.gov") ? (/Main%20St/i.test(url) ? "census-address-miami.json" : "census-nomatch.json")
+    : pt ? (Number(pt[1]) < 27 ? "nws-point-miami.json" : "nws-point-tampa.json")
+    : url.includes("alerts/active?area=FL") ? "nws-alerts-FL.json" : url.includes("today_filtered") ? "spc-today.csv" : url.includes("yesterday_filtered") ? "spc-yesterday.csv" : null;
   if (!f) return { ok: false, status: 404 };
   const body = readFileSync(join(FX, f), "utf8");
   return { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
@@ -128,7 +131,26 @@ try {
   const stxt = await page.textContent("#storm");
   assert.ok(/Hurricane Warning/.test(stxt) && /Moving northwest 12 mph/.test(stxt) && /NOAA \/ NWS \/ SPC/.test(stxt));
   assert.ok(!/ORLANDO|VALDOSTA|CLEARWATER/.test(stxt), "reports outside the radius are not listed");
+  assert.ok(!/Tornado Watch/.test(stxt), "Miami desk: no Tampa watch");
   ok("storm panel renders first: alerts, movement, reports in radius, attribution");
+  await page.fill("#stormForm [name=q]", "123 Main St, Miami FL");
+  await page.click("#stormForm [type=submit]");
+  await page.waitForSelector("#stormMine");
+  assert.match(await page.textContent("#storm"), /Results for: 123 MAIN ST, MIAMI, FL, 33130/);
+  await page.fill("#stormForm [name=q]", "Tampa, FL");
+  await page.click("#stormForm [type=submit]");
+  await page.waitForFunction(() => /Tampa area, FL/.test(document.querySelector("#storm").textContent));
+  const tt = await page.textContent("#storm");
+  assert.ok(/Tornado Watch/.test(tt) && /approximate location/.test(tt) && /CLEARWATER/.test(tt));
+  ok("storm search: address and city, point alerts, approximate label");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot("0c-storm-search-en");
+  await page.click('[data-lang="es"]');
+  assert.match(await page.textContent("#storm"), /Resultados para: Tampa area, FL/);
+  await shot("0d-storm-search-es");
+  await page.click('[data-lang="en"]');
+  await page.click("#stormMine");
+  await page.waitForFunction(() => !document.querySelector("#stormMine") && /Hurricane Warning/.test(document.querySelector("#storm").textContent));
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot("0-storm");
   await page.click('[data-lang="es"]');

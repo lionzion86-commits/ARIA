@@ -291,6 +291,19 @@ await test("admin view: partners with balances, ledger is append-only (no edit/d
   noPII(JSON.stringify(g.body.partners), "admin partners");
 });
 
+/* FIXTURE router for the storm sources (the sandbox cannot reach NOAA or the Census). */
+let pointDown = false;
+function stormFixture(url) {
+  const fx = (f) => readFileSync(new URL("./fixtures/hs-storm/" + f, import.meta.url), "utf8");
+  if (url.includes("geocoding.geo.census.gov")) return /Main%20St/i.test(url) ? fx("census-address-miami.json") : fx("census-nomatch.json");
+  const pt = url.match(/alerts\/active\?point=([-\d.]+),([-\d.]+)/);
+  if (pt) { if (pointDown) return null; return Number(pt[1]) < 27 ? fx("nws-point-miami.json") : fx("nws-point-tampa.json"); }
+  if (url.includes("alerts/active?area=FL")) return fx("nws-alerts-FL.json");
+  if (url.includes("today_filtered")) return fx("spc-today.csv");
+  if (url.includes("yesterday_filtered")) return fx("spc-yesterday.csv");
+  return null;
+}
+
 await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC reports by radius, 15-min cache, stale fallback", async () => {
   const W = await import(FN + "_hs-storm.js");
   const fx = (f) => readFileSync(new URL("./fixtures/hs-storm/" + f, import.meta.url), "utf8");
@@ -299,15 +312,22 @@ await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC rep
   W.__setFetch(async (url, o) => {
     seen.push([url, o.headers["User-Agent"]]);
     if (down) throw new Error("network unreachable");
-    const body = url.includes("alerts/active?area=FL") ? fx("nws-alerts-FL.json") : url.includes("today_filtered") ? fx("spc-today.csv") : url.includes("yesterday_filtered") ? fx("spc-yesterday.csv") : null;
+    const body = stormFixture(url);
     return body == null ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
   });
   const r = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.state, "FL"); assert.equal(r.body.source, "NOAA / NWS / SPC"); assert.equal(r.body.stale, false);
-  assert.deepEqual(r.body.alerts.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning", "Tornado Watch"], "rip current filtered out");
+  /* The desk's own area by point (center + N/S/E/W edge for a 50 mi radius), de-duplicated: no Tampa watch for Miami. */
+  assert.equal(r.body.scope, "area");
+  assert.deepEqual(r.body.alerts.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning"], "Miami desk: no Tampa Tornado Watch, no duplicates");
   assert.deepEqual(r.body.alerts[0].moving, { toward: "northwest", mph: 12 });
-  assert.deepEqual(r.body.alerts[2].moving, { toward: "northeast", mph: 30 });
+  assert.equal(seen.filter(([u]) => u.includes("alerts/active?point=")).length, 5, "center + 4 edge points");
+  assert.ok(JSON.parse(STORES["hs-pros"].m.get(R.a.id)).centerGeo.zip === "33130", "center geocoded once, kept on the pro");
+  /* The state-wide parser still filters to damage events. */
+  const all = W.parseAlerts(JSON.parse(fx("nws-alerts-FL.json")));
+  assert.deepEqual(all.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning", "Tornado Watch"], "rip current filtered out");
+  assert.deepEqual(all[2].moving, { toward: "northeast", mph: 30 });
   assert.equal(r.body.alerts[1].moving, null);
   assert.deepEqual(r.body.counts, { wind: 3, hail: 1, tornado: 1 });
   const locs = r.body.reports.map((x) => x.location);
@@ -329,6 +349,34 @@ await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC rep
   const none = await W.stormFor(S, { state: "GA", center: { lat: 33.75, lon: -84.39 }, radiusMiles: 50 }, Date.now() + 16 * 60000);
   assert.deepEqual(none.alerts, []); assert.equal(none.stale, true); assert.ok(none.errors[0].includes("unreachable"));
   assert.equal((await call("hs-storm", { method: "GET" })).status, 401);
+  W.__setFetch(null);
+});
+
+await test("storm search (FIXTURES): address, ZIP and city geocode; point alerts; state fallback labelled", async () => {
+  const W = await import(FN + "_hs-storm.js");
+  W.__setFetch(async (url) => { const b = stormFixture(url); return b == null ? { ok: false, status: 503 } : { ok: true, status: 200, json: async () => JSON.parse(b), text: async () => b }; });
+  const S = store.openStores({});
+  const a = await W.geocode(S, "123 Main St, Miami FL");
+  assert.deepEqual([a.label, a.approximate, a.source, a.lat], ["123 MAIN ST, MIAMI, FL, 33130", false, "census", 25.7743]);
+  const z = await W.geocode(S, "33139");
+  assert.deepEqual([z.approximate, z.source, z.state], [true, "zip3", "FL"]); assert.match(z.label, /33139 \(Miami area\)/);
+  const c = await W.geocode(S, "Tampa, FL");
+  assert.deepEqual([c.label, c.approximate], ["Tampa area, FL", true]);
+  assert.equal(await W.geocode(S, "zzzz qqqq"), null);
+  const t = await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "Tampa, FL" } });
+  assert.equal(t.status, 200);
+  assert.equal(t.body.location.label, "Tampa area, FL"); assert.equal(t.body.location.approximate, true); assert.equal(t.body.query, "Tampa, FL");
+  assert.deepEqual(t.body.alerts.map((x) => x.event), ["Tornado Watch"]);
+  assert.ok(t.body.reports.some((x) => x.location === "2 S CLEARWATER") && !t.body.reports.some((x) => x.location === "KENDALL"), "reports around the searched point");
+  const m = await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "123 Main St, Miami FL" } });
+  assert.equal(m.body.location.label, "123 MAIN ST, MIAMI, FL, 33130"); assert.equal(m.body.location.approximate, false);
+  assert.ok(!m.body.alerts.some((x) => x.event === "Tornado Watch"));
+  assert.equal((await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "zzzz qqqq" } })).status, 404);
+  /* Point queries down with nothing cached: whole state, scope "state". */
+  pointDown = true;
+  const f = await W.stormAt(S, { lat: 30.44, lon: -84.28, radiusMiles: 20, state: "FL", label: "Tallahassee" });
+  assert.equal(f.scope, "state"); assert.equal(f.alerts.length, 3);
+  pointDown = false;
   W.__setFetch(null);
 });
 

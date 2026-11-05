@@ -14,6 +14,8 @@
       expires: "Until", movingToward: "Moving", mph: "mph", st_wind: "Wind", st_hail: "Hail", st_tornado: "Tornado", today: "Today", yesterday: "Yesterday", milesAway: "mi",
       stormLoading: "Loading today's storm data...", stormDown: "Storm data is unavailable right now.",
       dir_north: "north", dir_northeast: "northeast", dir_east: "east", dir_southeast: "southeast", dir_south: "south", dir_southwest: "southwest", dir_west: "west", dir_northwest: "northwest",
+      stormSearchPh: "ZIP, city or street address", stormSearch: "Search", resultsFor: "Results for:", approxLoc: "approximate location", myArea: "My area",
+      wholeState: "whole state (your area could not be located)", notFoundPlace: "We could not find that place. Try a ZIP or a full address.",
       partner: "PARTNER", foot: "Payments go to ARIA SHOP LLC. Partners never hold homeowner money. A credit is used only when a homeowner verifies your claim.",
       signin: "Sign in", enroll: "Open a desk", email: "Email", password: "Password", passwordNew: "Password (10+ characters)", name: "Full name", company: "Company",
       phone: "Phone", desk: "Your desk", licenseType: "License type", licenseNumber: "License number", licenseState: "License state", centerZip: "ZIP you work from",
@@ -51,6 +53,8 @@
       expires: "Hasta", movingToward: "Se mueve hacia el", mph: "mph", st_wind: "Viento", st_hail: "Granizo", st_tornado: "Tornado", today: "Hoy", yesterday: "Ayer", milesAway: "mi",
       stormLoading: "Cargando los datos de tormenta de hoy...", stormDown: "Los datos de tormenta no están disponibles en este momento.",
       dir_north: "norte", dir_northeast: "noreste", dir_east: "este", dir_southeast: "sureste", dir_south: "sur", dir_southwest: "suroeste", dir_west: "oeste", dir_northwest: "noroeste",
+      stormSearchPh: "ZIP, ciudad o dirección", stormSearch: "Buscar", resultsFor: "Resultados para:", approxLoc: "ubicación aproximada", myArea: "Mi zona",
+      wholeState: "estado completo (no se pudo ubicar tu zona)", notFoundPlace: "No encontramos ese lugar. Prueba un ZIP o una dirección completa.",
       partner: "SOCIO", foot: "Los pagos van a ARIA SHOP LLC. Los socios nunca guardan dinero de los dueños de casa. Un crédito se usa solo cuando el dueño de casa verifica tu reclamo.",
       signin: "Entrar", enroll: "Abrir un escritorio", email: "Correo", password: "Contraseña", passwordNew: "Contraseña (10 caracteres o más)", name: "Nombre completo", company: "Empresa",
       phone: "Teléfono", desk: "Tu escritorio", licenseType: "Tipo de licencia", licenseNumber: "Número de licencia", licenseState: "Estado de la licencia", centerZip: "ZIP desde donde trabajas",
@@ -175,14 +179,27 @@
     });
   }
   function loadStorm() {
-    return api("hs-storm").then(function (r) { S.storm = r.ok ? r.body : { failed: true }; if (S.view === "desk" && !S.typing) render(); }).catch(function () { S.storm = { failed: true }; });
+    var q = S.stormQ ? "?q=" + encodeURIComponent(S.stormQ) : "";
+    return api("hs-storm" + q).then(function (r) {
+      if (S.stormQ && r.status === 404) { S.stormMsg = t("notFoundPlace"); S.stormQ = ""; render(); return; }
+      S.stormMsg = ""; S.storm = r.ok ? r.body : { failed: true }; if (S.view === "desk" && !S.typing) render();
+    }).catch(function () { S.storm = { failed: true }; });
   }
   var COL = { wind: "#C9A24A", hail: "#E8E3D6", tornado: "#E07A6E" };
   function dirText(d) { return String(d).split("-").map(function (x) { return t("dir_" + x); }).join("-"); }
+  function stormSearch() {
+    return '<form class="send" id="stormForm" role="search" style="margin-bottom:12px"><input class="in" name="q" maxlength="160" autocomplete="off" placeholder="' + esc(t("stormSearchPh")) + '" aria-label="' + esc(t("stormSearchPh")) + '" value="' + esc(S.stormQ || "") + '"><button class="btn gold" type="submit">' + esc(t("stormSearch")) + "</button></form>" +
+      (S.stormMsg ? '<p class="err small">' + esc(S.stormMsg) + "</p>" : "");
+  }
+  function stormWhere(w) {
+    var loc = w.location || {};
+    var line = w.query ? '<p class="small" style="margin:0 0 10px">' + esc(t("resultsFor")) + " <b>" + esc(loc.label || w.query) + "</b>" + (loc.approximate ? ' <span class="tiny">(' + esc(t("approxLoc")) + ")</span>" : "") + ' <button class="btn" type="button" id="stormMine" style="min-height:30px;padding:0 10px;font-size:12px">' + esc(t("myArea")) + "</button></p>" : "";
+    return line + (w.scope === "state" ? '<p class="tiny" style="margin:0 0 10px;color:var(--warn)">' + esc(w.state) + ": " + esc(t("wholeState")) + "</p>" : "");
+  }
   function stormPanel() {
     var w = S.storm;
-    if (!w) return '<section class="card storm"><p class="muted small">' + esc(t("stormLoading")) + "</p></section>";
-    if (w.failed) return '<section class="card storm"><p class="muted small">' + esc(t("stormDown")) + "</p></section>";
+    if (!w) return '<section class="card storm" id="storm">' + stormSearch() + '<p class="muted small">' + esc(t("stormLoading")) + "</p></section>";
+    if (w.failed) return '<section class="card storm" id="storm">' + stormSearch() + '<p class="muted small">' + esc(t("stormDown")) + "</p></section>";
     var c = w.center, R = w.radiusMiles || 50, pts = "";
     if (c) (w.reports || []).forEach(function (r) {
       var dx = (r.lon - c.lon) * 69.17 * Math.cos(c.lat * Math.PI / 180), dy = (r.lat - c.lat) * 69.17;
@@ -199,7 +216,7 @@
     var reps = (w.reports || []).length ? '<ul class="list">' + w.reports.slice(0, 8).map(function (r) {
       return '<li><span><span style="color:' + COL[r.type] + '">' + esc(t("st_" + r.type)) + "</span> " + esc(r.location) + (r.magnitude ? " &middot; " + esc(r.magnitude) : "") + '<div class="tiny">' + esc(r.day === "today" ? t("today") : t("yesterday")) + " " + esc(r.time.slice(0, 2) + ":" + r.time.slice(2)) + ' UTC</div></span><span class="tiny">' + esc(r.miles) + " " + esc(t("milesAway")) + "</span></li>";
     }).join("") + "</ul>" : '<p class="muted small">' + esc(t("stormNoReports")) + "</p>";
-    return '<section class="card storm" id="storm"><p class="eyebrow">' + esc(t("stormTitle")) + " &middot; " + esc(w.state) + '</p><div style="display:flex;gap:14px;align-items:center">' + plot + '<div><div style="display:flex;flex-wrap:wrap;gap:6px">' + counts + '</div><p class="tiny" style="margin:8px 0 0">' + esc(t("reportsNear")) + " &middot; " + esc(R) + " " + esc(t("milesAway")) + "</p></div></div>" +
+    return '<section class="card storm" id="storm"><p class="eyebrow">' + esc(t("stormTitle")) + (w.state ? " &middot; " + esc(w.state) : "") + "</p>" + stormSearch() + stormWhere(w) + '<div style="display:flex;gap:14px;align-items:center">' + plot + '<div><div style="display:flex;flex-wrap:wrap;gap:6px">' + counts + '</div><p class="tiny" style="margin:8px 0 0">' + esc(t("reportsNear")) + " &middot; " + esc(R) + " " + esc(t("milesAway")) + "</p></div></div>" +
       '<h3 style="margin-top:14px;font-size:16px">' + esc(t("alertsIn")) + "</h3>" + alerts + '<h3 style="margin-top:12px;font-size:16px">' + esc(t("reportsNear")) + "</h3>" + reps +
       '<p class="tiny" style="margin-top:10px">' + esc(t("stormSrc")) + (w.stale ? " &middot; " + esc(t("stormStale")) + (w.fetchedAt ? " (" + esc(w.fetchedAt.slice(0, 16).replace("T", " ")) + " UTC)" : "") : "") + "</p></section>";
   }
@@ -269,6 +286,10 @@
   function act(body) { return api("hs-partner", body).then(function (r) { if (!r.ok) toast(errOf(r.body)); return r; }); }
   function wire(app) {
     $("#out").onclick = signOut;
+    var sf = $("#stormForm");
+    if (sf) sf.onsubmit = function (e) { e.preventDefault(); S.typing = false; S.stormQ = sf.q.value.trim(); S.storm = null; render(); loadStorm(); };
+    var mine = $("#stormMine");
+    if (mine) mine.onclick = function () { S.stormQ = ""; S.storm = null; render(); loadStorm(); };
     $("#ol").onclick = function () { act({ action: "setonline", online: !S.st.pro.online }).then(load); };
     $$("[data-answer]", app).forEach(function (b) { b.onclick = function () { act({ action: S.st.kind === "packet" ? "claimpacket" : "answerlead", caseId: b.dataset.answer }).then(load); }; });
     $$("[data-pass]", app).forEach(function (b) { b.onclick = function () { act({ action: S.st.kind === "packet" ? "passpacket" : "passlead", caseId: b.dataset.pass }).then(load); }; });

@@ -122,3 +122,18 @@ export function distanceMiles(zipA, zipB) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+
+/** A city name -> the nearest ZIP3 area we know ("Tampa, FL" -> Tampa area). Approximate; null when unknown. */
+export function findArea(text) {
+  const q = String(text || "").toLowerCase().replace(/,?\s+(fl|florida|ga|georgia|tx|texas|la|louisiana|al|nc|sc|ny|ca|co|ok|az)\.?$/, "").replace(/[^a-z .'-]/g, "").trim();
+  if (q.length < 3) return null;
+  for (const exact of [true, false]) for (const [table, state] of [[FL, "FL"], [METRO, null]]) {
+    for (const [zip3, v] of Object.entries(table)) {
+      const names = v[2].replace(/ area$/, "").toLowerCase().split(/\s*\/\s*/);
+      if (names.some((n) => n === q || (!exact && (n.endsWith(" " + q) || n.startsWith(q + " "))))) {
+        return { zip3, lat: v[0], lon: v[1], label: v[2], state: state || zip3Info(zip3 + "00").state };
+      }
+    }
+  }
+  return null;
+}
