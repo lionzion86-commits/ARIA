@@ -315,3 +315,17 @@ button{cursor:pointer}
 .hs-caso-head{display:flex;align-items:flex-start;gap:14px}
 .hs-caso-head .hs-star{width:64px;height:64px;flex:0 0 auto}
 .hs-offer-actions .hs-btn{font-size:15px;padding:8px 12px;line-height:1.25;min-height:50px}
+.hs-promise{order:2;margin:0;text-align:center;font:500 18px/1.45 var(--serif);color:var(--gold-2)}
+.hs-barrier{position:relative}
+.hs-barrier-grid{display:grid;gap:26px;padding:28px 22px;border:1px solid rgba(214,180,106,.45);border-radius:var(--r);background:linear-gradient(165deg,rgba(214,180,106,.13),var(--ink-2) 55%)}
+.hs-barrier-col p:not(.hs-eyebrow){margin:12px 0 0;color:var(--cream-2);font-size:16.5px}
+.hs-barrier-col .hs-h2{margin-bottom:4px}
+.hs-barrier-mirror{padding-top:22px;border-top:1px solid var(--line)}
+.hs-barrier-mirror .hs-h2{font-size:24px;color:var(--cream-2)}
+.hs-barrier-mirror p:not(.hs-eyebrow){font-size:15px;color:var(--muted)}
+.hs-barrier-actions{margin-top:16px}
+@media (min-width:980px){
+  .hs-hero .hs-promise{text-align:left;margin:-6px 0 18px;font-size:22px}
+  .hs-barrier-grid{grid-template-columns:1.2fr 1fr;gap:48px;padding:44px}
+  .hs-barrier-mirror{padding-top:0;border-top:0;padding-left:40px;border-left:1px solid var(--line)}
+}

@@ -517,13 +517,14 @@ const FE = {
 const PAGE = readFileSync(join(ROOT, "home-shield/index.html"), "utf8");
 const CASO = readFileSync(join(ROOT, "home-shield/caso.html"), "utf8");
 const JS = readFileSync(join(ROOT, "home-shield/hs.js"), "utf8");
+const I18N_JS = readFileSync(join(ROOT, "home-shield/hs-i18n.js"), "utf8");
 const CSS = readFileSync(join(ROOT, "home-shield/hs.css"), "utf8");
 const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
 
 /* hs.js's i18n object, evaluated without a DOM. */
 function loadI18n() {
-  const a = JS.indexOf("var I18N = "), b = JS.indexOf("window.HS_I18N");
-  return new Function(JS.slice(a, b) + "; return I18N;")();
+  const a = I18N_JS.indexOf("var I18N = "), b = I18N_JS.indexOf("window.HS_I18N");
+  return new Function(I18N_JS.slice(a, b) + "; return I18N;")();
 }
 const I18N = loadI18n();
 
@@ -655,14 +656,14 @@ await check("hs-tts: missing key -> clear 503 \"voice not configured\"", async (
   assert.equal(j.error, "voice not configured"); assert.equal(j.code, "voice_not_configured");
 });
 await check("one voice law: forbidden voice ids appear nowhere in Home Shield; no device TTS anywhere", () => {
-  const files = ["home-shield/index.html", "home-shield/caso.html", "home-shield/hs.js", "home-shield/hs.css",
+  const files = ["home-shield/index.html", "home-shield/caso.html", "home-shield/hs.js", "home-shield/hs-i18n.js", "home-shield/hs.css",
     ...readdirSync(join(ROOT, "netlify/functions")).filter((f) => /^(hs-|_hs-)/.test(f)).map((f) => "netlify/functions/" + f)];
   for (const f of files) {
     const s = readFileSync(join(ROOT, f), "utf8");
     assert.ok(!/LkszHYojkmyv6pbg0ZdY|DLsHlh26Ugcm6ELvS0qi/.test(s), "forbidden voice id in " + f);
     assert.ok(!/speechSynthesis|SpeechSynthesisUtterance/.test(s), "device TTS in " + f);
   }
-  assert.ok(!/eleven|9BWtsMINqrJLrRacOk9x/i.test(PAGE + JS), "the page must not name the backend voice");
+  assert.ok(!/eleven|9BWtsMINqrJLrRacOk9x/i.test(PAGE + JS + I18N_JS), "the page must not name the backend voice");
 });
 await check("hs-stt: transcribes with the repo's key and its existing transcription model", async () => {
   let form = null;
@@ -683,14 +684,28 @@ await check("i18n: English and Spanish carry the same keys; every data-i18n exis
 });
 await check("i18n: the HTML ships the English copy (works before hs.js runs)", () => {
   const dec = (s) => s.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
-  for (const m of PAGE.matchAll(/data-i18n="([^"]+)"[^>]*>([^<]*)</g)) assert.equal(dec(m[2]).trim(), I18N.en[m[1]], m[1]);
+  for (const m of PAGE.matchAll(/data-i18n="([^"]+)"( data-i18n-lang="(es|en)")?[^>]*>([^<]*)</g)) assert.equal(dec(m[4]).trim(), I18N[m[3] || "en"][m[1]], m[1]);
 });
 await check("copy: the exact intro, the disclaimer, no emojis", () => {
   assert.equal(I18N.en["intro.line1"], "Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your roofer, all into one.");
   assert.match(I18N.en["intro.line2"], /^Upload your policy — I can dissect it: strong points, weak points, a better option if one exists, and my best recommendation\.$/);
   assert.equal(I18N.en["footer.disclaimer"], "Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.");
   assert.match(I18N.en["case.consent"], /^I agree to be contacted only by professionals I approve\. Aria Home Shield never sells my information\.$/);
-  for (const [n, s] of [["index.html", PAGE], ["caso.html", CASO], ["hs.js", JS], ["hs.css", CSS]]) assert.ok(!EMOJI.test(s), "emoji in " + n);
+  for (const [n, s] of [["index.html", PAGE], ["caso.html", CASO], ["hs.js", JS], ["hs-i18n.js", I18N_JS], ["hs.css", CSS]]) assert.ok(!EMOJI.test(s), "emoji in " + n);
+});
+await check("launch angle: the hero leads with the language promise; the language-barrier section exists in both languages", () => {
+  assert.match(I18N.en["hero.title"], /^Your policy, your claim, your denial letter — explained in your language\.$/);
+  assert.match(I18N.es["hero.title"], /^Tu póliza, tu reclamo, tu carta de negación — explicados en tu idioma\.$/);
+  assert.match(I18N.en["hero.promise"], /Every line, until you understand what you actually have/);
+  assert.match(I18N.es["hero.promise"], /Cada línea, hasta que entiendas lo que de verdad tienes/);
+  const h = PAGE.indexOf('<section class="hs-hero"'), b = PAGE.indexOf('id="barrier"'), d = PAGE.indexOf('id="doors"');
+  assert.ok(h < b && b < d, "the barrier section comes right after the hero, before the doors");
+  const sec = PAGE.slice(b, d);
+  assert.ok(/data-say-lang="es"[\s\S]*data-say-lang="en"/.test(sec), "ES primary, EN mirror");
+  assert.match(sec, /data-listen="#barrier"/);
+  for (const L of ["en", "es"]) for (const k of ["barrier.title", "barrier.p1", "barrier.p2", "barrier.p3"]) assert.ok(I18N[L][k], k + " " + L);
+  assert.match(I18N.en["barrier.p1"], /second language, with a 60-page policy full of traps, is harder/);
+  assert.match(I18N.es["barrier.p3"], /en tu idioma, línea por línea, hasta que la entiendas/);
 });
 await check("Mountain Test (static): no shop bundle, no catalogue, deferred script, small files", () => {
   for (const s of [PAGE, CASO]) {
@@ -816,7 +831,7 @@ if (pw) {
       reset();
       const c = await ctx(W); const page = await c.newPage(); const errs = errorsOf(page);
       await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
-      assert.equal(await page.locator("h1").innerText(), "Your home. Your claim. Someone finally on your side.");
+      assert.equal(await page.locator("h1").innerText(), I18N.en["hero.title"]);
       assert.ok(await page.getByRole("button", { name: "Talk to Aria — free" }).first().isVisible());
       assert.ok(await page.getByRole("button", { name: "Upload my policy for a free review" }).isVisible());
       const doors = await page.locator(".hs-door .hs-h3").allInnerTexts();
@@ -856,6 +871,59 @@ if (pw) {
       await c.close();
     });
   }
+
+  await check("browser 390: ?lang=es paints Spanish first, with no English hero, even before hs.js runs", async () => {
+    reset();
+    const c = await ctx(390); const page = await c.newPage();
+    await page.route(/\/home-shield\/hs\.js$/, (r) => r.abort());
+    await page.goto(BASE + "/home-shield/?lang=es", { waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator("html").getAttribute("lang"), "es");
+    assert.equal(await page.locator("h1").innerText(), I18N.es["hero.title"]);
+    assert.equal(await page.locator("html.hs-pending").count(), 0, "page stays hidden");
+    const txt = await page.locator("body").innerText();
+    for (const en of [I18N.en["hero.title"], I18N.en["hero.cta"], I18N.en["hero.promise"]]) assert.ok(!txt.includes(en), "English on first paint: " + en);
+    assert.match(txt, /Habla con Aria — gratis/);
+    await c.close();
+  });
+
+  await check("browser 390: a Spanish browser (es-US) with no saved choice opens in Spanish; Aria greets in Spanish", async () => {
+    reset();
+    const c = await ctx(390, { locale: "es-US" }); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    assert.equal(await page.locator("h1").innerText(), I18N.es["hero.title"]);
+    await page.locator('[data-action="talk"]').first().click();
+    await page.waitForSelector("#hsMsgs .hs-msg-a");
+    assert.match(await page.locator("#hsMsgs .hs-msg-a").first().innerText(), /^Hola, soy Aria/);
+    await page.waitForTimeout(300);
+    assert.ok(ttsTexts().join(" ").startsWith("Hola, soy Aria"), "first spoken words are Spanish");
+    await c.close();
+  });
+
+  await check("browser 390: the language-barrier section: ES primary + EN mirror; Listen speaks the page language", async () => {
+    reset();
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/?lang=es", { waitUntil: "load" });
+    const cols = page.locator("#barrier .hs-barrier-col");
+    assert.equal(await cols.count(), 2);
+    assert.equal(await cols.nth(0).getAttribute("lang"), "es");
+    assert.match(await cols.nth(0).innerText(), /En tu idioma\. Cada línea\./);
+    assert.match(await cols.nth(1).innerText(), /In your language\. Every line\./);
+    await page.click("#barrier .hs-listen");
+    await page.waitForTimeout(500);
+    const said = ttsTexts().join(" ");
+    assert.ok(said.startsWith("En tu idioma. Cada línea.") && !/Every line/.test(said), said);
+    await page.locator("#barrier").scrollIntoViewIfNeeded(); await shot(page, "barrier-es", "#barrier");
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" })); await shot(page, "hero-es");
+    await page.click("#barrier .hs-listen"); // stop
+    log.length = 0;
+    await page.click("#hsLang");
+    assert.match(await cols.nth(0).innerText(), /En tu idioma/, "the ES block stays Spanish on the English page");
+    await page.click("#barrier .hs-listen");
+    await page.waitForTimeout(500);
+    assert.ok(ttsTexts().join(" ").startsWith("In your language. Every line."), ttsTexts().join(" "));
+    await page.locator("#barrier").scrollIntoViewIfNeeded(); await shot(page, "barrier-en", "#barrier");
+    await c.close();
+  });
 
   await check("browser 390: Listen on the intro speaks the intro through hs-tts; again in Español; one voice at a time", async () => {
     reset();
