@@ -31,7 +31,7 @@
       within: function (r, z) { return "Within " + r + " miles of " + z; }, zips: function (l) { return "ZIP areas: " + l; },
       hello: function (n) { return "Welcome back, " + n + "."; },
       boardLede: "Anonymized cases in your trades and area. The homeowner sees your request and decides.",
-      tabFeed: "New cases", tabRequests: "My requests", tabConnected: "Connected",
+      tabFeed: "New cases", tabRequests: "My requests", tabConnected: "Connected", tabProfile: "My profile", toastPicked: "A homeowner chose you",
       emptyFeed: "No open cases match you right now.", emptyFeedSub: "Keep this page open. New cases ping the moment they arrive.",
       emptyRequests: "You have not requested a case yet.", emptyConnected: "No connections yet.",
       emptyConnectedSub: "When a homeowner shares their contact with you, it appears here with their documents.",
@@ -81,7 +81,7 @@
       within: function (r, z) { return "Hasta " + r + " millas de " + z; }, zips: function (l) { return "Zonas ZIP: " + l; },
       hello: function (n) { return "Hola de nuevo, " + n + "."; },
       boardLede: "Casos anónimos de tus especialidades y tu zona. El dueño de casa ve tu solicitud y decide.",
-      tabFeed: "Casos nuevos", tabRequests: "Mis solicitudes", tabConnected: "Conectados",
+      tabFeed: "Casos nuevos", tabRequests: "Mis solicitudes", tabConnected: "Conectados", tabProfile: "Mi perfil", toastPicked: "Un dueño de casa te eligió",
       emptyFeed: "Ahora mismo no hay casos abiertos para ti.", emptyFeedSub: "Deja esta página abierta. Los casos nuevos suenan en cuanto llegan.",
       emptyRequests: "Todavía no has solicitado un caso.", emptyConnected: "Todavía no hay conexiones.",
       emptyConnectedSub: "Cuando un dueño de casa comparta su contacto contigo, aparecerá aquí con sus documentos.",
@@ -346,7 +346,8 @@
       var first = !S.since;
       S.feed = r.body; S.since = r.body.now;
       if (!first) announce(r.body);
-      if (!isTyping()) renderBoard($("#app"));
+      if (S.tab === "profile") paintCounts();
+      else if (!isTyping()) renderBoard($("#app"));
       else paintCounts();
       paintChrome();
     }).catch(function () { S.online = false; paintChrome(); });
@@ -361,7 +362,7 @@
       toast(t("toastNew") + (newIds.length > 1 ? " (" + newIds.length + ")" : ""), c ? issueText(c.issue) + " · " + (c.area.label || "") : "", c ? c.id : null);
     }
     (b.notices || []).forEach(function (n) {
-      var title = { connected: t("toastConnected"), talk_first: t("toastTalk"), message: t("toastMsg"), declined: t("toastDeclined") }[n.type];
+      var title = { connected: t("toastConnected"), talk_first: t("toastTalk"), message: t("toastMsg"), declined: t("toastDeclined"), picked: t("toastPicked") }[n.type];
       if (!title) return;
       if (n.type !== "declined") ping();
       toast(title, "");
@@ -383,12 +384,12 @@
   function renderBoard(app) {
     var p = S.pro || {};
     var n = counts();
-    var tab = function (k, label) { return '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (S.tab === k) + '">' + esc(label) + '<span class="n"' + (n[k] ? "" : " hidden") + ">" + n[k] + "</span></button>"; };
+    var tab = function (k, label) { return '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (S.tab === k) + '">' + esc(label) + '<span class="n"' + (n[k] ? "" : " hidden") + ">" + (n[k] || 0) + "</span></button>"; };
     app.innerHTML =
       '<div class="hello"><div><p class="eyebrow">' + esc(p.company || t("l_" + p.licenseType)) + "</p><h2>" + esc(t("hello")((p.name || "").split(" ")[0])) + "</h2></div>" +
       '<button class="btn" type="button" id="out" style="min-height:40px">' + esc(t("signout")) + "</button></div>" +
       '<p class="lede small">' + esc(t("boardLede")) + " " + esc(areaLine(p)) + ".</p>" +
-      '<div class="tabs" role="tablist">' + tab("feed", t("tabFeed")) + tab("requests", t("tabRequests")) + tab("connected", t("tabConnected")) + "</div>" +
+      '<div class="tabs" role="tablist">' + tab("feed", t("tabFeed")) + tab("requests", t("tabRequests")) + tab("connected", t("tabConnected")) + tab("profile", t("tabProfile")) + "</div>" +
       '<section id="pane"></section>';
     $("#out").onclick = signOut;
     $$(".tabs [data-tab]", app).forEach(function (b) { b.onclick = function () { S.tab = b.getAttribute("data-tab"); renderBoard(app); paintChrome(); }; });
@@ -396,6 +397,7 @@
     if (!S.feed) { pane.innerHTML = '<div class="card empty"><div class="ring"></div></div>'; return; }
     if (S.tab === "feed") paneFeed(pane);
     else if (S.tab === "requests") paneRequests(pane);
+    else if (S.tab === "profile") { if (window.HSProfileEditor) window.HSProfileEditor.mount(pane, S.lang); }
     else paneConnected(pane);
   }
 

@@ -22,12 +22,13 @@
 import { getStore, connectLambda } from "@netlify/blobs";
 import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { zip3Info, distanceMiles } from "./_hs-zip3.js";
+import { coverageCovers } from "./_hs-profiles.js";
 import { sendMail } from "./_order-email.js";
 
 export const STORE_NAMES = {
   cases: "hs-cases", pros: "hs-pros", offers: "hs-offers", docs: "hs-docs", events: "hs-events",
   sessions: "hs-sessions", messages: "hs-messages", rate: "hs-rate",
-  settings: "hs-settings", ledger: "hs-ledger", teams: "hs-teams", storm: "hs-storm", // partner desks (_hs-partners.js)
+  photos: "hs-profile-photos", settings: "hs-settings", ledger: "hs-ledger", teams: "hs-teams", storm: "hs-storm", // partner desks (_hs-partners.js)
   shopSessions: "sessions", // the shop's own login (admin gate, same as admin.html)
 };
 
@@ -394,23 +395,17 @@ export function proSelf(p) {
 }
 
 /* ---------------------------------------------------------------- matching */
+/** Coverage (license states + the pro's own range) decides; see _hs-profiles.js. */
 export function proServesZip(p, zip) {
-  if (!p || !zip) return false;
-  if (Array.isArray(p.serviceZips) && p.serviceZips.length) {
-    return p.serviceZips.some((z) => z === zip || (z.length === 3 && zip.startsWith(z)));
-  }
-  const area = p.serviceArea || {};
-  if (!area.centerZip) return false;
-  return distanceMiles(area.centerZip, zip) <= (Number(area.radiusMiles) || 0);
+  return !!(p && zip && coverageCovers(p, zip, null));
 }
 
-/** A verified pro sees a case when a trade overlaps, the case is in their license state and inside their area. */
+/** A verified pro sees a case when a trade overlaps and the case is inside the pro's coverage. */
 export function caseMatchesPro(c, p) {
   if (!c || !p || !p.verified || p.disabled) return false;
   if (!["open", "offered"].includes(c.status)) return false;
   if (!(c.trades || []).some((t) => (p.trades || []).includes(t))) return false;
-  if (p.licenseState && c.state && p.licenseState !== c.state) return false;
-  return proServesZip(p, c.zip);
+  return coverageCovers(p, c.zip, c.state);
 }
 
 /* ---------------------------------------------------------------- loading */
