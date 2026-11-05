@@ -14,6 +14,7 @@
 // One connected pro per case: once a pro is connected, the remaining
 // pending / talk-first offers are closed as declined (reason
 // "homeowner_chose_another"). Rate limit: 40 per IP per hour.
+import { settleClaim, reopenRing } from "./_hs-partners.js";
 import { endpoint, reply, fail, caseForToken, getJSON, isId, pushEvent, proForHomeowner, mail, siteOrigin } from "./_hs-store.js";
 
 const ACTIONS = ["accept", "talk_first", "share_contact", "decline"];
@@ -42,6 +43,7 @@ export const handler = endpoint({ methods: ["POST"], rate: { bucket: "offer-resp
     if (o.status === "accepted") return fail(409, "already_connected", "You already shared your contact with this professional");
     o.status = "declined"; o.respondedAt = iso;
     await S.offers.setJSON(o.id, o);
+    await reopenRing(S, c, o);
     if (c.status === "offered" && !(await anyOpenOffer(S, c, o.id))) { c.status = "open"; c.updatedAt = iso; await S.cases.setJSON(c.id, c); }
     await pushEvent(S, `pro/${o.proId}/${iso}-${o.id}`, { type: "declined", caseId: c.id, offerId: o.id, at: iso });
     return reply(200, { offer: { id: o.id, status: o.status }, case: { id: c.id, status: c.status, connectedProId: c.connectedProId || null } });
@@ -61,6 +63,9 @@ export const handler = endpoint({ methods: ["POST"], rate: { bucket: "offer-resp
 
   /* accept / share_contact: the explicit release of contact, both ways. */
   if (action === "share_contact" && o.status !== "accepted_talk_first" && o.status !== "accepted") return fail(409, "talk_first_needed", "Choose accept to share your contact");
+  /* A desk's ring offer: the verified claim is paid FIRST; no payment, no contact. */
+  const settled = await settleClaim(S, c, o, { by: "homeowner", now });
+  if (settled.error) return fail(settled.error[0], settled.error[1], settled.error[2]);
   o.status = "accepted"; o.respondedAt = iso; o.sharedAt = iso;
   await S.offers.setJSON(o.id, o);
   c.status = "connected"; c.connectedProId = o.proId; c.connectedOfferId = o.id; c.connectedAt = iso; c.updatedAt = iso;

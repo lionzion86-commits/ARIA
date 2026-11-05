@@ -46,6 +46,8 @@ export function buildCase(body, now = Date.now()) {
     address: str(d.address || ct.address, 200) || null,
     contact: { name, phone, email, preferred: PREFERRED.includes(ct.preferred) ? ct.preferred : (phone ? "phone" : "email") },
     docs: [], policyFlags: [], offers: [], connectedProId: null,
+    /* "Do you already have a public adjuster or attorney on this claim?" -- yes = never billable to a desk. */
+    represented: d.represented === true || body.represented === true,
     lang: body.lang === "es" || d.lang === "es" ? "es" : "en",
     consent: { text: CONSENT_TEXT, at: iso },
     token: newToken(),

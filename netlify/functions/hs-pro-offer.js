@@ -6,6 +6,7 @@
 // their status page); they choose. Max 8 requests per case.
 // Rate limit: 60 per IP per hour.
 import { endpoint, reply, fail, getJSON, str, isId, caseMatchesPro, newId, mail, caseLink, pushEvent } from "./_hs-store.js";
+import { readSettings } from "./_hs-partners.js";
 import { proFromEvent } from "./_hs-auth.js";
 
 export const MAX_OFFERS_PER_CASE = 8;
@@ -31,6 +32,7 @@ export const handler = endpoint({ methods: ["POST"], rate: { bucket: "pro-offer"
   const pro = await proFromEvent(event, S);
   if (!pro) return fail(401, "signin", "Sign in");
   if (!pro.verified) return fail(403, "pending_verification", "Your license is pending verification");
+  if (pro.desk && (await readSettings(S)).perLeadEnabled[pro.desk]) return fail(409, "use_desk", "Your desk claims leads from the partner dashboard");
   if (!isId("case", body.caseId)) return fail(404, "not_found", "Case not found");
   const message = str(body.message, 600);
   if (message.length < 10) return fail(400, "short_message", "Write a short message (at least 10 characters)");
