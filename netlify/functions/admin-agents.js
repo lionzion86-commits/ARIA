@@ -14,15 +14,16 @@
 //   POST { payPerPurchasePen: n|null } -> the pay per purchase in soles; null = "por definir" (the default)
 //   POST { linkCheck: url }              -> the link-health guard's server hook: classify, then
 //                                           follow redirects by hand (404 / homepage / search = "Link caído")
-import { getStore, connectLambda } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
+import { strongStore, connectIfLambda, v2 } from "./_blobs-store.js";
 import { corsHeaders } from "./_auth-helpers.js";
 import { callerRole, boardResponse, setAgent, writePay, hostOf } from "./_agent-auth.js";
 import { checkLinkHealth, LINK_REASON_LABELS } from "../../assets/agent/agent-core.js";
 import { validateRegistration } from "../../assets/agent/dispatch-core.js";
 import { dispatchEngine } from "./_dispatch.js";
 
-export async function handler(event) {
-  connectLambda(event);
+export async function adminAgents(event) {
+  connectIfLambda(event);
   const headers = { ...corsHeaders("GET, POST, OPTIONS"), "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   try {
@@ -54,7 +55,7 @@ export async function handler(event) {
     }
     const r = await setAgent(users, body.email, { agent: body.agent, active: body.active }, ctx.email);
     if (withPayout && r.status === 200) {
-      const engine = dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host: hostOf(event) });
+      const engine = dispatchEngine({ getStore: strongStore, host: hostOf(event) });
       await engine.register(r.body.email, { yape: body.yape, cci: body.cci });
       r.body.payoutRegistered = true;
     }
@@ -63,3 +64,7 @@ export async function handler(event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 }
+
+// Functions v2 (default export, no named `handler`) so the Blobs context carries uncachedEdgeURL and
+// strong consistency is real (#443 c.6668071617, see _blobs-store.js).
+export default v2(adminAgents);

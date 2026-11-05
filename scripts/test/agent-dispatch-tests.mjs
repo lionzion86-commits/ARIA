@@ -1189,7 +1189,7 @@ if (pw) {
   const FX = 3.75;
   const handlers = {};
   for (const n of ["agent-queue", "agent-dispatch", "admin-dispatch", "admin-agents", "stripe-webhook", "auth-logout", "auth-login"]) {
-    if (existsSync(ROOT + `netlify/functions/${n}.js`)) handlers[n] = (await import(ROOT + `netlify/functions/${n}.js`)).handler;
+    if (existsSync(ROOT + `netlify/functions/${n}.js`)) handlers[n] = (({ default: d, handler: h }) => d || h)(await import(ROOT + `netlify/functions/${n}.js`));
   }
   /* Sessions the real getSessionEmail reads. TEST FIXTURES. */
   const SESS = { [ADMIN]: "sess-admin", [AG1]: "sess-ag1", [AG2]: "sess-ag2" };
