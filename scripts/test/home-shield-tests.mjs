@@ -347,7 +347,10 @@ await test("doc access: private store, token or connected pro only, bytes checke
   assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: "f".repeat(64), file: { name: "p.pdf", type: "application/pdf", data: pdf.toString("base64") } } })).status, 404);
   assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: t, file: { name: "x.pdf", type: "application/pdf", data: Buffer.from("hello world, not a pdf").toString("base64") } } })).status, 415);
   const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40)]);
-  assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: t, file: { name: "x.pdf", type: "application/pdf", data: png.toString("base64") } } })).body.code, "type_mismatch");
+  /* The bytes decide (#443 c.6665786195): a declared/actual mismatch is accepted and stored as what it is (on a separate case). */
+  const other = (await call("hs-case-create", { ip: "192.0.2.77", body: caseBody() })).body;
+  const mm = await call("hs-doc-upload", { body: { caseId: other.caseId, token: other.token, file: { name: "x.pdf", type: "application/pdf", data: png.toString("base64") } } });
+  assert.equal(mm.status, 200, JSON.stringify(mm.body)); assert.equal(mm.body.type, "image/png");
   const up = await call("hs-doc-upload", { body: { caseId: id, token: t, kind: "policy", file: { name: "My Policy (2024).pdf", type: "application/pdf", data: pdf.toString("base64") } } });
   assert.equal(up.status, 200, JSON.stringify(up.body)); C.docA = up.body.docId;
   assert.match(C.docA, /^d_[0-9a-f]{24}$/);
@@ -639,6 +642,23 @@ await check("hs-chat: 503 without a key; 400 on a bad turn; upstream error befor
   assert.equal(up.status, 502); assert.match((await up.json()).error, /boom/);
 });
 
+await check("vision: a declarations photo -> the same review shape as the PDF path; denial letters and other photos said plainly", async () => {
+  const V = await import("../../netlify/functions/_hs-vision.js");
+  let sent = null;
+  const fetchImpl = async (url, init) => { sent = JSON.parse(init.body); return jsonRes(200, { choices: [{ message: { content: JSON.stringify({ docType: "declarations", legible: true, findings: [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5% of Coverage A" }, { key: "made_up", tone: "weak", label: "x" }, { key: "rcv", tone: "strong", label: "Dwelling: replacement cost" }], improve: ["No ordinance or law coverage listed"], denial: null, plainSummary: "This is your declarations page." }) } }] }); };
+  const r = await V.readImage({ bytes: Buffer.from([0xff, 0xd8, 0xff, 1, 2, 3]), mime: "image/jpeg", lang: "en", fetchImpl, env: { OPENAI_API_KEY: "sk-test" } });
+  assert.equal(sent.model, FE.model.OPENAI_MODEL);
+  assert.equal(sent.messages[1].content[1].type, "image_url"); assert.match(sent.messages[1].content[1].image_url.url, /^data:image\/jpeg;base64,/);
+  assert.match(sent.messages[0].content, /FACTS ONLY/);
+  assert.equal(r.textFound, true); assert.deepEqual(r.findings.map((f) => f.key), ["hurricane_deductible", "rcv"]);
+  assert.deepEqual(r.weak, ["Hurricane deductible: 5% of Coverage A"]); assert.deepEqual(r.strong, ["Dwelling: replacement cost"]); assert.deepEqual(r.improve, ["No ordinance or law coverage listed"]);
+  const o = V.normalizeVision({ docType: "other" }, "es");
+  assert.equal(o.textFound, false); assert.match(o.plainSummary, /no parece una página de póliza/);
+  const d = V.normalizeVision({ docType: "denial_letter", denial: { denied: "the roof claim", reasons: ["wear and tear"], quotes: ["We are unable to provide coverage for wear and tear."] }, plainSummary: "Your roof claim was denied for wear and tear." }, "en");
+  assert.equal(d.denial.denied, "the roof claim"); assert.deepEqual(d.improve, []);
+  const heic = await V.readImage({ bytes: Buffer.from("x"), mime: "image/heic", lang: "en", env: { OPENAI_API_KEY: "k" } });
+  assert.equal(heic.textFound, false); assert.match(heic.plainSummary, /screenshot/);
+});
 await check("hs-tts: ONE voice (id, model, stability 0.5, similarity 0.75), key server-side", async () => {
   let sent = null;
   const fetchImpl = async (url, init) => { sent = { url, init, body: JSON.parse(init.body) }; return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; };
@@ -781,6 +801,8 @@ if (pw) {
   const SPEECH = wav(0.35);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let ttsDelay = 0;
+  let delays = {};
+  let ipSeqFE = 0;
   const { createServer } = await import("node:http");
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   const srv = createServer(async (req, res) => {
@@ -791,8 +813,10 @@ if (pw) {
     if (fn) {
       let body = null; try { body = raw ? JSON.parse(raw) : null; } catch { body = raw; }
       log.push({ fn: fn[1], method: req.method, body, query: Object.fromEntries(u.searchParams) });
+      if (delays[fn[1]]) await sleep(delays[fn[1]]);
       if (stub[fn[1]]) {
         const r = await stub[fn[1]](body, u);
+        if (r && r.destroy) { req.socket.destroy(); return; }
         if (r && r.delay) await sleep(r.delay);
         if (fn[1] === "hs-chat" && r && r.json && r.json.reply && !r.status) {
           /* Stream it the way hs-chat does: word deltas, then the done event. */
@@ -808,7 +832,7 @@ if (pw) {
       if (fn[1] === "hs-tts") { await sleep(ttsDelay); res.writeHead(200, { "Content-Type": "audio/wav" }); return res.end(SPEECH); }
       const h = real[fn[1]];
       if (!h) { res.writeHead(404, { "Content-Type": "application/json" }); return res.end('{"error":"no such function"}'); }
-      const r = await h({ httpMethod: req.method, headers: { "x-nf-client-connection-ip": "127.0.0.1", "content-type": "application/json" }, body: raw, queryStringParameters: Object.fromEntries(u.searchParams) }, {});
+      const r = await h({ httpMethod: req.method, headers: { "x-nf-client-connection-ip": "127.0." + (ipSeqFE = (ipSeqFE + 1) % 60000, Math.floor(ipSeqFE / 250)) + "." + (ipSeqFE % 250), "content-type": "application/json" }, body: raw, queryStringParameters: Object.fromEntries(u.searchParams) }, {});
       res.writeHead(r.statusCode, r.headers || {}); return res.end(r.isBase64Encoded ? Buffer.from(r.body, "base64") : r.body || "");
     }
     let p = decodeURIComponent(u.pathname);
@@ -836,7 +860,7 @@ if (pw) {
   };
   const errorsOf = (page) => { const e = []; page.on("pageerror", (x) => e.push(String(x))); return e; };
   const ttsTexts = () => log.filter((x) => x.fn === "hs-tts").map((x) => x.body && x.body.text);
-  const reset = () => { log.length = 0; stub = {}; };
+  const reset = () => { log.length = 0; stub = {}; delays = {}; };
 
   for (const W of [390, 1366]) {
     await check(`browser ${W}: renders the hero, the doors in order, the rights, the disclaimer; no emojis, no errors`, async () => {
@@ -1089,6 +1113,117 @@ if (pw) {
     });
   }
 
+  /* THE PHOTO LANDS FIRST (#443 c.6665786195), against the real case /
+     upload handlers (in-memory store); the vision read is stubbed. */
+  const DEC_REVIEW = { textFound: true, source: "vision", docType: "declarations", flags: [], findings: [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5% of Coverage A" }, { key: "rcv", tone: "strong", label: "Dwelling: replacement cost" }],
+    strong: ["Dwelling: replacement cost"], weak: ["Hurricane deductible: 5% of Coverage A"], improve: ["No ordinance or law coverage listed"], plainSummary: "This is your declarations page. Here is where you stand.", excerpt: "" };
+  const PNG1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const JPG1 = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
+  const pickFile = async (page, file, where = "#door1 [data-action=upload]") => { const ch = page.waitForEvent("filechooser"); await page.locator(where).first().click(); await (await ch).setFiles(file); };
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: a photo with no case yet: the thumbnail lands first (sending -> received), Aria confirms, reads it, THEN asks for contact; the draft becomes the case`, async () => {
+      reset();
+      delays["hs-doc-upload"] = 700;
+      stub["hs-policy-review"] = () => ({ delay: 300, json: DEC_REVIEW });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await pickFile(page, { name: "IMG_2041.JPG", mimeType: "image/jpeg", buffer: JPG1 });
+      await page.waitForSelector(".hs-file .hs-thumb");
+      assert.equal(await page.locator(".hs-file .hs-file-st").getAttribute("data-st"), "sending");
+      assert.equal(await page.locator("#hsCaseCard").count(), 0, "no form before the photo");
+      if (L === "en") await shot(page, "upload-sending");
+      await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]', { timeout: 6000 });
+      const create = log.find((x) => x.fn === "hs-case-create").body;
+      assert.equal(create.draft, true); assert.ok(!create.contact, "no contact in the draft");
+      const up = log.find((x) => x.fn === "hs-doc-upload").body;
+      assert.equal(up.kind, "policy"); assert.equal(up.file.type, "image/jpeg");
+      await page.waitForSelector(".hs-review", { timeout: 8000 });
+      const txt = await page.locator("#hsMsgs").innerText();
+      assert.ok(txt.includes(I18N[L]["policy.readingPhoto"]), "confirmation in the chat");
+      assert.ok(ttsTexts().join(" ").includes(I18N[L]["policy.readingPhoto"].split(" — ")[0]), "confirmation spoken");
+      assert.deepEqual(await page.locator(".hs-review .hs-review-h").allInnerTexts(), ["policy.strong", "policy.weak", "policy.improve", "policy.compare"].map((k) => I18N[L][k]));
+      if (L === "en") { await shot(page, "upload-received"); }
+      await page.waitForSelector("#hsCaseCard", { timeout: 15000 });
+      assert.ok((await page.locator("#hsMsgs").innerText()).includes(I18N[L]["contact.ask"]));
+      if (L === "en") { await page.locator(".hs-review").first().scrollIntoViewIfNeeded(); await shot(page, "upload-analysis"); }
+      const card = page.locator("#hsCaseCard");
+      await card.locator("input[name=zip]").fill("33101"); await card.locator("input[name=cname]").fill("Ana Prueba"); await card.locator("input[name=email]").fill("ana@correo.test");
+      await card.locator("#hsConsent").check(); await page.locator("#hsSendCase").click();
+      await page.waitForSelector("#hsCaseDone", { timeout: 6000 });
+      const fin = log.filter((x) => x.fn === "hs-case-create")[1].body;
+      assert.equal(fin.caseId, create && log.find((x) => x.fn === "hs-doc-upload").body.caseId);
+      const S = store.openStores({});
+      const saved = await S.cases.get(fin.caseId, { type: "json" });
+      assert.equal(saved.status, "open"); assert.equal(saved.docs.length, 1, "the photo stays with the case");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("browser 390: iPhone HEIC: decoded on the phone and uploaded as JPEG", async () => {
+    reset();
+    stub["hs-policy-review"] = () => ({ json: DEC_REVIEW });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.addInitScript(() => {
+      const orig = window.createImageBitmap.bind(window);
+      window.createImageBitmap = async (b) => { if (b && /hei[cf]/i.test(b.type)) { const cv = new OffscreenCanvas(2400, 3200); const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 2400, 3200); return orig(cv); } return orig(b); };
+    });
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await pickFile(page, { name: "IMG_0001.HEIC", mimeType: "image/heic", buffer: Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from("ftypheic"), Buffer.alloc(64, 7)]) });
+    await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]', { timeout: 8000 });
+    const up = log.find((x) => x.fn === "hs-doc-upload").body;
+    assert.equal(up.file.type, "image/jpeg"); assert.match(up.file.name, /^IMG_0001\.jpg$/); assert.ok(up.file.data.startsWith("/9j/"), "JPEG bytes");
+    const dims = await page.evaluate(() => { const i = document.querySelector(".hs-thumb"); return [i.naturalWidth, i.naturalHeight]; });
+    assert.ok(Math.max(...dims) <= 2000, "re-encoded at most 2000px: " + dims);
+    await c.close();
+  });
+  await check("browser 390: PNG and PDF land too (thumbnail / file chip); a non-policy photo is said plainly; the server accepts a mismatched declared type", async () => {
+    reset();
+    stub["hs-policy-review"] = (b) => ({ json: { textFound: false, docType: "other", flags: [], findings: [], strong: [], weak: [], improve: [], plainSummary: "This photo doesn't look like an insurance policy page or a denial letter, so I can't review it." } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await pickFile(page, { name: "screenshot.png", mimeType: "image/png", buffer: PNG1 });
+    await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]');
+    await page.waitForFunction(() => /doesn't look like an insurance policy/.test(document.getElementById("hsMsgs").innerText));
+    assert.equal(await page.locator("#hsCaseCard").count(), 0, "no contact form for a photo that isn't a policy");
+    await pickFile(page, { name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%test\n") }, '#hsCompose [data-action=upload]');
+    await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 2);
+    assert.match(await page.locator(".hs-file .hs-chip").innerText(), /PDF · policy\.pdf/);
+    assert.equal(log.filter((x) => x.fn === "hs-case-create").length, 1, "one draft for both files");
+    // An iPhone handoff that declares heic but hands over a JPEG is accepted, stored as JPEG.
+    const k = log.find((x) => x.fn === "hs-doc-upload").body;
+    const r = await real["hs-doc-upload"]({ httpMethod: "POST", headers: { "x-nf-client-connection-ip": "10.1.2.3" }, body: JSON.stringify({ caseId: k.caseId, token: k.token, file: { name: "x.heic", type: "image/heic", data: JPG1.toString("base64") } }) }, {});
+    assert.equal(r.statusCode, 200, r.body); assert.equal(JSON.parse(r.body).type, "image/jpeg");
+    await c.close();
+  });
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: every upload failure gets a plain message in the chat (type, size, rate limit, network, server), never a raw code`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const last = () => page.locator("#hsMsgs .hs-msg-a").last().innerText();
+      await pickFile(page, { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.type"]);
+      await pickFile(page, { name: "big.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 10, 1) }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.size"]);
+      for (const [name, setup, key] of [
+        ["rate", () => { stub["hs-doc-upload"] = () => ({ status: 429, json: { error: "Too many requests", code: "rate_limited" } }); }, "err.rate"],
+        ["network", () => { stub["hs-doc-upload"] = () => ({ destroy: true }); }, "err.network"],
+        ["server", () => { stub["hs-doc-upload"] = () => ({ status: 500, json: { error: "Something went wrong", code: "server" } }); }, "err.server"],
+        ["bad_type", () => { stub["hs-doc-upload"] = () => ({ status: 415, json: { error: "Only PDF", code: "bad_type" } }); }, "policy.type"],
+      ]) {
+        setup();
+        const before = await page.evaluate((m) => document.getElementById("hsMsgs").innerText.split(m).length, I18N[L][key]);
+        await pickFile(page, { name: "dec.png", mimeType: "image/png", buffer: PNG1 }, "#hsCompose [data-action=upload]");
+        await page.waitForFunction(([m, n]) => document.getElementById("hsMsgs").innerText.split(m).length > n, [I18N[L][key], before], { timeout: 6000 });
+        assert.equal(await page.locator(".hs-file").last().getAttribute("data-st"), "failed", name);
+      }
+      const all = await page.locator("#hsMsgs").innerText();
+      assert.ok(!/rate_limited|bad_type|type_mismatch|too_large|HTTP \d|\bserver\b(?! )/.test(all.replace(I18N[L]["err.server"], "")), "raw code shown: " + all);
+      if (L === "en") { await page.locator(".hs-file").last().scrollIntoViewIfNeeded(); await shot(page, "upload-error"); }
+      await c.close();
+    });
+  }
+
   await check("browser 390: Listen on the intro speaks the intro through hs-tts; again in Español; one voice at a time", async () => {
     reset();
     const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
@@ -1283,13 +1418,6 @@ if (pw) {
     const chooser = page.waitForEvent("filechooser");
     await page.locator("#door1 [data-action=upload]").click();
     await (await chooser).setFiles({ name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test") });
-    await page.waitForSelector("#hsCaseCard");
-    const card = page.locator("#hsCaseCard");
-    await card.locator("input[name=zip]").fill("33101");
-    await card.locator("input[name=cname]").fill("Ana Prueba");
-    await card.locator("input[name=email]").fill("ana@correo.test");
-    await card.locator("#hsConsent").check();
-    await page.locator("#hsSendCase").click();
     await page.waitForSelector(".hs-review", { timeout: 8000 });
     const heads = await page.locator(".hs-review .hs-review-h").allInnerTexts();
     assert.deepEqual(heads, ["What's strong", "What's weak", "Where it can improve", "How it compares"]);

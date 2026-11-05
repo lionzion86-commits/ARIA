@@ -348,7 +348,7 @@
   /* ================================================================
      CONVERSATION STATE (text + voice)
      ================================================================ */
-  var chat = { messages: [], draft: null, ready: false, caseId: null, token: null, link: null, busy: false, greeted: false, pendingFile: null, cardMode: null, edited: false };
+  var chat = { messages: [], draft: null, ready: false, caseId: null, token: null, link: null, busy: false, greeted: false, cardMode: null, edited: false, caseState: "none", askedContact: false };
   window.HS_CHAT = chat;
   var sheet = doc.getElementById("hsSheet");
   var msgs = doc.getElementById("hsMsgs");
@@ -394,10 +394,22 @@
   function post(fn, body) {
     return fetch(FN + fn, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok) { var e = new Error((j && j.error) || "HTTP " + r.status); e.status = r.status; throw e; }
+        if (!r.ok) { var e = new Error((j && j.error) || "HTTP " + r.status); e.status = r.status; e.code = j && j.code; throw e; }
         return j;
       });
-    });
+    }, function (err) { var e = new Error((err && err.message) || "network"); e.code = "network"; throw e; });
+  }
+  /* Every failure in plain words: what happened and what to do. */
+  function friendly(e) {
+    var c = (e && e.code) || "";
+    if (c === "bad_type" || c === "type_mismatch" || c === "unreadable_format") return t("policy.type");
+    if (c === "too_large") return t("policy.size");
+    if (c === "rate_limited") return t("err.rate");
+    if (c === "not_found") return t("err.expired");
+    if (c === "too_many") return t("err.tooMany");
+    if (c === "network") return t("err.network");
+    if (c === "missing_chunk" || c === "size_mismatch" || c === "bad_chunk" || c === "bad_data" || c === "no_file") return t("err.incomplete");
+    return t("err.server");
   }
 
   /* The turn in flight: one at a time; barge-in and close abort it. */
@@ -852,19 +864,21 @@
     };
     var contact = { name: v.name.trim(), phone: phoneOk ? v.phone.trim() : "", email: emailOk ? v.email.trim() : "", preferred: v.pref };
     btn.disabled = true; btn.textContent = t("case.sending"); msg.textContent = "";
-    post("hs-case-create", { caseDraft: caseDraft, contact: contact, consent: true, consentText: t("case.consent"), lang: lang })
+    var req = { caseDraft: caseDraft, contact: contact, consent: true, consentText: t("case.consent"), lang: lang };
+    if (chat.caseState === "draft") { req.caseId = chat.caseId; req.token = chat.token; } // the draft (with the photo) becomes the case
+    post("hs-case-create", req)
       .then(function (j) {
         if (!j.caseId || !j.token) throw new Error("no case id");
-        chat.caseId = j.caseId; chat.token = j.token; chat.draft = mergeDraft(chat.draft, caseDraft);
+        chat.caseId = j.caseId; chat.token = j.token; chat.caseState = "open"; chat.draft = mergeDraft(chat.draft, caseDraft);
         chat.link = location.origin + (j.statusUrl && j.statusUrl.charAt(0) === "/" ? j.statusUrl : "/home-shield/caso.html?c=" + encodeURIComponent(j.caseId) + "&t=" + encodeURIComponent(j.token));
         store("hs_case", chat.link);
         showMyCase();
         renderSent();
-        if (chat.pendingFile) { var f = chat.pendingFile; chat.pendingFile = null; uploadPolicy(f); }
       })
       .catch(function (e) {
         btn.disabled = false; btn.textContent = t(mode === "file" ? "case.sendFile" : "case.send");
-        msg.textContent = t("err.chat", { e: e.message });
+        var c = e && e.code;
+        msg.textContent = c === "bad_zip" ? t("case.needZip") : c === "bad_name" || c === "contact_required" || c === "bad_phone" || c === "bad_email" ? t("case.needContact") : c === "consent_required" ? t("case.needConsent") : friendly(e);
       });
   }
 
@@ -903,23 +917,84 @@
     greetIfNeeded(false);
     if (fileInput) { fileInput.value = ""; fileInput.click(); }
   }
+  /* THE PHOTO LANDS FIRST (#443 c.6665786195). Picking a file shows it in
+     the chat at once (thumbnail, or a chip for a PDF) with its sending /
+     received state; a private draft case is made silently if none exists;
+     contact and consent are asked for after Aria has read it. */
   function onFilePicked() {
     var f = fileInput.files && fileInput.files[0];
     if (!f) return;
     showErr("");
-    var typeOk = OK_TYPES.test(f.type) || /\.(pdf|jpe?g|png|heic|heif)$/i.test(f.name);
-    if (!typeOk) { addMsg("assistant", t("policy.type")); return; }
-    if (f.size > 10 * 1024 * 1024) { addMsg("assistant", t("policy.size")); return; }
-    if (chat.caseId) uploadPolicy(f);
-    else { chat.pendingFile = f; showCaseCard("file"); }
+    handleFile(f);
   }
+  var IMG_EXT = /\.(jpe?g|png|heic|heif)$/i;
+  function isHeic(f) { return /image\/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name); }
+  function isImage(f) { return /^image\//i.test(f.type) || IMG_EXT.test(f.name); }
+  /* iPhone photos: decode HEIC (iOS Safari can), re-encode as JPEG at most
+     2000 px. Big photos get the same. If decoding fails, the original goes. */
+  function prepareImage(f) {
+    var need = isHeic(f) || f.size > 3 * 1024 * 1024;
+    var decode = function () {
+      if (window.createImageBitmap) return createImageBitmap(f);
+      return new Promise(function (res, rej) { var u = URL.createObjectURL(f), im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; });
+    };
+    return decode().then(function (bmp) {
+      var w = bmp.width, hgt = bmp.height;
+      if (!need && Math.max(w, hgt) <= 2000) return { blob: f, name: f.name, type: f.type || "image/jpeg", w: w, h: hgt };
+      var k = Math.min(1, 2000 / Math.max(w, hgt));
+      var cv = doc.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(hgt * k);
+      cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+      return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/jpeg", 0.88); }).then(function (b) {
+        if (!b) throw new Error("encode");
+        return { blob: b, name: f.name.replace(/\.[^.]+$/, "") + ".jpg", type: "image/jpeg", converted: true };
+      });
+    }).catch(function () { return { blob: f, name: f.name, type: f.type || (isHeic(f) ? "image/heic" : ""), undecodable: true }; });
+  }
+  function fileBubble(f) {
+    var b = doc.createElement("div");
+    b.className = "hs-msg hs-msg-u hs-file";
+    var media = isImage(f) ? h("img", { class: "hs-thumb", alt: t("upload.photoAlt") }) : h("span", { class: "hs-chip", text: "PDF · " + f.name });
+    var st = h("span", { class: "hs-file-st", "data-st": "sending", role: "status", text: t("upload.sending") });
+    b.appendChild(media); b.appendChild(st);
+    msgs.appendChild(b); scrollDown();
+    return { el: b, img: media.tagName === "IMG" ? media : null, set: function (k) { st.setAttribute("data-st", k); st.textContent = t("upload." + k); b.setAttribute("data-st", k); } };
+  }
+  function ensureCase() {
+    if (chat.caseId) return Promise.resolve();
+    return post("hs-case-create", { draft: true, lang: lang, caseDraft: { issue: (chat.draft && chat.draft.issue) || "policy_review" } }).then(function (j) {
+      chat.caseId = j.caseId; chat.token = j.token; chat.caseState = "draft";
+    });
+  }
+  function handleFile(f) {
+    openSheet(); greetIfNeeded(false);
+    var typeOk = /^(application\/pdf|image\/(jpeg|png|heic|heif))$/i.test(f.type) || /\.(pdf|jpe?g|png|heic|heif)$/i.test(f.name);
+    if (!typeOk) { failSay(t("policy.type")); return Promise.resolve(); }
+    if (f.size > 10 * 1024 * 1024) { failSay(t("policy.size")); return Promise.resolve(); }
+    var bub = fileBubble(f);
+    var image = isImage(f);
+    var prep = image ? prepareImage(f) : Promise.resolve({ blob: f, name: f.name, type: "application/pdf" });
+    return prep.then(function (p) {
+      if (bub.img) { if (!p.undecodable) bub.img.src = URL.createObjectURL(p.blob); else { bub.img.replaceWith(h("span", { class: "hs-chip", text: t("upload.photo") + " · " + f.name })); } }
+      return ensureCase().then(function () { return sendFile(p.blob, p.name, p.type); });
+    }).then(function (j) {
+      bub.set("received");
+      return readDoc(j.docId, image);
+    }).catch(function (e) {
+      bub.set("failed");
+      failSay(friendly(e));
+    });
+  }
+  /* A plain message from Aria, on screen and in her voice. */
+  function failSay(text) { addMsg("assistant", text); chat.messages.push({ role: "assistant", content: text }); sayReply(text); }
   /* Base64 JSON; files over 4 MB go in ~3 MB chunks (Netlify's 6 MB cap). */
   var CHUNK = 3 * 1024 * 1024;
-  function sendFile(f) {
+  function sendFile(f, name, type) {
     var base = { caseId: chat.caseId, token: chat.token, kind: "policy" };
-    var type = f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "");
+    name = name || f.name || "document";
+    type = type || f.type || (/\.pdf$/i.test(name) ? "application/pdf" : "");
+    f = { size: f.size, slice: f.slice.bind(f), name: name, blob: f };
     if (f.size <= 4 * 1024 * 1024) {
-      return blobToB64(f).then(function (b64) { return post("hs-doc-upload", Object.assign({}, base, { file: { name: f.name, type: type, size: f.size, data: b64 } })); });
+      return blobToB64(f.blob).then(function (b64) { return post("hs-doc-upload", Object.assign({}, base, { file: { name: f.name, type: type, size: f.size, data: b64 } })); });
     }
     var total = Math.ceil(f.size / CHUNK), uploadId = null;
     var step = function (i) {
@@ -989,23 +1064,26 @@
     sec("policy.strong", strong); sec("policy.weak", weak); sec("policy.improve", improve); sec("policy.compare", compare);
     return parts.length ? parts.join(" ") : plain;
   }
-  function uploadPolicy(f) {
-    var status = addMsg("assistant", t("policy.uploading"));
+  function readDoc(docId, image) {
+    var say = t(image ? "policy.readingPhoto" : "policy.readingPdf");
+    var status = addMsg("assistant", say);
+    chat.messages.push({ role: "assistant", content: say });
+    speak(say, { owner: "chat" });
     setStarState("thinking");
-    sendFile(f).then(function (j) {
-      status.textContent = t("policy.reviewing");
-      return post("hs-policy-review", { caseId: chat.caseId, token: chat.token, docId: j.docId, lang: lang });
-    }).then(function (r) {
-      status.remove();
+    return post("hs-policy-review", { caseId: chat.caseId, token: chat.token, docId: docId, lang: lang }).then(function (r) {
+      status.classList.add("hs-msg-done");
       var strong = r.strong || [], weak = r.weak || [], improve = r.improve || [];
       var flags = Array.isArray(r.flags) ? r.flags : [];
-      var compare = r.textFound ? compareFindings(r.findings, lang) : [];
+      var compare = r.textFound && r.docType !== "denial_letter" ? compareFindings(r.findings, lang) : [];
       chat.policy = { textFound: !!r.textFound, strong: strong, weak: weak, improve: improve, compare: compare, flags: flags, excerpt: String(r.excerpt || "").slice(0, 6000) };
-      var box = h("div", { class: "hs-review" }, [
+      var den = r.denial || null;
+      var box = h("div", { class: "hs-review" }, den ? [
+        den.denied ? list("policy.denied", [den.denied]) : null, list("policy.reasons", den.reasons || []), list("policy.quotes", den.quotes || [])
+      ] : [
         list("policy.strong", strong), list("policy.weak", weak), list("policy.improve", improve), list("policy.compare", compare),
         !strong.length && !weak.length && !improve.length ? list("policy.found", flags) : null
       ]);
-      if (r.textFound !== false) {
+      if (r.textFound && !den) {
         var better = h("button", { class: "hs-btn hs-btn-gold", type: "button", text: t("policy.better") });
         better.addEventListener("click", function () { findBetterPolicy(better); });
         box.appendChild(better);
@@ -1013,16 +1091,28 @@
       var plain = String(r.plainSummary || "");
       addMsg("assistant", plain, box);
       var lines = [plain];
+      if (den) { if (den.denied) lines.push(t("policy.denied") + ": " + den.denied); if ((den.reasons || []).length) lines.push(t("policy.reasons") + ": " + den.reasons.join("; ")); if ((den.quotes || []).length) lines.push(t("policy.quotes") + ": " + den.quotes.join(" ")); }
       if (strong.length) lines.push(t("policy.strong") + ": " + strong.join("; "));
       if (weak.length) lines.push(t("policy.weak") + ": " + weak.join("; "));
       if (improve.length) lines.push(t("policy.improve") + ": " + improve.join("; "));
       if (compare.length) lines.push(t("policy.compare") + ": " + compare.join(" "));
       chat.messages.push({ role: "assistant", content: lines.join("\n") });
       setStarState("idle");
-      return sayReply(spokenReview(plain, strong, weak, improve, compare));
+      var spoken = den ? [plain].concat(den.reasons && den.reasons.length ? [t("policy.reasons") + ": " + den.reasons.join(". ") + "."] : []).join(" ") : spokenReview(plain, strong, weak, improve, compare);
+      return sayReply(spoken).then(function () {
+        /* Contact comes after the picture landed and was read: asked, never a gate. */
+        if (r.textFound && chat.caseState === "draft" && !chat.askedContact) {
+          chat.askedContact = true;
+          if (den) { chat.draft = mergeDraft({ issue: "denied_claim", trades: ["public_adjuster", "attorney"], urgency: "soon" }, chat.draft || {}); }
+          else chat.draft = mergeDraft({ issue: "policy_review", trades: ["insurance_agent"], urgency: "planning", summary: t("policy.summary") }, chat.draft || {});
+          addMsg("assistant", t("contact.ask")); chat.messages.push({ role: "assistant", content: t("contact.ask") });
+          showCaseCard("case");
+          sayReply(t("contact.ask"));
+        }
+      });
     }).catch(function (e) {
-      status.textContent = t("policy.err", { e: e.message });
       setStarState("idle");
+      failSay(friendly(e));
     });
   }
   function findBetterPolicy(btn) {
@@ -1032,7 +1122,7 @@
     d.trades = (d.trades || []).slice();
     if (!had) d.trades.push("insurance_agent");
     if (!d.issue) d.issue = "policy_review";
-    if (chat.caseId && had) { addMsg("assistant", t("policy.betterDone")); sayReply(t("policy.betterDone")); }
+    if (chat.caseState === "open" && had) { addMsg("assistant", t("policy.betterDone")); sayReply(t("policy.betterDone")); }
     else { addMsg("assistant", t("policy.betterLater")); sayReply(t("policy.betterLater")); chat.edited = false; showCaseCard("case"); }
   }
 
