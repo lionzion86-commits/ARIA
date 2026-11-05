@@ -174,6 +174,7 @@
       "policy.strong": "What's strong",
       "policy.weak": "What's weak",
       "policy.improve": "Where it can improve",
+      "policy.compare": "How it compares",
       "policy.better": "Find me a better policy",
       "policy.betterDone": "Done. Licensed insurance agents near you can now request your case to quote a better policy. You still choose who contacts you.",
       "policy.betterLater": "I added an insurance agent to your case. When you send it, licensed agents near you can offer to quote a better policy. You still choose who contacts you.",
@@ -385,6 +386,7 @@
       "policy.strong": "Lo que está fuerte",
       "policy.weak": "Lo que está débil",
       "policy.improve": "Dónde puede mejorar",
+      "policy.compare": "Cómo se compara",
       "policy.better": "Búscame una mejor póliza",
       "policy.betterDone": "Listo. Los agentes de seguros con licencia de tu zona ya pueden pedir tu caso para cotizarte una mejor póliza. Tú sigues eligiendo quién te contacta.",
       "policy.betterLater": "Agregué un agente de seguros a tu caso. Cuando lo envíes, los agentes con licencia de tu zona podrán ofrecerte una cotización mejor. Tú sigues eligiendo quién te contacta.",
@@ -1196,6 +1198,55 @@
     return h("div", { class: "hs-review-group" }, [h("p", { class: "hs-review-h", text: t(titleKey) }),
       h("ul", { class: "hs-flags" }, items.map(function (x) { return h("li", { text: typeof x === "string" ? x : (x && (x.label || x.text)) || "" }); }))]);
   }
+  /*COMPARE:START*/
+  /* "How it compares": built only from the policy's own terms (the review's
+     findings) against what is common in Florida, hedged. No premiums, no
+     carrier names, nothing invented. */
+  function compareFindings(findings, L) {
+    var es = L === "es", out = [], by = {};
+    (findings || []).forEach(function (f) { if (f && f.key) by[f.key] = f; });
+    var num = function (f, re) { var m = re.exec(String((f && f.label) || "")); return m ? m[1] : null; };
+    var hd = by.hurricane_deductible, pct = num(hd, /(\d{1,2}(?:\.\d+)?)\s*%/);
+    if (pct) {
+      var n = parseFloat(pct);
+      out.push(es
+        ? "Deducible por huracán: muchas pólizas en Florida tienen 2%, y también se ofrecen 5% o 10% para bajar la prima. El tuyo es " + pct + "%" + (n > 2 ? ", más alto que el 2% común: pagarías más de tu bolsillo después de una tormenta." : ", en el nivel común o por debajo.")
+        : "Hurricane deductible: many Florida policies carry 2%, and 5% or 10% options exist to lower the premium. Yours is " + pct + "%" + (n > 2 ? ", higher than the common 2%, so you would pay more out of pocket after a storm." : ", at or below the common level."));
+    }
+    if (by.roof_acv) out.push(es
+      ? "Techo: el tuyo se paga a valor real en efectivo (con depreciación). Muchas pólizas pagan costo de reemplazo, aunque para techos más viejos muchas aseguradoras en Florida solo ofrecen valor real. Pregunta si hay costo de reemplazo disponible para tu techo."
+      : "Roof: yours pays actual cash value (depreciated). Many policies pay replacement cost, though for older roofs many Florida insurers offer only actual cash value. Ask whether replacement cost is available for your roof.");
+    else if (by.rcv) out.push(es
+      ? "Techo: el tuyo menciona costo de reemplazo, lo que está del lado fuerte frente a pólizas que pagan techos solo a valor real."
+      : "Roof: yours mentions replacement cost, which is on the strong side compared with policies that pay roofs at actual cash value only.");
+    var ws = num(by.water_sublimit, /(\$\s?[\d,]{3,})/);
+    if (ws) out.push(es
+      ? "Agua: tu póliza limita ciertos daños por agua a " + ws + ". Algunas pólizas tienen límites así y otras no; compara ese límite cuando pidas cotizaciones."
+      : "Water: your policy caps some water damage at " + ws + ". Some policies have limits like this and others do not; compare that limit when you get quotes.");
+    var ol = by.ordinance_law, olp = num(ol, /(\d{1,3})\s*%/);
+    out.push(ol
+      ? (es ? "Ordenanza o ley: incluida" + (olp ? " al " + olp + "%" : "") + ". Las opciones comunes son 25% o 50% de la cobertura de vivienda." : "Ordinance or law: included" + (olp ? " at " + olp + "%" : "") + ". Common options are 25% or 50% of the dwelling coverage.")
+      : (es ? "Ordenanza o ley: no la encontré. Suele ofrecerse al 25% o 50%; paga lo que exige el código de construcción al reparar." : "Ordinance or law: I did not find it. It is commonly offered at 25% or 50%, and it pays for what building code requires when you repair."));
+    out.push(by.loss_of_use
+      ? (es ? "Pérdida de uso: incluida, para vivienda temporal si no puedes quedarte en casa." : "Loss of use: included, for temporary housing if you cannot stay home.")
+      : (es ? "Pérdida de uso: no la encontré. La mayoría de las pólizas de vivienda la incluyen; confírmalo." : "Loss of use: I did not find it. Most homeowners policies include it; confirm it."));
+    if (by.matching) out.push(by.matching.tone === "weak"
+      ? (es ? "Igualación: tu póliza la limita. Si solo se daña parte del techo o del piso, eso decide si reemplazan lo no dañado para que combine." : "Matching: your policy limits it. When only part of a roof or floor is damaged, matching decides whether undamaged parts are replaced so they match.")
+      : (es ? "Igualación: tu póliza la menciona; revisa las condiciones con un profesional." : "Matching: your policy mentions it; review the conditions with a professional."));
+    out.push(es
+      ? "Esto compara los términos de tu póliza, no precios. Un agente local con licencia en Aria Home Shield puede cotizarte una cobertura comparable para que veas ofertas reales."
+      : "This compares your policy's terms, not prices. A licensed local agent on Aria Home Shield can quote comparable coverage so you can see real offers.");
+    return out;
+  }
+  /*COMPARE:END*/
+  window.HS_COMPARE = compareFindings;
+  /* Aria speaks all four sections. */
+  function spokenReview(plain, strong, weak, improve, compare) {
+    var parts = [];
+    var sec = function (k, items) { if (items.length) parts.push(t(k) + ": " + items.map(function (x) { return String(x).replace(/[.;\s]+$/, ""); }).join(". ") + "."); };
+    sec("policy.strong", strong); sec("policy.weak", weak); sec("policy.improve", improve); sec("policy.compare", compare);
+    return parts.length ? parts.join(" ") : plain;
+  }
   function uploadPolicy(f) {
     var status = addMsg("assistant", t("policy.uploading"));
     setStarState("thinking");
@@ -1206,9 +1257,10 @@
       status.remove();
       var strong = r.strong || [], weak = r.weak || [], improve = r.improve || [];
       var flags = Array.isArray(r.flags) ? r.flags : [];
-      chat.policy = { textFound: !!r.textFound, strong: strong, weak: weak, improve: improve, flags: flags, excerpt: String(r.excerpt || "").slice(0, 6000) };
+      var compare = r.textFound ? compareFindings(r.findings, lang) : [];
+      chat.policy = { textFound: !!r.textFound, strong: strong, weak: weak, improve: improve, compare: compare, flags: flags, excerpt: String(r.excerpt || "").slice(0, 6000) };
       var box = h("div", { class: "hs-review" }, [
-        list("policy.strong", strong), list("policy.weak", weak), list("policy.improve", improve),
+        list("policy.strong", strong), list("policy.weak", weak), list("policy.improve", improve), list("policy.compare", compare),
         !strong.length && !weak.length && !improve.length ? list("policy.found", flags) : null
       ]);
       if (r.textFound !== false) {
@@ -1222,9 +1274,10 @@
       if (strong.length) lines.push(t("policy.strong") + ": " + strong.join("; "));
       if (weak.length) lines.push(t("policy.weak") + ": " + weak.join("; "));
       if (improve.length) lines.push(t("policy.improve") + ": " + improve.join("; "));
+      if (compare.length) lines.push(t("policy.compare") + ": " + compare.join(" "));
       chat.messages.push({ role: "assistant", content: lines.join("\n") });
       setStarState("idle");
-      return sayReply(plain);
+      return sayReply(spokenReview(plain, strong, weak, improve, compare));
     }).catch(function (e) {
       status.textContent = t("policy.err", { e: e.message });
       setStarState("idle");

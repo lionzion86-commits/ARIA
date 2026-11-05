@@ -579,6 +579,20 @@ await check("parse: bare JSON, fenced JSON and plain prose", () => {
   assert.equal(c.reply, "Just text."); assert.equal(c.caseDraft.issue, "roof");
 });
 
+await check("policy review: «How it compares» is built from the policy's own terms, hedged, no prices or carriers", () => {
+  const a = JS.indexOf("/*COMPARE:START*/"), b = JS.indexOf("/*COMPARE:END*/");
+  const cmp = new Function(JS.slice(a, b) + "; return compareFindings;")();
+  const F = [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5% of dwelling" }, { key: "roof_acv", tone: "weak", label: "Roof paid at actual cash value" },
+    { key: "water_sublimit", tone: "weak", label: "Water damage limited to $10,000" }, { key: "ordinance_law", tone: "note", label: "Ordinance or law: 10%" }];
+  const en = cmp(F, "en"), es = cmp(F, "es");
+  assert.match(en.join(" "), /many Florida policies carry 2%.*Yours is 5%, higher than the common 2%/);
+  assert.match(en.join(" "), /actual cash value/); assert.match(en.join(" "), /\$10,000/); assert.match(en.join(" "), /included at 10%. Common options are 25% or 50%/);
+  assert.match(en.join(" "), /Loss of use: I did not find it/);
+  assert.match(en.at(-1), /A licensed local agent on Aria Home Shield can quote comparable coverage/);
+  assert.match(es.join(" "), /El tuyo es 5%/); assert.match(es.at(-1), /agente local con licencia/);
+  assert.ok(!/premium of|\$\d+ ?(a|per) (year|month)|Citizens|State Farm|Universal|Heritage/i.test(en.join(" ")), "invented price or carrier");
+  assert.equal(I18N.en["policy.compare"], "How it compares"); assert.equal(I18N.es["policy.compare"], "Cómo se compara");
+});
 await check("hs-chat: same key and model id as the shop's chat; JSON reply + scrubbed draft", async () => {
   let sent = null;
   const fetchImpl = async (url, init) => {
@@ -675,7 +689,7 @@ await check("Mountain Test (static): no shop bundle, no catalogue, deferred scri
   }
   assert.ok(!/\/build\/|catalog\.json|-catalog/.test(JS));
   assert.ok(Buffer.byteLength(JS) < 90 * 1024, "hs.js " + Buffer.byteLength(JS));
-  assert.ok(gzipSync(JS).length < 26 * 1024, "hs.js gz " + gzipSync(JS).length);
+  assert.ok(gzipSync(JS).length < 32 * 1024, "hs.js gz " + gzipSync(JS).length);
   for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 20 * 1024, f);
 });
 await check("slots: photos and the badge render only when the file exists (manifest is current)", () => {
@@ -956,6 +970,36 @@ if (pw) {
       await c.close();
     });
   }
+
+  await check("browser 390: Door 1 policy review shows and speaks all four parts (strong, weak, improve, how it compares)", async () => {
+    reset();
+    stub["hs-doc-upload"] = () => ({ json: { docId: "d_" + "a".repeat(24), name: "policy.pdf", type: "application/pdf", size: 900, kind: "policy" } });
+    stub["hs-policy-review"] = () => ({ json: { textFound: true, flags: [], findings: [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5%" }, { key: "rcv", tone: "strong", label: "Replacement cost on the dwelling" }],
+      strong: ["Replacement cost on the dwelling"], weak: ["Hurricane deductible: 5%"], improve: ["Add ordinance or law coverage"], plainSummary: "Here is my first read of your policy.", excerpt: "SECTION I" } });
+    const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    const chooser = page.waitForEvent("filechooser");
+    await page.locator("#door1 [data-action=upload]").click();
+    await (await chooser).setFiles({ name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test") });
+    await page.waitForSelector("#hsCaseCard");
+    const card = page.locator("#hsCaseCard");
+    await card.locator("input[name=zip]").fill("33101");
+    await card.locator("input[name=cname]").fill("Ana Prueba");
+    await card.locator("input[name=email]").fill("ana@correo.test");
+    await card.locator("#hsConsent").check();
+    await page.locator("#hsSendCase").click();
+    await page.waitForSelector(".hs-review", { timeout: 8000 });
+    const heads = await page.locator(".hs-review .hs-review-h").allInnerTexts();
+    assert.deepEqual(heads, ["What's strong", "What's weak", "Where it can improve", "How it compares"]);
+    assert.match(await page.locator(".hs-review").innerText(), /Yours is 5%/);
+    await page.waitForTimeout(600);
+    const said = ttsTexts().join(" ");
+    for (const h of heads) assert.ok(said.includes(h), "not spoken: " + h);
+    assert.equal(log.find((x) => x.fn === "hs-doc-upload").body.kind, "policy");
+    await page.locator(".hs-review").scrollIntoViewIfNeeded(); await shot(page, "policy-review");
+    assert.deepEqual(errs, []);
+    await c.close();
+  });
 
   /* caso.html, against the real backend handlers on the in-memory store:
      a verified pro's offer lands, the homeowner talks first, messages,

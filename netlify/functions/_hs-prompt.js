@@ -50,19 +50,20 @@ function lines(list) {
 export function policyContext(policy) {
   if (!policy || typeof policy !== "object") return "";
   const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 12).map((x) => x.slice(0, 240)) : []);
-  const strong = arr(policy.strong), weak = arr(policy.weak), improve = arr(policy.improve), flags = arr(policy.flags);
+  const strong = arr(policy.strong), weak = arr(policy.weak), improve = arr(policy.improve), compare = arr(policy.compare), flags = arr(policy.flags);
   const excerpt = typeof policy.excerpt === "string" ? policy.excerpt.slice(0, 6000) : "";
-  if (!strong.length && !weak.length && !improve.length && !flags.length && !excerpt) return "";
+  if (!strong.length && !weak.length && !improve.length && !compare.length && !flags.length && !excerpt) return "";
   return `\n\nTHE HOMEOWNER'S POLICY (uploaded; an automated first read, which can miss things)
 Strong: ${strong.join("; ") || "none found"}
 Weak: ${weak.join("; ") || "none found"}
 Can improve: ${improve.join("; ") || "none found"}
+How it compares (terms vs what is common in Florida; no prices): ${compare.join(" ") || "not available"}
 Other flags: ${flags.join("; ") || "none"}
 Excerpt of the policy text (do not repeat names, addresses or policy numbers from it):
 """
 ${excerpt}
 """
-Use this to answer their questions about their coverage in plain words. Say what the policy text says, not what it probably means legally, and suggest a licensed insurance agent or public adjuster confirm anything important.`;
+Use this to answer their questions about their coverage in plain words. Never invent premiums, prices or carrier names when comparing; a licensed local agent can quote comparable coverage. Say what the policy text says, not what it probably means legally, and suggest a licensed insurance agent or public adjuster confirm anything important.`;
 }
 
 export function buildHsSystemPrompt({ lang = "en", caseDraft = null, voice = false, policy = null } = {}) {
