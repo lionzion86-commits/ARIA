@@ -12,7 +12,7 @@ import { proFromEvent } from "./_hs-auth.js";
 
 export const PART_BYTES = 4 * 1024 * 1024;
 
-export const handler = endpoint({ methods: ["GET"], rate: { bucket: "doc-get", limit: 300, windowSec: 3600, methods: ["GET"] } }, async ({ event, S, query }) => {
+export default endpoint({ methods: ["GET"], rate: { bucket: "doc-get", limit: 300, windowSec: 3600, methods: ["GET"] } }, async ({ event, S, query }) => {
   if (!isId("doc", query.d) || !isId("case", query.c)) return fail(404, "not_found", "Not found");
   let c = null;
   if (query.t) c = await caseForToken(S, query.c, query.t);

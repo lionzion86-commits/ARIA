@@ -18,6 +18,8 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
+// hs endpoints are v2 functions (default export, #443 c.6666325601); the webhook is still Lambda-shaped.
+const fnOf = (m) => m.default || m.handler;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const OUT = process.argv[2] || join(tmpdir(), "hs-screens");
@@ -44,7 +46,7 @@ store.__setStoreFactory((n) => (STORES[n] ||= memStore()));
 store.__setMailer(async () => ({ sent: false, error: "test" }));
 process.env.ADMIN_EMAILS = "danny@correo.test";
 const handlers = {};
-async function fn(name) { return (handlers[name] ||= (await import(join(FN, name + ".js"))).handler); }
+async function fn(name) { return (handlers[name] ||= fnOf(await import(join(FN, name + ".js")))); }
 async function call(name, method, body, cookie, query) {
   const r = await (await fn(name))({ httpMethod: method, headers: { cookie: cookie || "", "x-nf-client-connection-ip": "127.0.0.1" }, queryStringParameters: query || {}, body: body ? JSON.stringify(body) : undefined });
   return { status: r.statusCode, body: r.isBase64Encoded ? null : JSON.parse(r.body || "{}") };

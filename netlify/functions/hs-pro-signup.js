@@ -52,7 +52,7 @@ export function validatePro(b) {
     desk, licenseType: b.licenseType, licenseNumber: licenseNumber.toUpperCase(), licenseState, serviceArea, serviceZips } };
 }
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "pro-signup", limit: 5, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "pro-signup", limit: 5, windowSec: 3600 } }, async ({ S, body, now }) => {
   const v = validatePro(body);
   if (v.error) return fail(400, v.error[0], v.error[1]);
   const { password, ...p } = v.pro;

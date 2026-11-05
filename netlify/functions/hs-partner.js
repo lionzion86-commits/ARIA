@@ -151,7 +151,7 @@ A.submitupload = async ({ S, pro, body, now }) => {
   return reply(200, { docId: id, kind });
 };
 
-export const handler = endpoint({ methods: ["GET", "POST"], maxBody: 6 * 1024 * 1024, rate: { bucket: "partner", limit: 600, windowSec: 3600 } }, async ({ event, S, body, now }) => {
+export default endpoint({ methods: ["GET", "POST"], maxBody: 6 * 1024 * 1024, rate: { bucket: "partner", limit: 600, windowSec: 3600 } }, async ({ event, S, body, now }) => {
   const pro = await proFromEvent(event, S);
   if (!pro) return fail(401, "signin", "Sign in");
   if (!DESKS.includes(pro.desk)) return fail(403, "no_desk", "This account has no partner desk");

@@ -6,7 +6,7 @@ import { contactAllowed } from "./_hs-partners.js";
 import { endpoint, reply, fail, getJSON, isId, anonymizeCase, connectedView, caseMatchesPro, docsFor } from "./_hs-store.js";
 import { proFromEvent } from "./_hs-auth.js";
 
-export const handler = endpoint({ methods: ["GET"] }, async ({ event, S, query }) => {
+export default endpoint({ methods: ["GET"] }, async ({ event, S, query }) => {
   const pro = await proFromEvent(event, S);
   if (!pro) return fail(401, "signin", "Sign in");
   if (!pro.verified) return fail(403, "pending_verification", "Your license is pending verification");

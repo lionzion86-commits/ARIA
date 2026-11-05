@@ -10,7 +10,7 @@ import { endpoint, reply, fail, getJSON, loadAll, isId, str, proSelf, baseHeader
 import { adminFromEvent } from "./_hs-auth.js";
 import { readSettings, writeSettings, appendLedger, balanceOf, allLedger, settleClaim, membershipOk, DESKS } from "./_hs-partners.js";
 
-export const handler = endpoint({ methods: ["GET", "POST"] }, async ({ event, S, body, query, now }) => {
+export default endpoint({ methods: ["GET", "POST"] }, async ({ event, S, body, query, now }) => {
   const admin = await adminFromEvent(event, S);
   if (!admin) return fail(403, "admin_only", "Admins only");
   if (event.httpMethod === "GET") {

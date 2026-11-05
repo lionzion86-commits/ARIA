@@ -329,3 +329,34 @@ button{cursor:pointer}
   .hs-barrier-grid{grid-template-columns:1.2fr 1fr;gap:48px;padding:44px}
   .hs-barrier-mirror{padding-top:0;border-top:0;padding-left:40px;border-left:1px solid var(--line)}
 }
+
+/* Aria, cut out (alpha frames): no white disc, she stands on the page. */
+.hs-cut .hs-star-face{background:transparent;border-radius:0;overflow:visible;box-shadow:none}
+.hs-cut .hs-star-face img{object-fit:contain}
+.hs-cut .hs-star-glow{inset:4%;background:radial-gradient(closest-side,rgba(236,210,154,.55),rgba(214,180,106,0))}
+.hs-cut[data-state=listening] .hs-star-face{box-shadow:none}
+.hs-cut[data-state=listening] .hs-star-glow{opacity:1;animation:none}
+.hs-cut[data-state=listening] .hs-star-face img{filter:drop-shadow(0 0 10px rgba(236,210,154,.9)) drop-shadow(0 0 22px rgba(214,180,106,.55))}
+.hs-star-hero.hs-cut{width:170px;height:214px}
+.hs-star-mini.hs-cut{width:56px;height:70px}
+/* The floating launcher: always there, bottom-right, like the shop's Aria. */
+body[data-page=home]{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
+.hs-float{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:86px;height:108px;z-index:35}
+.hs-float .hs-star-face{animation:hsBob 3.4s ease-in-out infinite}
+.hs-float[data-state=speaking] .hs-star-face{animation:hsTalk .9s ease-in-out infinite}
+body.hs-sheet-open .hs-float{display:none}
+@keyframes hsBob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.03)}}
+
+@media (min-width:980px){.hs-star-hero.hs-cut{width:238px;height:300px}.hs-float{width:96px;height:121px;right:24px;bottom:24px}}
+
+.hs-caso-head .hs-star-caso{width:51px;height:64px}
+/* A file the homeowner sent: thumbnail or chip, with its state. */
+.hs-file{display:grid;gap:8px;padding:8px;max-width:72%}
+.hs-thumb{display:block;width:100%;max-width:220px;max-height:280px;object-fit:cover;border-radius:12px;background:var(--ink)}
+.hs-chip{display:inline-block;padding:10px 12px;border-radius:10px;background:var(--ink);border:1px solid var(--line);font-size:14px;word-break:break-all}
+.hs-file-st{font-size:12.5px;color:var(--muted);padding:0 4px 2px}
+.hs-file-st[data-st=sending]::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--gold);animation:hsPulse 1s infinite}
+.hs-file-st[data-st=received]{color:var(--ok)}
+.hs-file-st[data-st=received]::before{content:"";display:inline-block;width:9px;height:5px;margin:0 7px 3px 1px;border-left:2px solid var(--ok);border-bottom:2px solid var(--ok);transform:rotate(-45deg)}
+.hs-file-st[data-st=failed]{color:var(--err)}
+.hs-file[data-st=sending] .hs-thumb{opacity:.7}

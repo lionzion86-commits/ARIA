@@ -28,7 +28,7 @@ function homeownerEmail(c, pro) {
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "pro-offer", limit: 60, windowSec: 3600 } }, async ({ event, S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "pro-offer", limit: 60, windowSec: 3600 } }, async ({ event, S, body, now }) => {
   const pro = await proFromEvent(event, S);
   if (!pro) return fail(401, "signin", "Sign in");
   if (!pro.verified) return fail(403, "pending_verification", "Your license is pending verification");
