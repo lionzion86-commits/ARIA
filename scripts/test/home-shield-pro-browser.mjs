@@ -139,6 +139,7 @@ try {
   await page.waitForSelector(".case");
   const body1 = await page.textContent("#app");
   for (const n of PII) assert.ok(!body1.includes(n), "board leaked " + n);
+  for (const lang of ["es", "en"]) { await page.click(`[data-lang="${lang}"]`); assert.ok(!(/\broofers?\b|techero|techador|contratista de techos/i).test(await page.evaluate(() => document.body.innerText)), "pro board wording " + lang); }
   ok("board shows the anonymized case, no PII");
 
   /* 3. A new case arrives: ping + toast on the next 10 s poll. */
@@ -198,6 +199,7 @@ try {
   await ap.waitForSelector("[data-verify]");
   await ap.screenshot({ path: join(OUT, "hs-pro-7-admin.png") });
   console.log("    shot " + join(OUT, "hs-pro-7-admin.png"));
+  assert.ok(!(/\broofers?\b|techero|techador|contratista de techos/i).test(await ap.evaluate(() => document.body.innerText)), "admin wording");
   ok("admin lists pros");
 
   /* No horizontal scroll at 390. */

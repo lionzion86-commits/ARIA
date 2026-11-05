@@ -76,6 +76,9 @@
   var S = { lang: "en", tab: "pros", pros: null, cases: null };
   try { var l = new URLSearchParams(location.search).get("lang") || localStorage.getItem("hs_lang"); if (l === "es") S.lang = "es"; } catch (e) {}
   function t(k) { return T[S.lang][k] || T.en[k] || k; }
+  var LBL = { en: { roofer: "Contractor", public_adjuster: "Public adjuster", attorney: "Attorney", insurance_agent: "Insurance agent", inspector: "Inspector", roofing_contractor: "Contractor license", general_contractor: "General contractor", home_inspector: "Home inspector", other: "Other" },
+    es: { roofer: "Contratista", public_adjuster: "Ajustador público", attorney: "Abogado", insurance_agent: "Agente de seguros", inspector: "Inspector", roofing_contractor: "Licencia de contratista", general_contractor: "Contratista general", home_inspector: "Inspector de viviendas", other: "Otra" } };
+  function lbl(k) { return (LBL[S.lang] || LBL.en)[k] || String(k || "").replace(/_/g, " "); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function get(path) { return fetch("/.netlify/functions/" + path, { credentials: "same-origin" }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; }); }); }
   var app = document.getElementById("app");
@@ -107,8 +110,8 @@
       var a = p.serviceZips && p.serviceZips.length ? p.serviceZips.join(", ") : (p.serviceArea ? p.serviceArea.radiusMiles + " " + t("within") + " " + p.serviceArea.centerZip : "");
       return '<div class="card"><div class="row"><div class="grow"><strong>' + esc(p.name) + "</strong>" + (p.company ? ' <span class="muted">&middot; ' + esc(p.company) + "</span>" : "") +
         ' <span class="tag ' + (p.verified ? "ok" : "gold") + '">' + esc(p.verified ? t("verified") : t("pending")) + "</span>" +
-        '<dl class="kv"><dt>' + esc(t("license")) + "</dt><dd>" + esc(p.licenseType) + " &middot; " + esc(p.licenseState) + " " + esc(p.licenseNumber) + "</dd>" +
-        "<dt>" + esc(t("trades")) + "</dt><dd>" + esc((p.trades || []).join(", ")) + "</dd><dt>" + esc(t("area")) + "</dt><dd>" + esc(a) + "</dd>" +
+        '<dl class="kv"><dt>' + esc(t("license")) + "</dt><dd>" + esc(lbl(p.licenseType)) + " &middot; " + esc(p.licenseState) + " " + esc(p.licenseNumber) + "</dd>" +
+        "<dt>" + esc(t("trades")) + "</dt><dd>" + esc((p.trades || []).map(lbl).join(", ")) + "</dd><dt>" + esc(t("area")) + "</dt><dd>" + esc(a) + "</dd>" +
         "<dt>" + esc(t("email")) + "</dt><dd>" + esc(p.email) + "</dd><dt>" + esc(t("phone")) + "</dt><dd>" + esc(p.phone) + "</dd>" +
         "<dt>" + esc(t("joined")) + "</dt><dd>" + esc((p.createdAt || "").slice(0, 10)) + "</dd><dt>" + esc(t("requests")) + "</dt><dd>" + p.offers + " &middot; " + esc(t("connected")) + " " + p.connected + "</dd>" +
         (p.verificationNote ? "<dt>Note</dt><dd>" + esc(p.verificationNote) + "</dd>" : "") + "</dl>" +
@@ -132,7 +135,7 @@
     pane.innerHTML = list.map(function (c) {
       return '<div class="card"><div class="row"><strong class="grow">' + esc(c.issue.replace(/_/g, " ")) + " &middot; " + esc(c.area.label || "") + ", " + esc(c.area.state || "") + " " + esc(c.area.zip3 || "") + 'xx</strong><span class="tag ' + (c.status === "connected" ? "ok" : "gold") + '">' + esc(t("st_" + c.status)) + "</span></div>" +
         '<p class="small muted">' + esc(c.summary) + "</p>" +
-        '<dl class="kv"><dt>' + esc(t("trades")) + "</dt><dd>" + esc(c.trades.join(", ")) + " &middot; " + esc(c.urgency) + "</dd><dt>" + esc(t("offers")) + "</dt><dd>" +
+        '<dl class="kv"><dt>' + esc(t("trades")) + "</dt><dd>" + esc(c.trades.map(lbl).join(", ")) + " &middot; " + esc(c.urgency) + "</dd><dt>" + esc(t("offers")) + "</dt><dd>" +
         (c.offers.length ? c.offers.map(function (o) { return esc(o.proName || o.proId) + " (" + esc(o.status) + ")"; }).join(", ") : "0") + "</dd>" +
         "<dt>" + esc(t("docs")) + "</dt><dd>" + c.docCount + "</dd><dt>" + esc(t("contact")) + "</dt><dd>" + esc(c.contactOnFile ? t("yes") : t("no")) + "</dd>" +
         "<dt>ID</dt><dd class=\"tiny\">" + esc(c.id) + " &middot; " + esc((c.createdAt || "").slice(0, 16).replace("T", " ")) + "</dd></dl></div>";

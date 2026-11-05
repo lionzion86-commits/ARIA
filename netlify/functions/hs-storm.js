@@ -8,7 +8,9 @@
 import { endpoint, reply, fail, normZip } from "./_hs-store.js";
 import { proFromEvent, adminFromEvent } from "./_hs-auth.js";
 import { zip3Info } from "./_hs-zip3.js";
-import { stormFor } from "./_hs-storm.js";
+import { stormFor, stormAt, geocode } from "./_hs-storm.js";
+import { coverageOf } from "./_hs-profiles.js";
+import { str, rateOk } from "./_hs-store.js";
 
 export default endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) => {
   let state, zip, radius;
@@ -16,10 +18,34 @@ export default endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) =
   if (query.state && (await adminFromEvent(event, S))) {
     state = String(query.state).toUpperCase().slice(0, 2); zip = normZip(query.zip); radius = Math.min(250, Math.max(5, Number(query.radius) || 50));
   } else if (pro && pro.verified) {
-    state = pro.licenseState; zip = (pro.serviceArea && pro.serviceArea.centerZip) || null; radius = (pro.serviceArea && pro.serviceArea.radiusMiles) || 50;
+    /* Coverage (#683): license states + the pro's own range. A radius desk centres on its base ZIP
+       (radius capped at 250 for the storm panel); a statewide desk falls back to its old service-area
+       centre if it has one, else the whole state, labelled so. */
+    const cov = coverageOf(pro);
+    state = cov.licenseStates[0] || pro.licenseState;
+    if (cov.range.mode === "radius") { zip = cov.range.baseZip || null; radius = Math.min(250, Number(cov.range.miles) || 50); }
+    else { zip = (pro.serviceArea && pro.serviceArea.centerZip) || null; radius = Math.min(250, (pro.serviceArea && pro.serviceArea.radiusMiles) || 50); }
   } else return fail(pro ? 403 : 401, pro ? "pending_verification" : "signin", "Sign in with a verified desk");
   if (!/^[A-Z]{2}$/.test(state || "")) return fail(400, "bad_state", "No state");
+  /* Search: a ZIP, city or address typed by the pro. */
+  const q = str(query.q, 160);
+  if (q) {
+    if (!(await rateOk(S, "storm-search", pro ? pro.id : "admin", 120, 3600, now))) return fail(429, "rate_limited", "Too many searches. Wait a few minutes.");
+    const g = await geocode(S, q, now);
+    if (!g) return fail(404, "not_found", "We could not find that place");
+    return reply(200, { ...(await stormAt(S, { ...g, radiusMiles: radius, state: g.state || state }, now)), query: q });
+  }
+  /* Default: the desk's own area, by point. The center ZIP is geocoded once and kept on the pro record. */
+  if (zip) {
+    let geo = pro && pro.centerGeo && pro.centerGeo.zip === zip ? pro.centerGeo : null;
+    if (!geo) {
+      const g = await geocode(S, zip, now);
+      if (g) { geo = { zip, lat: g.lat, lon: g.lon, label: g.label, approximate: g.approximate }; if (pro && !query.state) { pro.centerGeo = geo; await S.pros.setJSON(pro.id, pro); } }
+    }
+    if (geo) return reply(200, { ...(await stormAt(S, { lat: geo.lat, lon: geo.lon, label: geo.label, approximate: geo.approximate, radiusMiles: radius, state }, now)), center: { zip, lat: geo.lat, lon: geo.lon } });
+  }
+  /* Geocoding failed: the whole state, labelled so. */
   const z = zip && zip3Info(zip);
   const center = z ? { zip, lat: z.lat, lon: z.lon } : null;
-  return reply(200, await stormFor(S, { state, center, radiusMiles: radius }, now));
+  return reply(200, { ...(await stormFor(S, { state, center, radiusMiles: radius }, now)), scope: "state" });
 });

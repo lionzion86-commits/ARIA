@@ -61,7 +61,7 @@
       perLead: "Per-lead billing", ringSeconds: "Ring seconds", save: "Save", saved: "Saved", partners: "Partners", ledger: "Ledger",
       credits: "credits", held: "held", available: "available", grant: "Grant", refund: "Refund", note: "Note", membershipOn: "Mark membership active", membershipOff: "Mark membership inactive",
       active: "active", inactive: "inactive", verified: "verified", pending: "pending", docs: "Documents", none: "None",
-      d_roofer: "Roofer", d_public_adjuster: "Public adjuster", d_attorney: "Attorney", legal: "pending legal review",
+      d_roofer: "Contractor", d_public_adjuster: "Public adjuster", d_attorney: "Attorney", d_insurance_agent: "Insurance agent", agentPrice: "Insurance agent pack price (USD for 10 leads, empty = coming soon)", legal: "pending legal review",
       l_purchase: "Pack purchase", l_grant: "Credit grant", l_claim_debit: "Verified claim", l_refund: "Refund", empty: "Nothing yet.",
     },
     es: {
@@ -70,7 +70,7 @@
       perLead: "Cobro por cliente", ringSeconds: "Segundos de timbre", save: "Guardar", saved: "Guardado", partners: "Socios", ledger: "Movimientos",
       credits: "créditos", held: "reservados", available: "disponibles", grant: "Otorgar", refund: "Reembolsar", note: "Nota", membershipOn: "Marcar membresía activa", membershipOff: "Marcar membresía inactiva",
       active: "activa", inactive: "inactiva", verified: "verificado", pending: "pendiente", docs: "Documentos", none: "Ninguno",
-      d_roofer: "Techador", d_public_adjuster: "Ajustador público", d_attorney: "Abogado", legal: "revisión legal pendiente",
+      d_roofer: "Contratista", d_public_adjuster: "Ajustador público", d_attorney: "Abogado", d_insurance_agent: "Agente de seguros", agentPrice: "Precio del paquete de agente de seguros (USD por 10 clientes, vacío = próximamente)", legal: "revisión legal pendiente",
       l_purchase: "Compra de paquete", l_grant: "Créditos otorgados", l_claim_debit: "Reclamo verificado", l_refund: "Reembolso", empty: "Nada todavía.",
     },
   };
@@ -88,13 +88,14 @@
     document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = t(el.dataset.t); });
     if (S.gate) { app.innerHTML = '<div class="card muted">' + esc(t("gate")) + "</div>"; return; }
     if (!S.d) { app.innerHTML = "<p class=muted>...</p>"; return; }
-    var s = S.d.settings, desks = ["roofer", "public_adjuster", "attorney"];
+    var s = S.d.settings, desks = ["roofer", "public_adjuster", "attorney", "insurance_agent"];
     app.innerHTML =
       '<h2 style="margin-top:16px">' + esc(t("settings")) + '</h2><form class="card" id="sf" style="margin-top:10px">' +
       '<label class="row"><input type="checkbox" name="membershipRequired"' + (s.membershipRequired ? " checked" : "") + "> " + esc(t("membershipRequired")) + "</label>" +
       '<label class="small muted" style="display:block;margin-top:8px">' + esc(t("membershipMonthlyUsd")) + '<input class="in" name="membershipMonthlyUsd" inputmode="decimal" value="' + esc(s.membershipMonthlyUsd == null ? "" : s.membershipMonthlyUsd) + '"></label>' +
       '<label class="row" style="margin-top:8px"><input type="checkbox" name="paymentsLive"' + (s.paymentsLive ? " checked" : "") + "> " + esc(t("paymentsLive")) + "</label>" +
       '<p class="small muted" style="margin:10px 0 4px">' + esc(t("perLead")) + "</p>" + desks.map(function (d) { return '<label class="row"><input type="checkbox" name="pl_' + d + '"' + (s.perLeadEnabled[d] ? " checked" : "") + "> " + esc(t("d_" + d)) + (s.perLeadEnabled[d] ? "" : ' <span class="tiny">(' + esc(t("legal")) + ")</span>") + "</label>"; }).join("") +
+      '<label class="small muted" style="display:block;margin-top:8px">' + esc(t("agentPrice")) + '<input class="in" name="agent10" inputmode="decimal" value="' + esc(s.packPrices && s.packPrices.agent10 != null ? s.packPrices.agent10 : "") + '"></label>' +
       '<label class="small muted" style="display:block;margin-top:8px">' + esc(t("ringSeconds")) + '<input class="in" name="ringSeconds" inputmode="numeric" value="' + esc(s.ringSeconds) + '"></label>' +
       '<div class="row" style="margin-top:10px"><button class="btn gold" type="submit">' + esc(t("save")) + '</button><span id="sv" class="small muted"></span></div></form>' +
       '<h2 style="margin-top:20px">' + esc(t("partners")) + "</h2>" + (S.d.partners.length ? S.d.partners.map(function (p) {
@@ -109,8 +110,8 @@
     document.getElementById("sf").onsubmit = function (e) {
       e.preventDefault(); var f = e.target, pl = {};
       desks.forEach(function (d) { pl[d] = f["pl_" + d].checked; });
-      var m = f.membershipMonthlyUsd.value.trim();
-      post({ action: "settings", patch: { membershipRequired: f.membershipRequired.checked, paymentsLive: f.paymentsLive.checked, perLeadEnabled: pl, ringSeconds: Number(f.ringSeconds.value), membershipMonthlyUsd: m === "" ? null : Number(m) } })
+      var m = f.membershipMonthlyUsd.value.trim(), ag = f.agent10.value.trim();
+      post({ action: "settings", patch: { membershipRequired: f.membershipRequired.checked, paymentsLive: f.paymentsLive.checked, perLeadEnabled: pl, ringSeconds: Number(f.ringSeconds.value), membershipMonthlyUsd: m === "" ? null : Number(m), packPrices: { agent10: ag === "" ? null : Number(ag) } } })
         .then(function (r) { if (r.settings) { document.getElementById("sv").textContent = t("saved"); load(); } });
     };
     app.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { var n = app.querySelector('[data-n="' + b.dataset.p + '"]').value; post({ action: b.dataset.g, proId: b.dataset.p, credits: Number(n) }).then(load); }; });

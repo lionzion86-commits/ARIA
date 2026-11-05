@@ -25,7 +25,7 @@ export function validatePro(b) {
   if (name.length < 2) return { error: ["bad_name", "Enter your full name"] };
   const phone = normPhone(b.phone);
   if (!phone) return { error: ["bad_phone", "Enter a valid phone number"] };
-  /* Partner desk (roofer / public_adjuster / attorney): one account = one desk; its trade is implied. */
+  /* Partner desk (roofer = Contractor, public_adjuster, attorney, insurance_agent): one account = one desk; its trade is implied. */
   const desk = b.desk == null || b.desk === "" ? null : (DESKS.includes(b.desk) ? b.desk : undefined);
   if (desk === undefined) return { error: ["bad_desk", "Choose your desk"] };
   const trades = pickList(desk ? [desk, ...(Array.isArray(b.trades) ? b.trades : [])] : b.trades, TRADES);

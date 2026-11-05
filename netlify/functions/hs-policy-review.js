@@ -48,6 +48,11 @@ export default endpoint({ methods: ["POST"], rate: { bucket: "policy-review", li
   const fresh = await getJSON(S.cases, c.id);
   if (fresh) {
     fresh.policyFlags = [...new Set([...(fresh.policyFlags || []), ...flags])].slice(0, 16);
+    /* A weak policy reaches the insurance agent desk (a better policy); the homeowner still chooses. */
+    if (r.weak.length || r.improve.length) {
+      fresh.policyWeak = true;
+      if (!(fresh.trades || []).includes("insurance_agent")) fresh.trades = [...(fresh.trades || []), "insurance_agent"].slice(0, 5);
+    }
     fresh.updatedAt = new Date(now).toISOString();
     await S.cases.setJSON(c.id, fresh);
     if (meta.kind !== "policy") await S.docs.setJSON(`meta/${meta.id}`, { ...meta, kind: "policy" });

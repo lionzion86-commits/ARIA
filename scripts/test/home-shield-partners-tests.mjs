@@ -86,7 +86,7 @@ const R = {};
 await test("settings defaults: free enrollment, payments off, roofer on, PA + attorney pending legal review", async () => {
   const s = await P.readSettings(store.openStores({}));
   assert.deepEqual([s.membershipRequired, s.membershipMonthlyUsd, s.paymentsLive, s.ringSeconds], [false, null, false, 90]);
-  assert.deepEqual(s.perLeadEnabled, { roofer: true, public_adjuster: false, attorney: false });
+  assert.deepEqual(s.perLeadEnabled, { roofer: true, public_adjuster: false, attorney: false, insurance_agent: false });
   assert.equal((await call("hs-partner-admin", { method: "GET" })).status, 403);
   assert.equal((await admin({ action: "settings", patch: { membershipMonthlyUsd: "99" } })).status, 400);
 });
@@ -293,6 +293,19 @@ await test("admin view: partners with balances, ledger is append-only (no edit/d
   noPII(JSON.stringify(g.body.partners), "admin partners");
 });
 
+/* FIXTURE router for the storm sources (the sandbox cannot reach NOAA or the Census). */
+let pointDown = false;
+function stormFixture(url) {
+  const fx = (f) => readFileSync(new URL("./fixtures/hs-storm/" + f, import.meta.url), "utf8");
+  if (url.includes("geocoding.geo.census.gov")) return /Main%20St/i.test(url) ? fx("census-address-miami.json") : fx("census-nomatch.json");
+  const pt = url.match(/alerts\/active\?point=([-\d.]+),([-\d.]+)/);
+  if (pt) { if (pointDown) return null; return Number(pt[1]) < 27 ? fx("nws-point-miami.json") : fx("nws-point-tampa.json"); }
+  if (url.includes("alerts/active?area=FL")) return fx("nws-alerts-FL.json");
+  if (url.includes("today_filtered")) return fx("spc-today.csv");
+  if (url.includes("yesterday_filtered")) return fx("spc-yesterday.csv");
+  return null;
+}
+
 await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC reports by radius, 15-min cache, stale fallback", async () => {
   const W = await import(FN + "_hs-storm.js");
   const fx = (f) => readFileSync(new URL("./fixtures/hs-storm/" + f, import.meta.url), "utf8");
@@ -301,15 +314,22 @@ await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC rep
   W.__setFetch(async (url, o) => {
     seen.push([url, o.headers["User-Agent"]]);
     if (down) throw new Error("network unreachable");
-    const body = url.includes("alerts/active?area=FL") ? fx("nws-alerts-FL.json") : url.includes("today_filtered") ? fx("spc-today.csv") : url.includes("yesterday_filtered") ? fx("spc-yesterday.csv") : null;
+    const body = stormFixture(url);
     return body == null ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
   });
   const r = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.state, "FL"); assert.equal(r.body.source, "NOAA / NWS / SPC"); assert.equal(r.body.stale, false);
-  assert.deepEqual(r.body.alerts.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning", "Tornado Watch"], "rip current filtered out");
+  /* The desk's own area by point (center + N/S/E/W edge for a 50 mi radius), de-duplicated: no Tampa watch for Miami. */
+  assert.equal(r.body.scope, "area");
+  assert.deepEqual(r.body.alerts.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning"], "Miami desk: no Tampa Tornado Watch, no duplicates");
   assert.deepEqual(r.body.alerts[0].moving, { toward: "northwest", mph: 12 });
-  assert.deepEqual(r.body.alerts[2].moving, { toward: "northeast", mph: 30 });
+  assert.equal(seen.filter(([u]) => u.includes("alerts/active?point=")).length, 5, "center + 4 edge points");
+  assert.ok(JSON.parse(STORES["hs-pros"].m.get(R.a.id)).centerGeo.zip === "33130", "center geocoded once, kept on the pro");
+  /* The state-wide parser still filters to damage events. */
+  const all = W.parseAlerts(JSON.parse(fx("nws-alerts-FL.json")));
+  assert.deepEqual(all.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning", "Tornado Watch"], "rip current filtered out");
+  assert.deepEqual(all[2].moving, { toward: "northeast", mph: 30 });
   assert.equal(r.body.alerts[1].moving, null);
   assert.deepEqual(r.body.counts, { wind: 3, hail: 1, tornado: 1 });
   const locs = r.body.reports.map((x) => x.location);
@@ -332,6 +352,102 @@ await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC rep
   assert.deepEqual(none.alerts, []); assert.equal(none.stale, true); assert.ok(none.errors[0].includes("unreachable"));
   assert.equal((await call("hs-storm", { method: "GET" })).status, 401);
   W.__setFetch(null);
+});
+
+await test("storm panel follows #683 coverage: a radius desk centres on its base ZIP even with no serviceArea", async () => {
+  const W = await import(FN + "_hs-storm.js");
+  W.__setFetch(async (url) => { const body = stormFixture(url); return body == null ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body }; });
+  const key = R.a.id;
+  const before = STORES["hs-pros"].m.get(key);
+  const pro = JSON.parse(before);
+  delete pro.serviceArea; delete pro.centerGeo;
+  pro.licenseStates = ["FL"]; pro.range = { mode: "radius", baseZip: "33130", miles: 50 };
+  STORES["hs-pros"].m.set(key, JSON.stringify(pro));
+  try {
+    const r = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.scope, "area", "not the whole-state fallback");
+    assert.equal(r.body.center && r.body.center.zip, "33130");
+    assert.ok(!r.body.alerts.some((a) => a.event === "Tornado Watch"), "Miami desk still sees no Tampa watch");
+    /* Statewide desk with no old centre: the whole state, labelled. */
+    pro.range = { mode: "statewide" }; delete pro.centerGeo;
+    STORES["hs-pros"].m.set(key, JSON.stringify(pro));
+    const s2 = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+    assert.equal(s2.status, 200); assert.equal(s2.body.scope, "state"); assert.equal(s2.body.state, "FL");
+  } finally { STORES["hs-pros"].m.set(key, before); W.__setFetch(null); }
+});
+
+await test("storm search (FIXTURES): address, ZIP and city geocode; point alerts; state fallback labelled", async () => {
+  const W = await import(FN + "_hs-storm.js");
+  W.__setFetch(async (url) => { const b = stormFixture(url); return b == null ? { ok: false, status: 503 } : { ok: true, status: 200, json: async () => JSON.parse(b), text: async () => b }; });
+  const S = store.openStores({});
+  const a = await W.geocode(S, "123 Main St, Miami FL");
+  assert.deepEqual([a.label, a.approximate, a.source, a.lat], ["123 MAIN ST, MIAMI, FL, 33130", false, "census", 25.7743]);
+  const z = await W.geocode(S, "33139");
+  assert.deepEqual([z.approximate, z.source, z.state], [true, "zip3", "FL"]); assert.match(z.label, /33139 \(Miami area\)/);
+  const c = await W.geocode(S, "Tampa, FL");
+  assert.deepEqual([c.label, c.approximate], ["Tampa area, FL", true]);
+  assert.equal(await W.geocode(S, "zzzz qqqq"), null);
+  const t = await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "Tampa, FL" } });
+  assert.equal(t.status, 200);
+  assert.equal(t.body.location.label, "Tampa area, FL"); assert.equal(t.body.location.approximate, true); assert.equal(t.body.query, "Tampa, FL");
+  assert.deepEqual(t.body.alerts.map((x) => x.event), ["Tornado Watch"]);
+  assert.ok(t.body.reports.some((x) => x.location === "2 S CLEARWATER") && !t.body.reports.some((x) => x.location === "KENDALL"), "reports around the searched point");
+  const m = await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "123 Main St, Miami FL" } });
+  assert.equal(m.body.location.label, "123 MAIN ST, MIAMI, FL, 33130"); assert.equal(m.body.location.approximate, false);
+  assert.ok(!m.body.alerts.some((x) => x.event === "Tornado Watch"));
+  assert.equal((await call("hs-storm", { method: "GET", cookie: R.a.cookie, query: { q: "zzzz qqqq" } })).status, 404);
+  /* Point queries down with nothing cached: whole state, scope "state". */
+  pointDown = true;
+  const f = await W.stormAt(S, { lat: 30.44, lon: -84.28, radiusMiles: 20, state: "FL", label: "Tallahassee" });
+  assert.equal(f.scope, "state"); assert.equal(f.alerts.length, 3);
+  pointDown = false;
+  W.__setFetch(null);
+});
+
+await test("insurance agent desk: pending review by default, pricing coming soon until admin sets it, weak policies reach it", async () => {
+  const S = store.openStores({});
+  assert.equal((await P.readSettings(S)).perLeadEnabled.insurance_agent, false);
+  assert.equal((await P.readSettings(S)).packPrices.agent10, null);
+  const ag = await desk("agent1@correo.test", "insurance_agent");
+  let st = await state(ag);
+  assert.equal(st.body.block, "legal_review");
+  assert.deepEqual(st.body.packs.map((k) => [k.id, k.credits, k.usd]), [["agent10", 10, null]]);
+  assert.equal(st.body.balance.sampleAvailable, false, "no free sample on the agent desk");
+  await admin({ action: "settings", patch: { perLeadEnabled: { insurance_agent: true } } });
+  assert.equal((await call("hs-partner", { cookie: ag.cookie, body: { action: "buypack", packId: "agent10" } })).body.code, "pricing_soon");
+  assert.equal((await admin({ action: "settings", patch: { packPrices: { agent10: -5 } } })).status, 400);
+  assert.equal((await admin({ action: "settings", patch: { packPrices: { agent10: 2500 } } })).status, 200);
+  assert.equal((await state(ag)).body.packs[0].usd, 2500);
+  assert.equal((await call("hs-partner", { cookie: ag.cookie, body: { action: "buypack", packId: "agent10" } })).body.code, "payments_off");
+  /* A case with the agent trade rings the agent desk; claim + homeowner share = one debit at pack price / 10. */
+  await admin({ action: "grant", proId: ag.id, credits: 1 });
+  const c = await newCase({ issue: "policy_review", trades: ["insurance_agent"], zip: "33131" });
+  st = await state(ag);
+  assert.ok(st.body.rings.some((r) => r.caseId === c.caseId && r.kind === "lead"));
+  const a = await call("hs-partner", { cookie: ag.cookie, body: { action: "answerlead", caseId: c.caseId } });
+  await call("hs-offer-respond", { body: { caseId: c.caseId, token: c.token, offerId: a.body.offer.id, action: "accept" } });
+  const d = ledgerOf(ag.id).filter((e) => e.type === "claim_debit");
+  assert.equal(d.length, 1); assert.equal(d[0].credits, -1); assert.equal(d[0].usd, 250);
+  /* hs-policy-review marks a weak policy and adds the agent trade (source check; the PDF path is covered in home-shield-tests). */
+  assert.match(readFileSync(new URL("../../netlify/functions/hs-policy-review.js", import.meta.url), "utf8"), /policyWeak = true[\s\S]*"insurance_agent"/);
+  await admin({ action: "settings", patch: { perLeadEnabled: { insurance_agent: false }, packPrices: { agent10: null } } });
+});
+
+await test("wording: displayed text never says roofer / techero / techador / contratista de techos", async () => {
+  const FORBID = /\broofers?\b|techero|techador|contratista de techos/i;
+  for (const f of ["home-shield/partners/partners.js", "home-shield/partners/admin.html", "home-shield/partners/index.html", "home-shield/pro/pro.js", "home-shield/pro/index.html", "home-shield/admin.html"]) {
+    const src = readFileSync(new URL("../../" + f, import.meta.url), "utf8");
+    const strings = [...src.matchAll(/"((?:[^"\\\n]|\\.){3,})"/g)].map((m) => m[1]).filter((x) => /\s/.test(x) || /^[A-ZÁÉÍÓÚ]/.test(x));
+    const html = !f.endsWith(".html") ? "" : src.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ");
+    for (const x of [...strings, html]) assert.ok(!FORBID.test(x), `${f}: "${String(x).match(FORBID)}" in "${String(x).slice(0, 80)}"`);
+  }
+  /* Backend-generated copy (emails, area labels) too. */
+  for (const f of ["hs-offer-respond.js", "hs-pro-offer.js", "_hs-zip3.js", "_hs-policy.js", "hs-partner.js"]) {
+    const src = readFileSync(new URL("../../netlify/functions/" + f, import.meta.url), "utf8").replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, "");
+    const strings = [...src.matchAll(/["`]((?:[^"`\\\n]|\\.){6,})["`]/g)].map((m) => m[1]).filter((x) => /\s/.test(x));
+    for (const x of strings) assert.ok(!FORBID.test(x), `${f}: "${x.slice(0, 80)}"`);
+  }
 });
 
 await test("EN/ES parity: every dashboard string exists in both languages", async () => {

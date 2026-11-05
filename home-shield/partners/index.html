@@ -183,6 +183,16 @@
   .pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .pack + .pack { margin-top: 10px; }
   .pack b { font-family: var(--serif); font-size: 20px; }
+  .desks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .desks legend { grid-column: 1 / -1; }
+  .deskopt { position: relative; display: block; cursor: pointer; }
+  .deskopt input { position: absolute; opacity: 0; inset: 0; }
+  .deskopt span { display: block; height: 100%; padding: 12px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--bg-2); }
+  .deskopt b { display: block; font-family: var(--serif); font-size: 17px; margin-bottom: 4px; }
+  .deskopt small { display: block; font-size: 12px; line-height: 1.35; color: var(--ink-3); }
+  .deskopt input:checked + span { border-color: var(--gold); background: var(--gold-soft); box-shadow: 0 0 0 1px rgba(201, 162, 74, .4); }
+  .deskopt input:checked + span b { color: var(--gold-2); }
+  .deskopt input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
 </style>
 </head>
 <body>

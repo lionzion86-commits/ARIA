@@ -7,10 +7,14 @@
 // When an upstream fails, the last good copy is served with stale:true and its time; with
 // no good copy the list is empty and `error` says so. Nothing is ever invented.
 import { getJSON } from "./_hs-store.js";
+import { zip3Info, findArea } from "./_hs-zip3.js";
 
 export const UA = "AriaHomeShield (contact via site)";
 export const TTL_MS = 15 * 60 * 1000;
 export const NWS_URL = (st) => `https://api.weather.gov/alerts/active?area=${encodeURIComponent(st)}`;
+export const NWS_POINT_URL = (lat, lon) => `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`;
+export const CENSUS_URL = (q) => `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(q)}&benchmark=Public_AR_Current&format=json`;
+export const GEO_TTL_MS = 30 * 24 * 3600 * 1000;
 export const SPC_URL = (day) => `https://www.spc.noaa.gov/climo/reports/${day}_filtered.csv`;
 export const EVENTS = /^(Hurricane|Tropical Storm|Severe Thunderstorm|Tornado|High Wind|Extreme Wind|Flood|Flash Flood|Coastal Flood|Storm Surge|Hail)\b/i;
 
@@ -57,9 +61,9 @@ export function milesBetween(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-async function cached(S, key, now, load) {
+async function cached(S, key, now, load, ttl = TTL_MS) {
   const prev = await getJSON(S.storm, key);
-  if (prev && now - Date.parse(prev.fetchedAt) < TTL_MS) return { ...prev, stale: false };
+  if (prev && now - Date.parse(prev.fetchedAt) < ttl) return { ...prev, stale: false };
   try {
     const data = await load();
     const rec = { fetchedAt: new Date(now).toISOString(), data };
@@ -77,8 +81,8 @@ async function get(url, type) {
 }
 
 /** The storm picture for a state and a center (lat/lon) within radiusMiles. */
-export async function stormFor(S, { state, center, radiusMiles }, now = Date.now()) {
-  const a = await cached(S, `alerts/${state}`, now, async () => parseAlerts(await get(NWS_URL(state), "application/geo+json")));
+export async function stormFor(S, { state, center, radiusMiles }, now = Date.now(), { skipStateAlerts = false } = {}) {
+  const a = skipStateAlerts ? { data: [], fetchedAt: null, stale: false } : await cached(S, `alerts/${state}`, now, async () => parseAlerts(await get(NWS_URL(state), "application/geo+json")));
   const t = await cached(S, "spc/today", now, async () => parseSpc(await get(SPC_URL("today"), "text/csv"), "today"));
   const y = await cached(S, "spc/yesterday", now, async () => parseSpc(await get(SPC_URL("yesterday"), "text/csv"), "yesterday"));
   const reports = [...t.data, ...y.data].map((r) => ({ ...r, miles: center ? Math.round(milesBetween(center, r)) : null }))
@@ -90,4 +94,77 @@ export async function stormFor(S, { state, center, radiusMiles }, now = Date.now
   return { state, center, radiusMiles, alerts: a.data, reports: reports.slice(0, 200), counts,
     stale: a.stale || t.stale || y.stale, fetchedAt: fetched[0] || null,
     errors: [a.error, t.error, y.error].filter(Boolean), source: "NOAA / NWS / SPC" };
+}
+
+/* ---------------------------------------------------------------- geocoding (free, no key) */
+const norm = (q) => String(q || "").replace(/[\u0000-\u001F<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+
+/**
+ * A ZIP, city or street address -> { lat, lon, label, approximate, source } or null.
+ * The US Census geocoder first (exact for street addresses); a ZIP or a city it cannot place
+ * falls back to the committed ZIP3 table and is marked approximate. Cached 30 days per query.
+ */
+export async function geocode(S, raw, now = Date.now()) {
+  const q = norm(raw);
+  if (q.length < 3) return null;
+  const r = await cached(S, `geo/${q.toLowerCase()}`, now, async () => {
+    let hit = null;
+    try {
+      const j = await get(CENSUS_URL(q), "application/json");
+      const m = j && j.result && Array.isArray(j.result.addressMatches) ? j.result.addressMatches[0] : null;
+      if (m && m.coordinates && Number.isFinite(m.coordinates.y) && Number.isFinite(m.coordinates.x)) {
+        hit = { lat: m.coordinates.y, lon: m.coordinates.x, label: m.matchedAddress || q, approximate: false, source: "census",
+          state: (m.addressComponents && m.addressComponents.state) || null };
+      }
+    } catch { /* fall back below */ }
+    if (!hit) {
+      const zip = (q.match(/\b(\d{5})(?:-\d{4})?\b/) || [])[1];
+      const z = zip && zip3Info(zip);
+      if (z) hit = { lat: z.lat, lon: z.lon, label: `${zip} (${z.area})`, approximate: true, source: "zip3", state: z.state };
+      else {
+        const a = findArea(q);
+        if (a) hit = { lat: a.lat, lon: a.lon, label: a.label + (a.state ? `, ${a.state}` : ""), approximate: true, source: "zip3", state: a.state };
+      }
+    }
+    if (!hit) throw new Error("no match");
+    return hit;
+  }, GEO_TTL_MS);
+  return r.data && r.data.lat != null ? r.data : null;
+}
+
+/** Points to ask NWS about: the center, plus N/S/E/W on the radius edge when the radius is over 25 miles. */
+export function probePoints(center, radiusMiles) {
+  const pts = [center];
+  if (radiusMiles > 25) {
+    const dLat = radiusMiles / 69.17, dLon = radiusMiles / (69.17 * Math.cos((center.lat * Math.PI) / 180));
+    pts.push({ lat: center.lat + dLat, lon: center.lon }, { lat: center.lat - dLat, lon: center.lon }, { lat: center.lat, lon: center.lon + dLon }, { lat: center.lat, lon: center.lon - dLon });
+  }
+  return pts.map((p) => ({ lat: Math.round(p.lat * 100) / 100, lon: Math.round(p.lon * 100) / 100 }));
+}
+
+/**
+ * The storm picture for a POINT: NWS alerts whose zones/polygons cover the center (and the
+ * radius edge), de-duplicated by id; SPC reports within radiusMiles. When every point query
+ * fails with nothing cached, it falls back to the whole state (scope "state") -- labelled.
+ */
+export async function stormAt(S, { lat, lon, radiusMiles, label = null, approximate = false, state = null }, now = Date.now()) {
+  const center = { lat, lon };
+  const res = [];
+  for (const p of probePoints(center, radiusMiles)) {
+    res.push(await cached(S, `alerts/pt/${p.lat.toFixed(2)},${p.lon.toFixed(2)}`, now, async () => parseAlerts(await get(NWS_POINT_URL(p.lat, p.lon), "application/geo+json"))));
+  }
+  const ok = res.filter((r) => r.fetchedAt);
+  let alerts, scope = "area", alertErrors = res.map((r) => r.error).filter(Boolean), alertStale = res.some((r) => r.stale), alertTimes = ok.map((r) => r.fetchedAt);
+  if (ok.length) {
+    const seen = new Map();
+    for (const r of ok) for (const a of r.data) if (!seen.has(a.id)) seen.set(a.id, a);
+    alerts = [...seen.values()];
+  } else if (state) {
+    const st = await cached(S, `alerts/${state}`, now, async () => parseAlerts(await get(NWS_URL(state), "application/geo+json")));
+    alerts = st.data; scope = "state"; alertStale = alertStale || st.stale; if (st.fetchedAt) alertTimes = [st.fetchedAt]; if (st.error) alertErrors.push(st.error);
+  } else alerts = [];
+  const base = await stormFor(S, { state: state || "", center, radiusMiles }, now, { skipStateAlerts: true });
+  const fetched = [...alertTimes, base.fetchedAt].filter(Boolean).sort();
+  return { ...base, alerts, scope, location: { label, approximate, lat, lon }, stale: base.stale || alertStale,
+    fetchedAt: fetched[0] || null, errors: [...alertErrors, ...base.errors] };
 }

@@ -1,4 +1,4 @@
-// ARIA HOME SHIELD -- hs-partner. The partner desk (roofer / public adjuster / attorney).
+// ARIA HOME SHIELD -- hs-partner. The partner desk (contractor [key "roofer"] / public adjuster / attorney / insurance agent).
 // Sign-up and sign-in reuse hs-pro-signup (with `desk`) and hs-pro-login; this is the desk itself.
 //
 //   GET  -> { pro, desk, kind, settings: { membershipRequired, membershipMonthlyUsd, paymentsLive, perLeadEnabled, ringSeconds },
@@ -20,7 +20,7 @@
 // Contact for a claimed case appears in `claims` ONLY when the homeowner shared it AND the claim is paid.
 import { endpoint, reply, fail, getJSON, str, newId, isId, proSelf, anonymizeCase, connectedView, docsFor, siteOrigin } from "./_hs-store.js";
 import { proFromEvent } from "./_hs-auth.js";
-import { DESKS, DESK_KIND, PACKS, readSettings, membershipOk, balanceOf, deskBlock, ledgerFor, tickRings, answerRing, passRing, deskBoard,
+import { DESKS, DESK_KIND, PACKS, packWithPrice, readSettings, membershipOk, balanceOf, deskBlock, ledgerFor, tickRings, answerRing, passRing, deskBoard,
   contactAllowed, teamOf, teamView, TEAM_ROLES } from "./_hs-partners.js";
 import { sniff, MIME } from "./hs-doc-upload.js";
 import { createCheckoutSession } from "./_stripe-api.js";
@@ -47,7 +47,7 @@ export async function deskState(S, pro, now = Date.now()) {
       perLeadEnabled: settings.perLeadEnabled, ringSeconds: settings.ringSeconds },
     membership: { required: settings.membershipRequired, active: membershipOk(pro, settings) },
     block: await deskBlock(S, pro, settings, balance), balance,
-    packs: Object.values(PACKS).filter((p) => p.desks.includes(pro.desk)).map(({ desks, ...p }) => p),
+    packs: Object.values(PACKS).filter((p) => p.desks.includes(pro.desk)).map((p) => packWithPrice(p, settings)).map(({ desks, ...p }) => p),
     ledger: L.slice(-50).reverse().map(({ proId, ref, ...e }) => e),
     ring: board.ring, rings: board.rings, queue: board.queue, claims: claims.sort((a, b) => String(b.answeredAt).localeCompare(String(a.answeredAt))),
     team: await teamView(S, await teamOf(S, pro), now), now: new Date(now).toISOString(),
@@ -57,10 +57,11 @@ export async function deskState(S, pro, now = Date.now()) {
 const A = {};
 A.buypack = async ({ S, pro, body, env }) => {
   const settings = await readSettings(S);
-  const pack = PACKS[body.packId];
+  const pack = PACKS[body.packId] && packWithPrice(PACKS[body.packId], settings);
   if (!pack || !pack.desks.includes(pro.desk)) return fail(400, "bad_pack", "That pack is not for your desk");
   if (!settings.perLeadEnabled[pro.desk]) return fail(409, "legal_review", "Per-lead pricing for your desk is pending legal review");
   if (!membershipOk(pro, settings)) return fail(403, "membership_inactive", "Your membership is not active");
+  if (pack.usd == null) return fail(409, "pricing_soon", "Pricing coming soon");
   if (!settings.paymentsLive) return fail(409, "payments_off", "Payments are not yet enabled");
   const key = env.STRIPE_SECRET_KEY || "";
   if (!/^(sk|rk)_(test|live)_/.test(key)) return fail(503, "stripe_not_configured", "Payments are not configured");
@@ -68,7 +69,7 @@ A.buypack = async ({ S, pro, body, env }) => {
   const form = {
     mode: "payment", "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(pack.usd * 100),
-    "line_items[0][price_data][product_data][name]": `Aria Home Shield ${pack.credits} ${pack.kind === "call" ? "qualified calls" : "attorney packets"}`,
+    "line_items[0][price_data][product_data][name]": `Aria Home Shield ${pack.credits} ${pack.kind === "call" ? "qualified calls" : pack.kind === "packet" ? "attorney packets" : "insurance agent leads"}`,
     customer_email: pro.email, client_reference_id: pro.id,
     "metadata[hs]": "pack", "metadata[proId]": pro.id, "metadata[packId]": pack.id,
     "payment_intent_data[metadata][hs]": "pack", "payment_intent_data[metadata][proId]": pro.id, "payment_intent_data[metadata][packId]": pack.id,
