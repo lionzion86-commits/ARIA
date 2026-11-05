@@ -34,11 +34,11 @@ export async function deskState(S, pro, now = Date.now()) {
   const claims = [];
   for (const k of (await S.offers.list({ prefix: `byPro/${pro.id}/` })).blobs.map((b) => b.key)) {
     const o = await getJSON(S.offers, k.split("/").pop());
-    if (!o || !o.ring) continue;
+    if (!o || !(o.ring || o.origin === "customer_pick")) continue;
     const c = await getJSON(S.cases, o.caseId);
     if (!c) continue;
     const ok = await contactAllowed(S, c, pro.id);
-    claims.push({ offerId: o.id, caseId: c.id, status: o.status, paid: !!o.paid, sample: !!o.ring.sample, answeredAt: o.ring.answeredAt,
+    claims.push({ offerId: o.id, caseId: c.id, status: o.status, paid: !!o.paid, sample: !!(o.ring && o.ring.sample), picked: o.origin === "customer_pick", answeredAt: (o.ring && o.ring.answeredAt) || o.createdAt,
       case: ok ? connectedView(c, await docsFor(S, c)) : anonymizeCase(c), contactShared: ok });
   }
   return {
