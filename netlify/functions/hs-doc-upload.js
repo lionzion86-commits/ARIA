@@ -20,7 +20,6 @@ import { endpoint, reply, fail, caseForToken, str, newId, isId, getJSON } from "
 export const MAX_DOC_BYTES = 10 * 1024 * 1024;
 export const MAX_DOCS_PER_CASE = 20;
 const KINDS = ["policy", "photo", "letter", "document"];
-const TYPES = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/heic": "heic", "image/heif": "heic" };
 
 /** What the bytes really are: "pdf" | "jpg" | "png" | "heic" | null. */
 export function sniff(buf) {
@@ -40,8 +39,9 @@ const safeName = (n, ext) => (str(n, 120).replace(/[^\p{L}\p{N} ._()-]/gu, "_").
 async function finish(S, c, bytes, file, kind, now) {
   const kindOf = sniff(bytes);
   if (!kindOf) return fail(415, "bad_type", "Only PDF, JPG, PNG or HEIC files");
-  const declared = TYPES[String(file.type || "").toLowerCase()];
-  if (declared && declared !== kindOf) return fail(415, "type_mismatch", "The file does not match its type");
+  /* The bytes decide. A phone may declare one type and hand over another
+     (iOS Photos: "image/heic" that is really a JPEG, or no type at all);
+     any of PDF / JPG / PNG / HEIC is accepted and stored as what it is. */
   if (bytes.length > MAX_DOC_BYTES) return fail(413, "too_large", "Files can be up to 10 MB");
   const fresh = await getJSON(S.cases, c.id);
   if (!fresh) return fail(404, "not_found", "Case not found");

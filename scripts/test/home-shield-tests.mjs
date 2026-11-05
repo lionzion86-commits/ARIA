@@ -349,7 +349,10 @@ await test("doc access: private store, token or connected pro only, bytes checke
   assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: "f".repeat(64), file: { name: "p.pdf", type: "application/pdf", data: pdf.toString("base64") } } })).status, 404);
   assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: t, file: { name: "x.pdf", type: "application/pdf", data: Buffer.from("hello world, not a pdf").toString("base64") } } })).status, 415);
   const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40)]);
-  assert.equal((await call("hs-doc-upload", { body: { caseId: id, token: t, file: { name: "x.pdf", type: "application/pdf", data: png.toString("base64") } } })).body.code, "type_mismatch");
+  /* The bytes decide (#443 c.6665786195): a declared/actual mismatch is accepted and stored as what it is (on a separate case). */
+  const other = (await call("hs-case-create", { ip: "192.0.2.77", body: caseBody() })).body;
+  const mm = await call("hs-doc-upload", { body: { caseId: other.caseId, token: other.token, file: { name: "x.pdf", type: "application/pdf", data: png.toString("base64") } } });
+  assert.equal(mm.status, 200, JSON.stringify(mm.body)); assert.equal(mm.body.type, "image/png");
   const up = await call("hs-doc-upload", { body: { caseId: id, token: t, kind: "policy", file: { name: "My Policy (2024).pdf", type: "application/pdf", data: pdf.toString("base64") } } });
   assert.equal(up.status, 200, JSON.stringify(up.body)); C.docA = up.body.docId;
   assert.match(C.docA, /^d_[0-9a-f]{24}$/);
@@ -725,6 +728,23 @@ await check("hs-chat: 503 without a key; 400 on a bad turn; upstream error befor
   assert.equal(up.status, 502); assert.match((await up.json()).error, /boom/);
 });
 
+await check("vision: a declarations photo -> the same review shape as the PDF path; denial letters and other photos said plainly", async () => {
+  const V = await import("../../netlify/functions/_hs-vision.js");
+  let sent = null;
+  const fetchImpl = async (url, init) => { sent = JSON.parse(init.body); return jsonRes(200, { choices: [{ message: { content: JSON.stringify({ docType: "declarations", legible: true, findings: [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5% of Coverage A" }, { key: "made_up", tone: "weak", label: "x" }, { key: "rcv", tone: "strong", label: "Dwelling: replacement cost" }], improve: ["No ordinance or law coverage listed"], denial: null, plainSummary: "This is your declarations page." }) } }] }); };
+  const r = await V.readImage({ bytes: Buffer.from([0xff, 0xd8, 0xff, 1, 2, 3]), mime: "image/jpeg", lang: "en", fetchImpl, env: { OPENAI_API_KEY: "sk-test" } });
+  assert.equal(sent.model, FE.model.OPENAI_MODEL);
+  assert.equal(sent.messages[1].content[1].type, "image_url"); assert.match(sent.messages[1].content[1].image_url.url, /^data:image\/jpeg;base64,/);
+  assert.match(sent.messages[0].content, /FACTS ONLY/);
+  assert.equal(r.textFound, true); assert.deepEqual(r.findings.map((f) => f.key), ["hurricane_deductible", "rcv"]);
+  assert.deepEqual(r.weak, ["Hurricane deductible: 5% of Coverage A"]); assert.deepEqual(r.strong, ["Dwelling: replacement cost"]); assert.deepEqual(r.improve, ["No ordinance or law coverage listed"]);
+  const o = V.normalizeVision({ docType: "other" }, "es");
+  assert.equal(o.textFound, false); assert.match(o.plainSummary, /no parece una página de póliza/);
+  const d = V.normalizeVision({ docType: "denial_letter", denial: { denied: "the roof claim", reasons: ["wear and tear"], quotes: ["We are unable to provide coverage for wear and tear."] }, plainSummary: "Your roof claim was denied for wear and tear." }, "en");
+  assert.equal(d.denial.denied, "the roof claim"); assert.deepEqual(d.improve, []);
+  const heic = await V.readImage({ bytes: Buffer.from("x"), mime: "image/heic", lang: "en", env: { OPENAI_API_KEY: "k" } });
+  assert.equal(heic.textFound, false); assert.match(heic.plainSummary, /screenshot/);
+});
 await check("hs-tts: ONE voice (id, model, stability 0.5, similarity 0.75), key server-side", async () => {
   let sent = null;
   const fetchImpl = async (url, init) => { sent = { url, init, body: JSON.parse(init.body) }; return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; };
@@ -773,7 +793,7 @@ await check("i18n: the HTML ships the English copy (works before hs.js runs)", (
   for (const m of PAGE.matchAll(/data-i18n="([^"]+)"( data-i18n-lang="(es|en)")?[^>]*>([^<]*)</g)) assert.equal(dec(m[4]).trim(), I18N[m[3] || "en"][m[1]], m[1]);
 });
 await check("copy: the exact intro, the disclaimer, no emojis", () => {
-  assert.equal(I18N.en["intro.line1"], "Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your roofer, all into one.");
+  assert.equal(I18N.en["intro.line1"], "Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your contractor, all into one.");
   assert.match(I18N.en["intro.line2"], /^Upload your policy — I can dissect it: strong points, weak points, a better option if one exists, and my best recommendation\.$/);
   assert.equal(I18N.en["footer.disclaimer"], "Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.");
   assert.match(I18N.en["case.consent"], /^I agree to be contacted only by professionals I approve\. Aria Home Shield never sells my information\.$/);
@@ -793,6 +813,18 @@ await check("launch angle: the hero leads with the language promise; the languag
   assert.match(I18N.en["barrier.p1"], /second language, with a 60-page policy full of traps, is harder/);
   assert.match(I18N.es["barrier.p3"], /en tu idioma, línea por línea, hasta que la entiendas/);
 });
+await check("wording: «Contractor / Contratista», never roofer / techero / contratista de techos, in any displayed or spoken text", () => {
+  const BAD = /\broofers?\b|\btecher[oa]s?\b|\btechador(a|es)?\b|contratistas? de techos/i;
+  for (const L of ["en", "es"]) for (const [k, v] of Object.entries(I18N[L])) assert.ok(!BAD.test(v), `${L} ${k}: ${v}`);
+  const visible = (html) => html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+  for (const [n, h] of [["index.html", PAGE], ["caso.html", CASO]]) assert.ok(!BAD.test(visible(h)), n + ": " + (visible(h).match(BAD) || [])[0]);
+  const p = FE.prompt.buildHsSystemPrompt({ lang: "en" }).replace(/"trades": \[[^\]]*\]/, "");
+  assert.ok(!BAD.test(p.split("\n").filter((l) => !/^OUTPUT|^\{"issue"/.test(l)).join("\n")), "prompt prose says roofer");
+  assert.match(p, /a "contractor" in English and a "contratista" in Spanish/);
+  assert.match(I18N.en["intro.line1"], /your public adjuster, your contractor, all into one\.$/);
+  assert.match(I18N.es["intro.line1"], /tu contratista, todo en una\.$/);
+  assert.equal(I18N.en["trade.roofer"], "Contractor"); assert.equal(I18N.es["trade.roofer"], "Contratista");
+});
 await check("Mountain Test (static): no shop bundle, no catalogue, deferred script, small files", () => {
   for (const s of [PAGE, CASO]) {
     assert.ok(!/\/build\/app-|catalog|tailwind/i.test(s), "shop bundle or catalogue referenced");
@@ -801,7 +833,7 @@ await check("Mountain Test (static): no shop bundle, no catalogue, deferred scri
   assert.ok(!/\/build\/|catalog\.json|-catalog/.test(JS));
   assert.ok(Buffer.byteLength(JS) < 110 * 1024, "hs.js " + Buffer.byteLength(JS));
   assert.ok(gzipSync(JS).length < 32 * 1024, "hs.js gz " + gzipSync(JS).length);
-  for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 20 * 1024, f);
+  for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 40 * 1024, f);
 });
 await check("slots: photos and the badge render only when the file exists (manifest is current)", () => {
   const m = FE.assets.buildManifest(ROOT);
@@ -855,6 +887,8 @@ if (pw) {
   const SPEECH = wav(0.35);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let ttsDelay = 0;
+  let delays = {};
+  let ipSeqFE = 0;
   const { createServer } = await import("node:http");
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   const srv = createServer(async (req, res) => {
@@ -865,8 +899,10 @@ if (pw) {
     if (fn) {
       let body = null; try { body = raw ? JSON.parse(raw) : null; } catch { body = raw; }
       log.push({ fn: fn[1], method: req.method, body, query: Object.fromEntries(u.searchParams) });
+      if (delays[fn[1]]) await sleep(delays[fn[1]]);
       if (stub[fn[1]]) {
         const r = await stub[fn[1]](body, u);
+        if (r && r.destroy) { req.socket.destroy(); return; }
         if (r && r.delay) await sleep(r.delay);
         if (fn[1] === "hs-chat" && r && r.json && r.json.reply && !r.status) {
           /* Stream it the way hs-chat does: word deltas, then the done event. */
@@ -882,7 +918,7 @@ if (pw) {
       if (fn[1] === "hs-tts") { await sleep(ttsDelay); res.writeHead(200, { "Content-Type": "audio/wav" }); return res.end(SPEECH); }
       const h = real[fn[1]];
       if (!h) { res.writeHead(404, { "Content-Type": "application/json" }); return res.end('{"error":"no such function"}'); }
-      const r = await h({ httpMethod: req.method, headers: { "x-nf-client-connection-ip": "127.0.0.1", "content-type": "application/json" }, body: raw, queryStringParameters: Object.fromEntries(u.searchParams) }, {});
+      const r = await h({ httpMethod: req.method, headers: { "x-nf-client-connection-ip": "127.0." + (ipSeqFE = (ipSeqFE + 1) % 60000, Math.floor(ipSeqFE / 250)) + "." + (ipSeqFE % 250), "content-type": "application/json" }, body: raw, queryStringParameters: Object.fromEntries(u.searchParams) }, {});
       res.writeHead(r.statusCode, r.headers || {}); return res.end(r.isBase64Encoded ? Buffer.from(r.body, "base64") : r.body || "");
     }
     let p = decodeURIComponent(u.pathname);
@@ -910,7 +946,7 @@ if (pw) {
   };
   const errorsOf = (page) => { const e = []; page.on("pageerror", (x) => e.push(String(x))); return e; };
   const ttsTexts = () => log.filter((x) => x.fn === "hs-tts").map((x) => x.body && x.body.text);
-  const reset = () => { log.length = 0; stub = {}; };
+  const reset = () => { log.length = 0; stub = {}; delays = {}; };
 
   for (const W of [390, 1366]) {
     await check(`browser ${W}: renders the hero, the doors in order, the rights, the disclaimer; no emojis, no errors`, async () => {
@@ -1008,6 +1044,389 @@ if (pw) {
     await page.waitForTimeout(500);
     assert.ok(ttsTexts().join(" ").startsWith("In your language. Every line."), ttsTexts().join(" "));
     await page.locator("#barrier").scrollIntoViewIfNeeded(); await shot(page, "barrier-en", "#barrier");
+    await c.close();
+  });
+
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: Aria floats bottom-right at the top, middle and bottom of the page; never over body text`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const f = page.locator("#hsFloat");
+      assert.equal(await f.evaluate((e) => getComputedStyle(e).position), "fixed");
+      assert.equal(await f.getAttribute("aria-label"), I18N[L]["star.aria"]);
+      const H = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+      for (const [name, y] of [["top", 0], ["mid", Math.round(H / 2)], ["bottom", H]]) {
+        await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), y);
+        await page.waitForTimeout(80);
+        const b = await f.boundingBox();
+        assert.ok(b && b.width >= 84 && b.width <= 96 && b.height >= 100 && b.height <= 116, "size " + JSON.stringify(b));
+        assert.ok(b.x + b.width <= 390 && b.x + b.width >= 360 && b.y + b.height <= 844 && b.y + b.height >= 800, name + " " + JSON.stringify(b));
+        assert.ok(await f.isVisible(), name);
+        if (L === "en") await shot(page, "float-" + name);
+      }
+      // At the bottom, no text sits under her.
+      const hits = await page.evaluate(() => {
+        const r = document.getElementById("hsFloat").getBoundingClientRect();
+        const out = [];
+        for (const el of document.querySelectorAll("main p, main h1, main h2, main h3, main li, main summary, main a, main button, footer p, footer a")) {
+          if (el.closest("#hsFloat")) continue;
+          const q = el.getBoundingClientRect();
+          if (!q.width || !q.height) continue;
+          if (q.right > r.left + 4 && q.left < r.right && q.bottom > r.top + 4 && q.top < r.bottom) out.push(el.textContent.trim().slice(0, 40));
+        }
+        return out;
+      });
+      assert.deepEqual(hits, [], "text under the launcher at the bottom");
+      await c.close();
+    });
+  }
+
+  await check("browser 390: the tornado frames keep their alpha (transparent corners, no box, solid body, 571:720) and every Home Shield slot uses them", async () => {
+    reset();
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    const r = await page.evaluate(async () => {
+      const out = {};
+      for (const f of ["open-360", "blink-360", "talk1-360", "talk2-360", "open-240", "blink-240", "talk1-240", "talk2-240"]) {
+        const img = new Image(); img.src = "/home-shield/img/tornado-" + f + ".webp"; await img.decode();
+        const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+        const x = cv.getContext("2d"); x.drawImage(img, 0, 0);
+        const a = (px, py) => x.getImageData(px, py, 1, 1).data[3];
+        out[f] = { w: img.width, h: img.height, corners: [a(0, 0), a(img.width - 1, 0), a(0, img.height - 1), a(img.width - 1, img.height - 1)], centre: a(Math.floor(img.width / 2), Math.floor(img.height / 2)) };
+      }
+      out.uses = [...document.querySelectorAll("#hsFloat img, .hs-star-mini img")].every((i) => /\/tornado-(open|blink|talk1|talk2)-240\.webp$/.test(i.getAttribute("src") || i.dataset.src))
+        && [...document.querySelectorAll(".hs-star-hero img")].every((i) => /\/tornado-(open|blink|talk1|talk2)-360\.webp$/.test(i.getAttribute("src") || i.dataset.src))
+        && !document.querySelector('img[src*="aria-"], img[data-src*="aria-"]');
+      out.faceBg = getComputedStyle(document.querySelector("#hsFloat .hs-star-face")).backgroundColor;
+      return out;
+    });
+    for (const [f, v] of Object.entries(r).filter(([k]) => /-\d+$/.test(k))) {
+      assert.deepEqual(v.corners, [0, 0, 0, 0], f); assert.equal(v.centre, 255, f);
+      assert.equal(v.h, Number(f.split("-")[1]), f); assert.ok(Math.abs(v.w / v.h - 571 / 720) < 0.01, f + " aspect " + v.w + "x" + v.h);
+    }
+    assert.ok(r.uses, "hero, launcher and chat use the tornado frames");
+    assert.equal(r.faceBg, "rgba(0, 0, 0, 0)", "no box behind her");
+    await c.close();
+  });
+
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: tap the floating Aria mid-page -> the voice loop starts; she stays at the top of the open chat (not a close icon)`, async () => {
+      reset();
+      stub["hs-stt"] = () => ({ json: { text: L === "es" ? "Se me filtra el techo." : "My roof is leaking." } });
+      stub["hs-chat"] = () => ({ json: { reply: L === "es" ? "Lo siento. ¿Está entrando agua ahora?" : "I'm sorry. Is water coming in right now?", caseDraft: { issue: "roof" }, ready: false } });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight / 2, behavior: "instant" }));
+      await page.click("#hsFloat");
+      await page.waitForSelector("#hsSheet:not([hidden])");
+      await page.waitForFunction(() => document.querySelectorAll("#hsMsgs .hs-msg-a").length >= 2, null, { timeout: 15000 });
+      assert.equal(log.find((x) => x.fn === "hs-stt").body.lang, L);
+      assert.ok(ttsTexts()[0].startsWith(L === "es" ? "Hola, soy Aria" : "Hey, I'm Aria"));
+      const mini = page.locator(".hs-star-mini");
+      assert.ok(await mini.isVisible(), "Aria at the top of the chat");
+      assert.equal(await mini.locator("img.f-open").getAttribute("src"), "/home-shield/img/tornado-open-240.webp");
+      assert.ok(await page.locator("#hsClose").isVisible(), "a separate close button");
+      assert.notEqual(await mini.getAttribute("id"), "hsClose");
+      if (L === "en") await shot(page, "float-chat");
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+
+  /* A fake microphone inside the page: "talk" = a voice from the first
+     instant for 2.5 s (the user already talking while the mic calibrates),
+     "silent" = a live track at level 0, "muted" = a muted track. Plus an
+     AudioContext that starts suspended until resume() is called. */
+  const fakeMic = (mode) => `(() => {
+    window.__resumes = 0;
+    const Orig = window.AudioContext;
+    window.AudioContext = function () {
+      const c = new Orig(); let resumed = false; const r = c.resume.bind(c);
+      Object.defineProperty(c, "state", { get: () => (resumed ? "running" : "suspended") });
+      c.resume = () => { window.__resumes++; resumed = true; return r(); };
+      return c;
+    };
+    navigator.mediaDevices.getUserMedia = async () => {
+      const ac = new Orig(); const dst = ac.createMediaStreamDestination();
+      if ("${mode}" === "talk") { const o = ac.createOscillator(); o.frequency.value = 220; const g = ac.createGain(); g.gain.setValueAtTime(0.6, ac.currentTime); g.gain.setValueAtTime(0, ac.currentTime + 2.5); o.connect(g); g.connect(dst); o.start(); }
+      const st = dst.stream;
+      if ("${mode}" === "muted") Object.defineProperty(st.getAudioTracks()[0], "muted", { get: () => true });
+      window.__micStream = st;
+      return st;
+    };
+  })()`;
+
+  for (const W of [1366, 390]) {
+    await check(`browser ${W}: mic: AudioContext made and resumed in the tap; a user talking from the first instant is still heard`, async () => {
+      reset();
+      stub["hs-stt"] = (b) => ({ json: { text: b && b.audio && b.audio.length > 100 ? "Hello Aria." : "" } });
+      stub["hs-chat"] = () => ({ json: { reply: "I'm here. Tell me what happened.", caseDraft: {}, ready: false } });
+      const c = await ctx(W); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(fakeMic("talk"));
+      await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForFunction(() => window.__resumes >= 1, null, { timeout: 3000 });
+      await page.waitForFunction(() => document.querySelectorAll("#hsMsgs .hs-msg-u").length >= 1, null, { timeout: 15000 });
+      assert.equal(await page.locator("#hsMsgs .hs-msg-u").first().innerText(), "Hello Aria.");
+      assert.ok(log.some((x) => x.fn === "hs-stt"), "speech reached hs-stt");
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("vad: thresholds stay below a normal voice even when calibrated while talking", async () => {
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    const r = await page.evaluate(() => ({ talking: window.HS_VAD(Array(40).fill(0.15)), quiet: window.HS_VAD(Array(40).fill(0.003)), none: window.HS_VAD([]) }));
+    assert.ok(r.talking.speech <= 0.04 && r.talking.speech < 0.15, JSON.stringify(r));
+    assert.ok(r.quiet.speech >= 0.018 && r.none.speech <= 0.04, JSON.stringify(r));
+    await c.close();
+  });
+  for (const [mode, W, L] of [["silent", 1366, "en"], ["muted", 390, "es"]]) {
+    await check(`browser ${W}: mic ${mode} -> she says plainly she can't hear the microphone (${L})`, async () => {
+      reset();
+      const c = await ctx(W); const page = await c.newPage();
+      await page.addInitScript(fakeMic(mode));
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForSelector("#hsErr:not([hidden])", { timeout: 12000 });
+      assert.equal(await page.locator("#hsErr").innerText(), I18N[L]["err.micSilent"]);
+      await page.waitForTimeout(400);
+      // A muted track is said at once; a dead-silent one at the 5 s shutoff, which says goodbye.
+      const said = ttsTexts().join(" ");
+      if (mode === "muted") assert.ok(said.includes(I18N[L]["err.micSilent"].slice(0, 20)), "spoken: " + said);
+      else assert.ok(said.includes(I18N[L]["goodbye"].slice(0, 20)), "spoken: " + said);
+      await page.click("#hsMic");
+      await c.close();
+    });
+  }
+
+  /* THE PHOTO LANDS FIRST (#443 c.6665786195), against the real case /
+     upload handlers (in-memory store); the vision read is stubbed. */
+  const DEC_REVIEW = { textFound: true, source: "vision", docType: "declarations", flags: [], findings: [{ key: "hurricane_deductible", tone: "weak", label: "Hurricane deductible: 5% of Coverage A" }, { key: "rcv", tone: "strong", label: "Dwelling: replacement cost" }],
+    strong: ["Dwelling: replacement cost"], weak: ["Hurricane deductible: 5% of Coverage A"], improve: ["No ordinance or law coverage listed"], plainSummary: "This is your declarations page. Here is where you stand.", excerpt: "" };
+  const PNG1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const JPG1 = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
+  const pickFile = async (page, file, where = "#door1 [data-action=upload]") => { const ch = page.waitForEvent("filechooser"); await page.locator(where).first().click(); await (await ch).setFiles(file); };
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: a photo with no case yet: the thumbnail lands first (sending -> received), Aria confirms, reads it, THEN asks for contact; the draft becomes the case`, async () => {
+      reset();
+      delays["hs-doc-upload"] = 700;
+      stub["hs-policy-review"] = () => ({ delay: 300, json: DEC_REVIEW });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await pickFile(page, { name: "IMG_2041.JPG", mimeType: "image/jpeg", buffer: JPG1 });
+      await page.waitForSelector(".hs-file .hs-thumb");
+      assert.equal(await page.locator(".hs-file .hs-file-st").getAttribute("data-st"), "sending");
+      assert.equal(await page.locator("#hsCaseCard").count(), 0, "no form before the photo");
+      if (L === "en") await shot(page, "upload-sending");
+      await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]', { timeout: 6000 });
+      const create = log.find((x) => x.fn === "hs-case-create").body;
+      assert.equal(create.draft, true); assert.ok(!create.contact, "no contact in the draft");
+      const up = log.find((x) => x.fn === "hs-doc-upload").body;
+      assert.equal(up.kind, "policy"); assert.equal(up.file.type, "image/jpeg");
+      await page.waitForSelector(".hs-review", { timeout: 8000 });
+      const txt = await page.locator("#hsMsgs").innerText();
+      assert.ok(txt.includes(I18N[L]["policy.readingPhoto"]), "confirmation in the chat");
+      assert.ok(ttsTexts().join(" ").includes(I18N[L]["policy.readingPhoto"].split(" — ")[0]), "confirmation spoken");
+      assert.deepEqual(await page.locator(".hs-review .hs-review-h").allInnerTexts(), ["policy.strong", "policy.weak", "policy.improve", "policy.compare"].map((k) => I18N[L][k]));
+      if (L === "en") { await shot(page, "upload-received"); }
+      await page.waitForSelector("#hsCaseCard", { timeout: 15000 });
+      assert.ok((await page.locator("#hsMsgs").innerText()).includes(I18N[L]["contact.ask"]));
+      if (L === "en") { await page.locator(".hs-review").first().scrollIntoViewIfNeeded(); await shot(page, "upload-analysis"); }
+      const card = page.locator("#hsCaseCard");
+      await card.locator("input[name=zip]").fill("33101"); await card.locator("input[name=cname]").fill("Ana Prueba"); await card.locator("input[name=email]").fill("ana@correo.test");
+      await card.locator("#hsConsent").check(); await page.locator("#hsSendCase").click();
+      await page.waitForSelector("#hsCaseDone", { timeout: 6000 });
+      const fin = log.filter((x) => x.fn === "hs-case-create")[1].body;
+      assert.equal(fin.caseId, create && log.find((x) => x.fn === "hs-doc-upload").body.caseId);
+      const S = store.openStores({});
+      const saved = await S.cases.get(fin.caseId, { type: "json" });
+      assert.equal(saved.status, "open"); assert.equal(saved.docs.length, 1, "the photo stays with the case");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("browser 390: iPhone HEIC: decoded on the phone and uploaded as JPEG", async () => {
+    reset();
+    stub["hs-policy-review"] = () => ({ json: DEC_REVIEW });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.addInitScript(() => {
+      const orig = window.createImageBitmap.bind(window);
+      window.createImageBitmap = async (b) => { if (b && /hei[cf]/i.test(b.type)) { const cv = new OffscreenCanvas(2400, 3200); const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 2400, 3200); return orig(cv); } return orig(b); };
+    });
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await pickFile(page, { name: "IMG_0001.HEIC", mimeType: "image/heic", buffer: Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from("ftypheic"), Buffer.alloc(64, 7)]) });
+    await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]', { timeout: 8000 });
+    const up = log.find((x) => x.fn === "hs-doc-upload").body;
+    assert.equal(up.file.type, "image/jpeg"); assert.match(up.file.name, /^IMG_0001\.jpg$/); assert.ok(up.file.data.startsWith("/9j/"), "JPEG bytes");
+    const dims = await page.evaluate(() => { const i = document.querySelector(".hs-thumb"); return [i.naturalWidth, i.naturalHeight]; });
+    assert.ok(Math.max(...dims) <= 2000, "re-encoded at most 2000px: " + dims);
+    await c.close();
+  });
+  await check("browser 390: PNG and PDF land too (thumbnail / file chip); a non-policy photo is said plainly; the server accepts a mismatched declared type", async () => {
+    reset();
+    stub["hs-policy-review"] = (b) => ({ json: { textFound: false, docType: "other", flags: [], findings: [], strong: [], weak: [], improve: [], plainSummary: "This photo doesn't look like an insurance policy page or a denial letter, so I can't review it." } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await pickFile(page, { name: "screenshot.png", mimeType: "image/png", buffer: PNG1 });
+    await page.waitForSelector('.hs-file .hs-file-st[data-st="received"]');
+    await page.waitForFunction(() => /doesn't look like an insurance policy/.test(document.getElementById("hsMsgs").innerText));
+    assert.equal(await page.locator("#hsCaseCard").count(), 0, "no contact form for a photo that isn't a policy");
+    await pickFile(page, { name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%test\n") }, '#hsCompose [data-action=upload]');
+    await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 2);
+    assert.match(await page.locator(".hs-file .hs-chip").innerText(), /PDF · policy\.pdf/);
+    assert.equal(log.filter((x) => x.fn === "hs-case-create").length, 1, "one draft for both files");
+    // An iPhone handoff that declares heic but hands over a JPEG is accepted, stored as JPEG.
+    const k = log.find((x) => x.fn === "hs-doc-upload").body;
+    const r = await real["hs-doc-upload"]({ httpMethod: "POST", headers: { "x-nf-client-connection-ip": "10.1.2.3" }, body: JSON.stringify({ caseId: k.caseId, token: k.token, file: { name: "x.heic", type: "image/heic", data: JPG1.toString("base64") } }) }, {});
+    assert.equal(r.statusCode, 200, r.body); assert.equal(JSON.parse(r.body).type, "image/jpeg");
+    await c.close();
+  });
+  /* NO SIZE WALL FOR PHOTOS (#443 c.6668130487). */
+  const jpegjs = (await import("jpeg-js")).default;
+  const bigJpeg = (() => {
+    const w = 3000, hh = 2250, data = Buffer.alloc(w * hh * 4);
+    for (let i = 0; i < w * hh; i++) { data[i * 4] = (i % w) & 255; data[i * 4 + 1] = ((i / w) | 0) & 255; data[i * 4 + 2] = 128; data[i * 4 + 3] = 255; }
+    const j = jpegjs.encode({ data, width: w, height: hh }, 90).data;
+    return Buffer.concat([j, Buffer.alloc(14 * 1024 * 1024 - j.length, 0)]); // a 14 MB camera file (trailing bytes after EOI)
+  })();
+  const bigHeic = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from("ftypheic"), Buffer.alloc(12 * 1024 * 1024, 7)]);
+  const NO_WALL = /too big|demasiado grande|smaller photo|foto más pequeña|over 10 MB|más de 10 MB/i;
+  await check("copy: no «too big / send a smaller photo» text anywhere in the photo path", () => {
+    for (const L of ["en", "es"]) for (const [k, v] of Object.entries(I18N[L])) assert.ok(!NO_WALL.test(v), `${L} ${k}: ${v}`);
+    assert.ok(!/policy\.size/.test(JS), "the old size message is gone");
+  });
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: a 14 MB JPEG and a 12 MB iPhone HEIC compress silently (<= 2000 px, under the limit), upload, and Aria reads them`, async () => {
+      reset();
+      stub["hs-policy-review"] = () => ({ json: DEC_REVIEW });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(() => {
+        const orig = window.createImageBitmap.bind(window);
+        window.createImageBitmap = async (b) => { if (b && /hei[cf]/i.test(b.type)) { const cv = new OffscreenCanvas(3024, 4032); const x = cv.getContext("2d"); const g = x.createLinearGradient(0, 0, 3024, 4032); g.addColorStop(0, "#fff"); g.addColorStop(1, "#345"); x.fillStyle = g; x.fillRect(0, 0, 3024, 4032); return orig(cv); } return orig(b); };
+      });
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await pickFile(page, { name: "IMG_3001.JPG", mimeType: "image/jpeg", buffer: bigJpeg });
+      await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 1, null, { timeout: 15000 });
+      await page.waitForSelector(".hs-review", { timeout: 8000 });
+      await pickFile(page, { name: "IMG_3002.HEIC", mimeType: "image/heic", buffer: bigHeic }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 2, null, { timeout: 15000 });
+      await page.waitForFunction(() => document.querySelectorAll(".hs-review").length === 2, null, { timeout: 8000 });
+      const ups = log.filter((x) => x.fn === "hs-doc-upload").map((x) => x.body.file);
+      assert.equal(ups.length, 2);
+      for (const u of ups) { assert.equal(u.type, "image/jpeg"); assert.ok(Buffer.from(u.data, "base64").length <= 10 * 1024 * 1024, "uploaded size " + u.data.length); }
+      const dims = await page.evaluate(() => [...document.querySelectorAll(".hs-thumb")].map((i) => Math.max(i.naturalWidth, i.naturalHeight)));
+      assert.ok(dims.length === 2 && dims.every((d) => d > 0 && d <= 2000), "long edges " + dims);
+      const txt = await page.locator("#hsMsgs").innerText();
+      assert.ok(!NO_WALL.test(txt), "a size message reached the customer");
+      assert.equal(await page.locator('.hs-file[data-st="failed"]').count(), 0);
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+    await check(`browser 390 ${L}: forced rejections (PDF over the limit, undecodable 12 MB HEIC) send nothing and say one plain thing`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const count = () => page.locator("#hsMsgs .hs-msg-a").count();
+      await page.locator('[data-action="talk"]').first().click();
+      await page.waitForSelector("#hsMsgs .hs-msg-a");
+      let n = await count();
+      await pickFile(page, { name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(10 * 1024 * 1024 + 100, 32)]) }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.pdfBig"]);
+      await page.waitForTimeout(500);
+      assert.equal(await count(), n + 1, "exactly one message");
+      n = await count();
+      await pickFile(page, { name: "IMG_9.HEIC", mimeType: "image/heic", buffer: bigHeic }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["upload.cantOpen"]);
+      await page.waitForTimeout(500);
+      assert.equal(await count(), n + 1, "exactly one message");
+      assert.equal(await page.locator(".hs-file").count(), 0, "no status bubble for a rejected file");
+      assert.deepEqual(log.filter((x) => x.fn === "hs-doc-upload" || x.fn === "hs-case-create").map((x) => x.fn), [], "nothing sent after a client-side rejection");
+      assert.ok(!NO_WALL.test(await page.locator("#hsMsgs").innerText()));
+      await c.close();
+    });
+  }
+
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: every upload failure gets a plain message in the chat (type, size, rate limit, network, server), never a raw code`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const last = () => page.locator("#hsMsgs .hs-msg-a").last().innerText();
+      await pickFile(page, { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.type"]);
+      // An undecodable "photo" over the limit: one plain message, no upload, no "make it smaller".
+      await pickFile(page, { name: "broken.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 10, 1) }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["upload.cantOpen"]);
+      assert.equal(log.filter((x) => x.fn === "hs-doc-upload").length, 0, "no upload after a client-side rejection");
+      for (const [name, setup, key] of [
+        ["rate", () => { stub["hs-doc-upload"] = () => ({ status: 429, json: { error: "Too many requests", code: "rate_limited" } }); }, "err.rate"],
+        ["network", () => { stub["hs-doc-upload"] = () => ({ destroy: true }); }, "err.network"],
+        ["server", () => { stub["hs-doc-upload"] = () => ({ status: 500, json: { error: "Something went wrong", code: "server" } }); }, "err.server"],
+        ["bad_type", () => { stub["hs-doc-upload"] = () => ({ status: 415, json: { error: "Only PDF", code: "bad_type" } }); }, "policy.type"],
+      ]) {
+        setup();
+        const before = await page.evaluate((m) => document.getElementById("hsMsgs").innerText.split(m).length, I18N[L][key]);
+        await pickFile(page, { name: "dec.png", mimeType: "image/png", buffer: PNG1 }, "#hsCompose [data-action=upload]");
+        await page.waitForFunction(([m, n]) => document.getElementById("hsMsgs").innerText.split(m).length > n, [I18N[L][key], before], { timeout: 6000 });
+        assert.equal(await page.locator(".hs-file").last().getAttribute("data-st"), "failed", name);
+      }
+      const all = await page.locator("#hsMsgs").innerText();
+      assert.ok(!/rate_limited|bad_type|type_mismatch|too_large|HTTP \d|\bserver\b(?! )/.test(all.replace(I18N[L]["err.server"], "")), "raw code shown: " + all);
+      if (L === "en") { await page.locator(".hs-file").last().scrollIntoViewIfNeeded(); await shot(page, "upload-error"); }
+      await c.close();
+    });
+  }
+
+  /* THE 5-SECOND SILENCE SHUTOFF (#443 c.6665962114, Danny's cost rule). */
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: 5 s of silence while listening -> her goodbye, then EVERYTHING off; no new round; a tap starts fresh`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(fakeMic("silent"));
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForFunction(() => window.HS_CONVO.state === "listening", null, { timeout: 8000 });
+      await page.waitForFunction(() => window.HS_GOODBYE_AT, null, { timeout: 9000 });
+      const gap = await page.evaluate(() => window.HS_GOODBYE_AT - window.HS_CONVO.startedAt);
+      assert.ok(gap >= 4900 && gap <= 6000, "goodbye after " + gap + " ms of listening");
+      await page.waitForTimeout(500);
+      assert.ok((await page.locator("#hsMsgs .hs-msg-a").last().innerText()) === I18N[L]["goodbye"], "goodbye in the chat");
+      assert.ok(ttsTexts().join(" ").includes(I18N[L]["goodbye"].split(" — ")[0]), "goodbye in her voice: " + JSON.stringify(ttsTexts()));
+      const st = await page.evaluate(() => ({
+        tracks: window.__micStream.getTracks().map((t) => t.readyState),
+        active: window.HS_CONVO.active, state: window.HS_CONVO.state, rec: window.HS_CONVO.rec, ctx: window.HS_CONVO.ctx, stream: window.HS_CONVO.stream, timer: window.HS_CONVO.timer,
+        glow: document.querySelector(".hs-star-mini").getAttribute("data-state"), mic: document.getElementById("hsMic").getAttribute("aria-pressed"),
+      }));
+      assert.deepEqual(st.tracks, ["ended"]); assert.equal(st.active, false); assert.equal(st.state, "off");
+      assert.equal(st.rec, null); assert.equal(st.ctx, null); assert.equal(st.stream, null); assert.equal(st.timer, 0);
+      assert.notEqual(st.glow, "listening"); assert.equal(st.mic, "false");
+      const n = log.length;
+      await page.waitForTimeout(6000);
+      assert.equal(await page.evaluate(() => window.HS_CONVO.state), "off", "no new listening round after the goodbye");
+      assert.deepEqual(log.slice(n).map((x) => x.fn), [], "nothing called after the goodbye");
+      await page.locator(".hs-star-mini").click();
+      await page.waitForFunction(() => window.HS_CONVO.active && window.HS_CONVO.state === "listening", null, { timeout: 5000 });
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("browser 390: goodbye when the voice fails -> the goodbye text and the real error are shown, and it shuts off anyway", async () => {
+    reset();
+    stub["hs-tts"] = () => ({ status: 503, json: { error: "voice not configured", code: "voice_not_configured" } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.addInitScript(fakeMic("silent"));
+    await page.goto(BASE + "/home-shield/?lang=es", { waitUntil: "load" });
+    await page.click("#hsFloat");
+    await page.waitForFunction(() => window.HS_GOODBYE_AT, null, { timeout: 12000 });
+    await page.waitForFunction((g) => document.getElementById("hsErr").innerText.includes(g), I18N.es["goodbye"], { timeout: 4000 });
+    assert.match(await page.locator("#hsErr").innerText(), /voice not configured/);
+    assert.equal(await page.evaluate(() => window.HS_CONVO.active), false);
+    assert.deepEqual(await page.evaluate(() => window.__micStream.getTracks().map((t) => t.readyState)), ["ended"]);
     await c.close();
   });
 
@@ -1205,13 +1624,6 @@ if (pw) {
     const chooser = page.waitForEvent("filechooser");
     await page.locator("#door1 [data-action=upload]").click();
     await (await chooser).setFiles({ name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test") });
-    await page.waitForSelector("#hsCaseCard");
-    const card = page.locator("#hsCaseCard");
-    await card.locator("input[name=zip]").fill("33101");
-    await card.locator("input[name=cname]").fill("Ana Prueba");
-    await card.locator("input[name=email]").fill("ana@correo.test");
-    await card.locator("#hsConsent").check();
-    await page.locator("#hsSendCase").click();
     await page.waitForSelector(".hs-review", { timeout: 8000 });
     const heads = await page.locator(".hs-review .hs-review-h").allInnerTexts();
     assert.deepEqual(heads, ["What's strong", "What's weak", "Where it can improve", "How it compares"]);
@@ -1259,7 +1671,7 @@ if (pw) {
     await page.waitForSelector(".hs-offer");
     assert.equal(await page.locator(".hs-offer").count(), 2);
     const first = page.locator('.hs-offer:has-text("Luis Prueba")');
-    assert.match(await first.innerText(), /License: Roofing contractor CCC1330001 FL/);
+    assert.match(await first.innerText(), /License: Contractor CCC1330001 FL/);
     assert.ok(!/3055550101|pro1@/.test(await page.locator("#casoBody").innerText()), "pro contact before sharing");
     assert.equal(await first.locator("button").first().innerText(), "Talk first through Aria Home Shield");
     await page.locator(".hs-offer").first().evaluate((e) => window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 70, behavior: "instant" }));

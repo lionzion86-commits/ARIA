@@ -10,9 +10,16 @@
 // summary is scrubbed of PII before it is stored. A new-case event goes to
 // hs-events so matching pros' dashboards ping on their next poll.
 // Rate limit: 6 cases per IP per hour.
+//
+// DRAFT FIRST (#443 c.6665786195): a homeowner can upload a photo of their
+// policy before giving any contact. POST { draft: true, lang?, caseDraft?: { issue? } }
+// creates a PRIVATE draft (status "draft": no contact, no consent, no ZIP,
+// never matched, never rung, never shown to a pro) -> { caseId, token, draft: true }.
+// Later the same POST with { caseId, token, caseDraft, contact, consent: true }
+// turns that draft into an open case, keeping its id, token and documents.
 import {
   endpoint, reply, fail, str, normEmail, normPhone, normZip, pickList, scrubText, knownPrivate,
-  ISSUES, TRADES, URGENCY, PREFERRED, DEFAULT_TRADES, CONSENT_TEXT, newId, newToken, loadAll, caseMatchesPro, pushEvent, caseLink,
+  ISSUES, TRADES, URGENCY, PREFERRED, DEFAULT_TRADES, CONSENT_TEXT, newId, newToken, loadAll, caseMatchesPro, pushEvent, caseLink, caseForToken,
 } from "./_hs-store.js";
 import { zip3Info } from "./_hs-zip3.js";
 
@@ -58,10 +65,40 @@ export function buildCase(body, now = Date.now()) {
   return { case: c };
 }
 
+/** A private draft: nothing personal, nothing a pro can ever see. */
+export function buildDraft(body, now = Date.now()) {
+  const d = body.caseDraft && typeof body.caseDraft === "object" ? body.caseDraft : {};
+  const iso = new Date(now).toISOString();
+  return {
+    id: newId("c"), createdAt: iso, updatedAt: iso, status: "draft",
+    issue: ISSUES.includes(d.issue) ? d.issue : "policy_review", trades: [], zip: "", state: null, urgency: "planning",
+    summary: "", insurer: null, claimNumber: null, policyNumber: null, address: null, contact: null,
+    docs: [], policyFlags: [], offers: [], connectedProId: null,
+    lang: body.lang === "es" ? "es" : "en", consent: null, token: newToken(),
+  };
+}
+
 export default endpoint({ methods: ["POST"], rate: { bucket: "case-create", limit: 6, windowSec: 3600 } }, async ({ S, body, now }) => {
+  if (body.draft === true && !body.caseId) {
+    const dft = buildDraft(body, now);
+    await S.cases.setJSON(dft.id, dft);
+    return reply(200, { caseId: dft.id, token: dft.token, draft: true });
+  }
+  let existing = null;
+  if (body.caseId) {
+    existing = await caseForToken(S, body.caseId, body.token);
+    if (!existing) return fail(404, "not_found", "We could not find that case");
+    if (existing.status !== "draft") return fail(409, "already_open", "This case was already sent");
+  }
   const r = buildCase(body, now);
   if (r.error) return fail(400, r.error[0], r.error[1]);
   const c = r.case;
+  if (existing) {
+    /* The draft becomes the case: same id, token and documents. */
+    c.id = existing.id; c.token = existing.token; c.createdAt = existing.createdAt;
+    c.docs = existing.docs || [];
+    c.policyFlags = [...new Set([...(existing.policyFlags || []), ...c.policyFlags])].slice(0, 16);
+  }
   await S.cases.setJSON(c.id, c);
   const pros = (await loadAll(S.pros, "p_")).filter((p) => caseMatchesPro(c, p));
   await pushEvent(S, `case/${c.createdAt}-${c.id}`, { type: "new_case", caseId: c.id, at: c.createdAt, trades: c.trades, zip3: c.zip.slice(0, 3), state: c.state });
