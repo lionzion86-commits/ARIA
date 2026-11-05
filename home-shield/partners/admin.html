@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Partner Desks Admin</title>
+<!-- ARIA HOME SHIELD -- partner desks admin (#443). Same gate as admin.html (shop session on
+     ADMIN_EMAILS, checked by hs-partner-admin). Settings (membership price, payments, per-trade
+     switches, ring seconds), partners with balances, grant / refund credits, mark membership,
+     desk documents, the append-only ledger. English / Espanol. -->
+<style>
+  :root { --bg: #0B0B0C; --bg-2: #111113; --card: #151517; --line: #2A2A2E; --line-2: #3A3A40; --ink: #F5F1E8; --ink-2: #BDB7AA; --ink-3: #8A857B;
+    --gold: #C9A24A; --gold-2: #E4C77E; --gold-soft: rgba(201, 162, 74, .12); --ok: #7FBF8E; --bad: #E07A6E;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header { border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+  header b { font-family: var(--serif); font-size: 18px; font-weight: 600; }
+  header .tag { margin-left: 4px; }
+  .sp { flex: 1; }
+  .pill { display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px; }
+  .pill button { border: 0; background: none; color: var(--ink-2); padding: 5px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .pill button[aria-pressed="true"] { background: var(--gold); color: #0B0B0C; }
+  main { padding: 20px 0 80px; }
+  h1, h2 { font-family: var(--serif); font-weight: 600; margin: 0; }
+  .tabs { display: flex; gap: 6px; margin: 16px 0; }
+  .tabs button { border: 1px solid var(--line-2); background: none; color: var(--ink-2); min-height: 42px; padding: 0 16px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+  .tabs button[aria-selected="true"] { border-color: var(--gold); color: var(--gold-2); background: var(--gold-soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .card + .card { margin-top: 10px; }
+  .row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 220px; }
+  .muted { color: var(--ink-2); } .small { font-size: 13px; } .tiny { font-size: 12px; color: var(--ink-3); }
+  .tag { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px; font-weight: 800; color: var(--ink-2); }
+  .tag.gold { color: var(--gold-2); border-color: rgba(201, 162, 74, .5); background: var(--gold-soft); }
+  .tag.ok { color: var(--ok); border-color: rgba(127, 191, 142, .45); }
+  .tag.bad { color: var(--bad); border-color: rgba(224, 122, 110, .45); }
+  .btn { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: none; color: var(--ink); font-weight: 700; cursor: pointer; }
+  .btn.gold { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #0B0B0C; border-color: transparent; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; margin: 8px 0 0; }
+  .kv dt { color: var(--ink-3); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+  .in { width: 100%; min-height: 40px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--ink); padding: 8px 12px; font: inherit; margin-top: 8px; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<header><div class="wrap"><b>Aria Home Shield</b><span class="tag gold" data-t="title">PARTNER DESKS</span><span class="sp"></span>
+  <div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+  "use strict";
+  var I18N = {
+    en: {
+      title: "PARTNER DESKS", gate: "Admins only. Sign in on the store with an account listed in ADMIN_EMAILS, then reload.", settings: "Settings",
+      membershipRequired: "Membership required", membershipMonthlyUsd: "Membership price (USD per month, empty = not set)", paymentsLive: "Payments live (Stripe Checkout)",
+      perLead: "Per-lead billing", ringSeconds: "Ring seconds", save: "Save", saved: "Saved", partners: "Partners", ledger: "Ledger",
+      credits: "credits", held: "held", available: "available", grant: "Grant", refund: "Refund", note: "Note", membershipOn: "Mark membership active", membershipOff: "Mark membership inactive",
+      active: "active", inactive: "inactive", verified: "verified", pending: "pending", docs: "Documents", none: "None",
+      d_roofer: "Roofer", d_public_adjuster: "Public adjuster", d_attorney: "Attorney", legal: "pending legal review",
+      l_purchase: "Pack purchase", l_grant: "Credit grant", l_claim_debit: "Verified claim", l_refund: "Refund", empty: "Nothing yet.",
+    },
+    es: {
+      title: "ESCRITORIOS DE SOCIOS", gate: "Solo administradores. Inicia sesión en la tienda con una cuenta que esté en ADMIN_EMAILS y vuelve a cargar.", settings: "Configuración",
+      membershipRequired: "Membresía obligatoria", membershipMonthlyUsd: "Precio de membresía (USD al mes, vacío = sin definir)", paymentsLive: "Pagos activos (Stripe Checkout)",
+      perLead: "Cobro por cliente", ringSeconds: "Segundos de timbre", save: "Guardar", saved: "Guardado", partners: "Socios", ledger: "Movimientos",
+      credits: "créditos", held: "reservados", available: "disponibles", grant: "Otorgar", refund: "Reembolsar", note: "Nota", membershipOn: "Marcar membresía activa", membershipOff: "Marcar membresía inactiva",
+      active: "activa", inactive: "inactiva", verified: "verificado", pending: "pendiente", docs: "Documentos", none: "Ninguno",
+      d_roofer: "Techador", d_public_adjuster: "Ajustador público", d_attorney: "Abogado", legal: "revisión legal pendiente",
+      l_purchase: "Compra de paquete", l_grant: "Créditos otorgados", l_claim_debit: "Reclamo verificado", l_refund: "Reembolso", empty: "Nada todavía.",
+    },
+  };
+  var S = { lang: "en", d: null };
+  try { if ((new URLSearchParams(location.search).get("lang") || localStorage.getItem("hs_lang")) === "es") S.lang = "es"; } catch (e) {}
+  function t(k) { return I18N[S.lang][k] || I18N.en[k] || k; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  var API = "/.netlify/functions/hs-partner-admin", app = document.getElementById("app");
+  function post(b) { return fetch(API, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(function (r) { return r.json().then(function (x) { if (!r.ok) alert(x.error || r.status); return x; }); }); }
+  function load() { return fetch(API, { credentials: "same-origin" }).then(function (r) { return r.json().then(function (b) { S.d = r.ok ? b : null; S.gate = !r.ok; render(); }); }); }
+  document.querySelectorAll("[data-lang]").forEach(function (b) { b.onclick = function () { S.lang = b.dataset.lang; try { localStorage.setItem("hs_lang", S.lang); } catch (e) {} render(); }; });
+  function render() {
+    document.documentElement.lang = S.lang;
+    document.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)); });
+    document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = t(el.dataset.t); });
+    if (S.gate) { app.innerHTML = '<div class="card muted">' + esc(t("gate")) + "</div>"; return; }
+    if (!S.d) { app.innerHTML = "<p class=muted>...</p>"; return; }
+    var s = S.d.settings, desks = ["roofer", "public_adjuster", "attorney"];
+    app.innerHTML =
+      '<h2 style="margin-top:16px">' + esc(t("settings")) + '</h2><form class="card" id="sf" style="margin-top:10px">' +
+      '<label class="row"><input type="checkbox" name="membershipRequired"' + (s.membershipRequired ? " checked" : "") + "> " + esc(t("membershipRequired")) + "</label>" +
+      '<label class="small muted" style="display:block;margin-top:8px">' + esc(t("membershipMonthlyUsd")) + '<input class="in" name="membershipMonthlyUsd" inputmode="decimal" value="' + esc(s.membershipMonthlyUsd == null ? "" : s.membershipMonthlyUsd) + '"></label>' +
+      '<label class="row" style="margin-top:8px"><input type="checkbox" name="paymentsLive"' + (s.paymentsLive ? " checked" : "") + "> " + esc(t("paymentsLive")) + "</label>" +
+      '<p class="small muted" style="margin:10px 0 4px">' + esc(t("perLead")) + "</p>" + desks.map(function (d) { return '<label class="row"><input type="checkbox" name="pl_' + d + '"' + (s.perLeadEnabled[d] ? " checked" : "") + "> " + esc(t("d_" + d)) + (s.perLeadEnabled[d] ? "" : ' <span class="tiny">(' + esc(t("legal")) + ")</span>") + "</label>"; }).join("") +
+      '<label class="small muted" style="display:block;margin-top:8px">' + esc(t("ringSeconds")) + '<input class="in" name="ringSeconds" inputmode="numeric" value="' + esc(s.ringSeconds) + '"></label>' +
+      '<div class="row" style="margin-top:10px"><button class="btn gold" type="submit">' + esc(t("save")) + '</button><span id="sv" class="small muted"></span></div></form>' +
+      '<h2 style="margin-top:20px">' + esc(t("partners")) + "</h2>" + (S.d.partners.length ? S.d.partners.map(function (p) {
+        var b = p.balance;
+        return '<div class="card"><div class="row"><div class="grow"><strong>' + esc(p.name) + '</strong> <span class="tag gold">' + esc(t("d_" + p.desk)) + '</span> <span class="tag ' + (p.verified ? "ok" : "") + '">' + esc(p.verified ? t("verified") : t("pending")) + "</span>" +
+          '<div class="small muted">' + esc(p.email) + " &middot; " + esc(p.licenseState) + " " + esc(p.licenseNumber) + "</div>" +
+          '<div class="small">' + esc(b.credits) + " " + esc(t("credits")) + " &middot; " + esc(b.held) + " " + esc(t("held")) + " &middot; " + esc(b.available) + " " + esc(t("available")) + " &middot; membership " + esc(p.membershipActive ? t("active") : t("inactive")) + "</div>" +
+          '<div class="tiny">' + esc(t("docs")) + ": " + ((p.deskDocs || []).length ? p.deskDocs.map(function (d) { return '<a href="' + API + "?doc=" + encodeURIComponent(d.id) + '">' + esc(d.kind) + "</a>"; }).join(", ") : esc(t("none"))) + "</div></div>" +
+          '<div class="row"><input class="in" style="width:70px;margin:0" data-n="' + esc(p.id) + '" value="1" inputmode="numeric"><button class="btn gold" data-g="grant" data-p="' + esc(p.id) + '">' + esc(t("grant")) + '</button><button class="btn" data-g="refund" data-p="' + esc(p.id) + '">' + esc(t("refund")) + '</button><button class="btn" data-m="' + esc(p.id) + '" data-to="' + !(p.membership && p.membership.active) + '">' + esc(p.membership && p.membership.active ? t("membershipOff") : t("membershipOn")) + "</button></div></div></div>";
+      }).join("") : '<div class="card muted">' + esc(t("empty")) + "</div>") +
+      '<h2 style="margin-top:20px">' + esc(t("ledger")) + '</h2><div class="card">' + (S.d.ledger.length ? S.d.ledger.map(function (e) { return '<div class="row small" style="border-top:1px solid var(--line);padding:6px 0"><span class="grow">' + esc(t("l_" + e.type)) + " &middot; " + esc(e.proId) + (e.caseId ? " &middot; " + esc(e.caseId) : "") + (e.note ? " &middot; " + esc(e.note) : "") + '</span><span class="tiny">' + esc(e.at.slice(0, 16).replace("T", " ")) + "</span><b>" + (e.credits > 0 ? "+" : "") + esc(e.credits) + "</b></div>"; }).join("") : esc(t("empty"))) + "</div>";
+    document.getElementById("sf").onsubmit = function (e) {
+      e.preventDefault(); var f = e.target, pl = {};
+      desks.forEach(function (d) { pl[d] = f["pl_" + d].checked; });
+      var m = f.membershipMonthlyUsd.value.trim();
+      post({ action: "settings", patch: { membershipRequired: f.membershipRequired.checked, paymentsLive: f.paymentsLive.checked, perLeadEnabled: pl, ringSeconds: Number(f.ringSeconds.value), membershipMonthlyUsd: m === "" ? null : Number(m) } })
+        .then(function (r) { if (r.settings) { document.getElementById("sv").textContent = t("saved"); load(); } });
+    };
+    app.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { var n = app.querySelector('[data-n="' + b.dataset.p + '"]').value; post({ action: b.dataset.g, proId: b.dataset.p, credits: Number(n) }).then(load); }; });
+    app.querySelectorAll("[data-m]").forEach(function (b) { b.onclick = function () { post({ action: "membership", proId: b.dataset.m, active: b.dataset.to === "true" }).then(load); }; });
+  }
+  render(); load();
+})();
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@
 //
 // Cases are ALWAYS anonymized (_hs-store.js anonymizeCase) except the
 // connected ones. A case connected to another pro disappears from the feed.
+import { contactAllowed } from "./_hs-partners.js";
 import { endpoint, reply, fail, loadAll, getJSON, listKeys, anonymizeCase, connectedView, caseMatchesPro, docsFor, proSelf } from "./_hs-store.js";
 import { proFromEvent } from "./_hs-auth.js";
 
@@ -37,7 +38,7 @@ export async function feedFor(S, pro, since) {
   });
   const connected = [];
   for (const c of cases) {
-    if (c.status === "connected" && c.connectedProId === pro.id && pro.verified) {
+    if (pro.verified && await contactAllowed(S, c, pro.id)) {
       connected.push({ ...connectedView(c, await docsFor(S, c)), offerId: c.connectedOfferId || null });
     }
   }

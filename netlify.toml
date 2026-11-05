@@ -392,6 +392,24 @@
   force = true
 
 [[redirects]]
+  from = "/home-shield/partners"
+  to = "/home-shield/partners/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/home-shield/partners/admin"
+  to = "/home-shield/partners/admin.html"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/home-shield/partners/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+
+[[redirects]]
   from = "/home-shield/admin"
   to = "/home-shield/admin.html"
   status = 200

@@ -6,6 +6,7 @@
 //                   413 { code:"use_parts", parts, size, type } and the page fetches the parts)
 //   -> the bytes (private, no-store, attachment), or 404 / 403.
 // A pro who is only offered or talking first gets 403: docs are contact.
+import { contactAllowed } from "./_hs-partners.js";
 import { endpoint, fail, caseForToken, getJSON, isId, baseHeaders } from "./_hs-store.js";
 import { proFromEvent } from "./_hs-auth.js";
 
@@ -19,7 +20,7 @@ export const handler = endpoint({ methods: ["GET"], rate: { bucket: "doc-get", l
     const pro = await proFromEvent(event, S);
     if (!pro) return fail(401, "signin", "Sign in");
     const cand = await getJSON(S.cases, query.c);
-    if (!cand || cand.status !== "connected" || cand.connectedProId !== pro.id || !pro.verified) return fail(403, "forbidden", "Only the professional the homeowner connected with can open documents");
+    if (!cand || !pro.verified || !(await contactAllowed(S, cand, pro.id))) return fail(403, "forbidden", "Only the professional the homeowner connected with can open documents");
     c = cand;
   }
   if (!c || !(c.docs || []).includes(query.d)) return fail(404, "not_found", "Not found");

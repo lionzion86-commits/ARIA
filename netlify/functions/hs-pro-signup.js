@@ -13,6 +13,7 @@
 // admin verifies the license (hs-admin-verify) the feed, cases and offers
 // all answer 403 pending_verification. Rate limit: 5 per IP per hour.
 import { endpoint, reply, fail, str, normEmail, normPhone, normZip, pickList, TRADES, LICENSE_TYPES, US_STATES, newId, getJSON, proSelf } from "./_hs-store.js";
+import { DESKS } from "./_hs-partners.js";
 import { hashPassword, createProSession, proCookieHeader } from "./_hs-auth.js";
 
 export function validatePro(b) {
@@ -24,7 +25,10 @@ export function validatePro(b) {
   if (name.length < 2) return { error: ["bad_name", "Enter your full name"] };
   const phone = normPhone(b.phone);
   if (!phone) return { error: ["bad_phone", "Enter a valid phone number"] };
-  const trades = pickList(b.trades, TRADES);
+  /* Partner desk (roofer / public_adjuster / attorney): one account = one desk; its trade is implied. */
+  const desk = b.desk == null || b.desk === "" ? null : (DESKS.includes(b.desk) ? b.desk : undefined);
+  if (desk === undefined) return { error: ["bad_desk", "Choose your desk"] };
+  const trades = pickList(desk ? [desk, ...(Array.isArray(b.trades) ? b.trades : [])] : b.trades, TRADES);
   if (!trades.length) return { error: ["bad_trades", "Choose at least one trade"] };
   if (!LICENSE_TYPES.includes(b.licenseType)) return { error: ["bad_license_type", "Choose your license type"] };
   const licenseNumber = str(b.licenseNumber, 40);
@@ -45,7 +49,7 @@ export function validatePro(b) {
     serviceArea = { centerZip, radiusMiles };
   }
   return { pro: { email, password, name, company: str(b.company, 100) || null, phone, bio: str(b.bio, 400) || null, trades,
-    licenseType: b.licenseType, licenseNumber: licenseNumber.toUpperCase(), licenseState, serviceArea, serviceZips } };
+    desk, licenseType: b.licenseType, licenseNumber: licenseNumber.toUpperCase(), licenseState, serviceArea, serviceZips } };
 }
 
 export const handler = endpoint({ methods: ["POST"], rate: { bucket: "pro-signup", limit: 5, windowSec: 3600 } }, async ({ S, body, now }) => {

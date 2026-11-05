@@ -2,6 +2,7 @@
 //   connected to this pro -> 200 { view: "connected", case: { ...full contact, address, claim/policy numbers, docs:[{id,name,type,size,url}] }, offer }
 //   offered / matching    -> 200 { view: "anonymized", case: anonymizedCase, offer|null }
 //   otherwise             -> 404.  Unverified -> 403 pending_verification.
+import { contactAllowed } from "./_hs-partners.js";
 import { endpoint, reply, fail, getJSON, isId, anonymizeCase, connectedView, caseMatchesPro, docsFor } from "./_hs-store.js";
 import { proFromEvent } from "./_hs-auth.js";
 
@@ -14,7 +15,7 @@ export const handler = endpoint({ methods: ["GET"] }, async ({ event, S, query }
   if (!c) return fail(404, "not_found", "Not found");
   let offer = null;
   for (const oid of c.offers || []) { const o = await getJSON(S.offers, oid); if (o && o.proId === pro.id) offer = { id: o.id, status: o.status, message: o.message, createdAt: o.createdAt }; }
-  if (c.status === "connected" && c.connectedProId === pro.id) {
+  if (await contactAllowed(S, c, pro.id)) {
     return reply(200, { view: "connected", case: connectedView(c, await docsFor(S, c)), offer });
   }
   if (c.status === "connected") return fail(404, "not_found", "This case is no longer available");
