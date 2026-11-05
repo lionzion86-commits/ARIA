@@ -10,7 +10,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { OUT_DIR, CATALOG, DESIGNER_MATCH, PRODUCT_TYPES, RAIL_CARDS, PAGE_SIZE, loadItems, roomRails, cardOf, pageLabels } from "../build-designer-slices.mjs";
+import { OUT_DIR, CATALOG, DESIGNER_MATCH, PRODUCT_TYPES, RAIL_CARDS, PAGE_SIZE, VIEW_ORDER, loadItems, roomRails, cardOf, pageLabels, productTypeOf, viewDesigners } from "../build-designer-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const PAGE = readFileSync(ROOT + "disenadores.html", "utf8");
@@ -99,7 +99,56 @@ check("soles first with the shared rate; decoded text; yellow only on the badge;
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(PAGE));
 });
 
-const MIN_CHECKS = 6;
+/* #443 c.6642247782: Danny walked Diseñadores -> Joyas. PatBO's "Iara
+   Jewelry Sandal", Ancora's "Tide Charm Skirt" and TNS's "Straight Jeans
+   with Metal Ring Closure" were in it: the old word list matched a type
+   word anywhere in the name, jewellery first. */
+check("Joyas: PatBO, Ancora and TNS are out; Johanna Ortiz leads, then Silvia Tcherassi, Vix, Montce, Farm Rio", () => {
+  const want = ["johannaortiz", "silviatcherassi", "vix", "montce", "farmrio"];
+  assert.deepEqual(VIEW_ORDER.joyas, want);
+  assert.deepEqual(INDEX.order.joyas, want, "index.json's Joyas order");
+  assert.deepEqual(Object.keys(INDEX.views.joyas), want, "the Joyas view's rooms");
+  for (const d of ["patbo", "ancora", "tns"]) {
+    assert.ok(!INDEX.views.joyas[d], `${d} still has a Joyas room`);
+    assert.ok(!existsSync(`${ROOT}${OUT_DIR}/room-${d}-joyas.json`), `room-${d}-joyas.json still written`);
+    assert.ok(INDEX.views.all[d] && INDEX.views.all[d].count > 0, `${d} left Diseñadores Latinos altogether`);
+    assert.ok(!(INDEX.views.all[d].rails || []).some((r) => r.k === "joyas"), `${d}'s own room still has a Joyas carousel`);
+  }
+  const byName = (d, re) => ITEMS.filter((it) => it.dkey === d && re.test(it.name));
+  for (const it of byName("patbo", /jewelry sandal/i)) assert.equal(it.ptype, "zapatos", it.name);
+  for (const it of byName("patbo", /jewelry corset top/i)) assert.equal(it.ptype, "ropa", it.name);
+  assert.ok(byName("patbo", /jewelry sandal/i).length >= 1, "PatBO's jewelry sandals are gone from the catalogue: re-pin");
+  assert.ok(INDEX.views.zapatos.patbo && INDEX.views.zapatos.patbo.count >= 4, "PatBO's sandals belong in Zapatos");
+  assert.ok(!ITEMS.some((it) => (it.dkey === "patbo" || it.dkey === "ancora" || it.dkey === "tns") && it.ptype === "joyas"));
+  for (const it of byName("tns", /metal ring closure/i)) assert.equal(it.ptype, "ropa", it.name);
+  for (const it of byName("ancora", /charm/i)) assert.equal(it.ptype, "ropa", it.name);
+  /* The page draws the rooms in index.json's order. */
+  const g = PAGE.slice(PAGE.indexOf("function renderGallery("), PAGE.indexOf("function renderChips("));
+  assert.match(g, /state\.index\.order && state\.index\.order\[state\.typeFilter\]/);
+  assert.match(g, /specs\.forEach\(function\(spec\)\{/);
+  assert.deepEqual(viewDesigners("zapatos").slice(0, 3), Object.keys(DESIGNER_MATCH).slice(0, 3), "unpinned views keep the page's order");
+});
+
+check("the class: a product is in a type view only when its type is that type; a type word in the name files nothing", () => {
+  assert.ok(!/keywords\s*:/.test(PAGE.slice(PAGE.indexOf("var PRODUCT_TYPES = ["), PAGE.indexOf("var SLICES"))), "the page still carries a name-word list");
+  const src = readFileSync(ROOT + "scripts/build-designer-slices.mjs", "utf8");
+  assert.match(src, /product-type\.js/, "the build does not use the site's classifier");
+  assert.ok(!/keywords:/.test(src), "the build still matches name words");
+  for (const [name, want] of [["Iara Jewelry Sandal", "zapatos"], ["Lara Jewelry Sandal", "zapatos"], ["ROSALIE JEWELRY CORSET TOP (RUNWAY)", "ropa"],
+    ["Straight Jeans with Metal Ring Closure in Dark Blue Cotton for Women", "ropa"], ["Tide Charm Skirt", "ropa"], ["Top Cups Deep Charm", "ropa"],
+    ["Bottom Cheeky Deep Charm", "ropa"], ["Bottom Side Tie Ondine", "ropa"], ["Blue horse shoe jeans with marbled wash in cotton denim for women", "ropa"],
+    ["Off-White Beer Cap  Baby T-Shirt", "ropa"], ["Multicolor Copacabana Beach Skirt", "ropa"], ["ELSA FLAT", "zapatos"],
+    ["Yawanawa Beaded Necklace", "joyas"], ["Vivid Vibration Earrings", "joyas"], ["Race Charm", "joyas"], ["Lyss Necklace - Gold", "joyas"]])
+    assert.equal(productTypeOf({ name, type: "WOMEN" }), want, `"${name}"`);
+  /* Every Joyas card is jewellery by its head noun, never a shoe or a garment. */
+  const FOOT_OR_GARMENT = /\b(sandals?|shoes?|heels?|boots?|flats?|sneakers?|skirts?|tops?|bottoms?|jeans|dress(es)?|pants|shorts|shirts?|corsets?)\s*(\(|-|$)/i;
+  for (const it of ITEMS) if (it.ptype === "joyas") assert.ok(!FOOT_OR_GARMENT.test(it.name), `Joyas holds "${it.name}" (${it.dkey})`);
+  for (const t of PRODUCT_TYPES) for (const [d, room] of Object.entries(INDEX.views[t.key] || {}))
+    assert.equal(room.count, ITEMS.filter((it) => it.dkey === d && it.ptype === t.key).length, `${d}/${t.key}`);
+  assert.deepEqual(Object.keys(INDEX.types).sort(), PRODUCT_TYPES.map((t) => t.key).filter((k) => INDEX.types[k]).sort(), "a non-fashion family reached the tiles");
+});
+
+const MIN_CHECKS = 8;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

@@ -54,7 +54,7 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Mujer | Ropa · Zapatos · Accesorios · Marcas | 17,414 |
 | Hombre | Ropa · Zapatos · Accesorios · Marcas | 12,152 |
 | Niños | Ropa · Zapatos · Marcas | 2,274 |
-| Zapatos | Mujer · Hombre · Niños · Marcas | 11,046 |
+| Zapatos | Mujer · Hombre · Niños · Marcas | 11,047 |
 | Belleza | Tipos · Aria Perfumes · Marcas | 5,590 |
 | Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,552 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas | 21,640 |
@@ -1418,7 +1418,7 @@ Abre: `/departamento.html?dept=kids` (2,274 productos)
 - Ropa de baño: 104 · `/departamento.html?dept=kids&t=ropa-de-bano`
 - Gorras: 92 · `/departamento.html?dept=kids&t=gorras`
 - Medias: 58 · `/departamento.html?dept=kids&t=medias`
-- Ropa: 48 · `/departamento.html?dept=kids&t=ropa`
+- Ropa: 47 · `/departamento.html?dept=kids&t=ropa`
 - Vestidos: 45 · `/departamento.html?dept=kids&t=vestidos`
 - Canastas y organizadores: 27 · `/departamento.html?dept=kids&t=canastas-y-organizadores`
 - Chompas y polerones: 23 · `/departamento.html?dept=kids&t=chompas-y-polerones`
@@ -1438,11 +1438,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Carteras: 15 → Carteras · `/departamento.html?dept=purses`
 - Sandalias: 12 → Zapatos · `/departamento.html?dept=shoes`
 - Zapatillas: 2 → Zapatos · `/departamento.html?dept=shoes`
+- Zapatos: 1 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 1 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 
 ### Zapatos
 
-- Zapatos: 507 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatos: 508 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Zapatillas: 499 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
@@ -1643,7 +1644,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ## Zapatos
 
-Abre: `/departamento.html?dept=shoes` (11,046 productos)
+Abre: `/departamento.html?dept=shoes` (11,047 productos)
 
 ### Mujer
 
@@ -1667,7 +1668,7 @@ Abre: `/departamento.html?dept=shoes` (11,046 productos)
 
 ### Niños
 
-- Zapatos: 507 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatos: 508 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Zapatillas: 499 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
@@ -1675,7 +1676,7 @@ Abre: `/departamento.html?dept=shoes` (11,046 productos)
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (483 marcas)
+### Marcas (484 marcas)
 
 - Nike: 1,014 · `/departamento.html?dept=shoes&b=Nike`
 - adidas: 692 · `/departamento.html?dept=shoes&b=adidas`
@@ -2120,6 +2121,7 @@ Abre: `/departamento.html?dept=shoes` (11,046 productos)
 - Roxoni: 1 · `/departamento.html?dept=shoes&b=Roxoni`
 - RUMPRA: 1 · `/departamento.html?dept=shoes&b=RUMPRA`
 - Sam & Libby: 1 · `/departamento.html?dept=shoes&b=Sam%20%26%20Libby`
+- Sam and Libby: 1 · `/departamento.html?dept=shoes&b=Sam%20and%20Libby`
 - saneggsry: 1 · `/departamento.html?dept=shoes&b=saneggsry`
 - ScarletteEmmy: 1 · `/departamento.html?dept=shoes&b=ScarletteEmmy`
 - Scoop: 1 · `/departamento.html?dept=shoes&b=Scoop`
@@ -3870,13 +3872,13 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Latinos por tipo
 
-- Ropa: 7,819 · `/disenadores.html?t=ropa`
-- Trajes de Baño: 1,372 · `/disenadores.html?t=trajes_bano`
-- Accesorios: 263 · `/disenadores.html?t=accesorios`
-- Joyas: 214 · `/disenadores.html?t=joyas`
-- Zapatos: 212 · `/disenadores.html?t=zapatos`
-- Carteras: 132 · `/disenadores.html?t=carteras`
-- Sombreros: 41 · `/disenadores.html?t=sombreros`
+- ropa: 7,436 · `/disenadores.html?t=ropa`
+- trajes_bano: 1,563 · `/disenadores.html?t=trajes_bano`
+- accesorios: 275 · `/disenadores.html?t=accesorios`
+- joyas: 262 · `/disenadores.html?t=joyas`
+- zapatos: 235 · `/disenadores.html?t=zapatos`
+- carteras: 163 · `/disenadores.html?t=carteras`
+- sombreros: 40 · `/disenadores.html?t=sombreros`
 
 ### Marcas (369 marcas)
 
@@ -7354,13 +7356,13 @@ Abre: `/ofertas.html` (33,505 productos)
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
 - Ropa Mujer: 5,633 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
-- Ropa Niños: 1,422 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
+- Ropa Niños: 1,421 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
 - Juguetes: 1,266 · `/ofertas.html?vista=categoria&cat=juguetes`
 - Zapatillas: 1,696 · `/ofertas.html?vista=categoria&cat=zapatillas`
 - Electrónica: 911 · `/ofertas.html?vista=categoria&cat=electronica`
 - Belleza: 5,517 · `/ofertas.html?vista=categoria&cat=belleza`
-- Joyas y accesorios: 2,610 · `/ofertas.html?vista=categoria&cat=accesorios`
-- Zapatos: 2,091 · `/ofertas.html?vista=categoria&cat=zapatos`
+- Joyas y accesorios: 2,603 · `/ofertas.html?vista=categoria&cat=accesorios`
+- Zapatos: 2,099 · `/ofertas.html?vista=categoria&cat=zapatos`
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
 - Deportes: 856 · `/ofertas.html?vista=categoria&cat=deportes`
 - Bebé: 213 · `/ofertas.html?vista=categoria&cat=bebe`
@@ -7372,9 +7374,9 @@ Abre: `/ofertas.html` (33,505 productos)
 - Mujer: sus columnas se superponen (no suman 17,414), no muestran número de productos
 - Hombre → Ropa: Zapatillas (720) en Zapatos, Zapatos (618) en Zapatos, Lentes de sol (526) en Lentes de Sol, Carteras (418) en Carteras, Collares y dijes (193) en Joyas y Accesorios, Sandalias (166) en Zapatos, Ropa interior (157) en Ropa Interior Hombre, Pulseras y tobilleras (112) en Joyas y Accesorios, Aretes (77) en Joyas y Accesorios, Anillos (73) en Joyas y Accesorios, Lencería (34) en Ropa Interior Hombre, Bolso (20) en Carteras, Fragancia (1) en Perfumes: cada uno vive en su propia sección
 - Hombre: sus columnas se superponen (no suman 12,152), no muestran número de productos
-- Niños → Ropa: Lencería (19) en Lencería, Carteras (15) en Carteras, Sandalias (12) en Zapatos, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
+- Niños → Ropa: Lencería (19) en Lencería, Carteras (15) en Carteras, Sandalias (12) en Zapatos, Zapatillas (2) en Zapatos, Zapatos (1) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
 - Niños: sus columnas se superponen (no suman 2,274), no muestran número de productos
-- Zapatos: sus columnas se superponen (no suman 11,046), no muestran número de productos
+- Zapatos: sus columnas se superponen (no suman 11,047), no muestran número de productos
 - Belleza → Tipos: Fragancia (300) en Perfumes, Carteras (2) en Carteras: cada uno vive en su propia sección
 - Belleza: sus columnas se superponen (no suman 5,590), no muestran número de productos
 - Accesorios: sus columnas se superponen (no suman 8,552), no muestran número de productos

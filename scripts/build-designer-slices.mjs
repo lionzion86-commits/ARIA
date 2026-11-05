@@ -23,9 +23,23 @@
                              productos")
 
    The rules are the page's own, moved here unchanged: the designer
-   match (exact brand), the word-boundary product types, the sale rule
+   match (exact brand), the sale rule
    (sale-rule.js), the price (tiered margin + 7% Miami tax), the order
    of carousels (Ofertas or Destacados, then one per type).
+
+   THE PRODUCT TYPE (#443 c.6642247782) is the site's one classifier,
+   product-type.js (the head noun of the name, then the store's type) --
+   the one the departments and the store rails use. This file used to
+   match a list of type words anywhere in the name, jewellery first, so
+   PatBO's "Iara Jewelry Sandal" and "Rosalie Jewelry Corset Top", TNS's
+   "Straight Jeans with Metal Ring Closure" and Ancora's "Tide Charm
+   Skirt" all sat in Joyas. A product enters a type view only when its
+   type is that type; a type word in its name never files a shoe or a
+   garment. A product of no fashion type (a candle, a book) has no type
+   view: it is in its designer's room, under Todo, and nowhere else.
+
+   VIEW_ORDER pins a type view's designers (Danny's Joyas order); the
+   others follow in the page's DESIGNERS order.
 
    REGENERATE after any catalogue change:
      node scripts/build-designer-slices.mjs
@@ -33,6 +47,7 @@
    ============================================================ */
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { photoCount } from "./lib/photo-counts.js";
 
@@ -52,19 +67,33 @@ export const DESIGNER_MATCH = {
   aguabyaguabendita: "agua by agua bendita",
 };
 export const PRODUCT_TYPES = [
-  { key: "trajes_bano", label: "Trajes de Baño", keywords: ["bikini", "swimsuit", "swim", "one-piece", "two-piece", "beach", "swimwear", "rash guard"] },
-  { key: "carteras", label: "Carteras", keywords: ["bag", "handbag", "purse", "tote", "clutch", "backpack", "crossbody", "satchel"] },
-  { key: "joyas", label: "Joyas", keywords: ["jewelry", "earring", "necklace", "bracelet", "ring", "pendant", "charm"] },
-  { key: "zapatos", label: "Zapatos", keywords: ["shoe", "sandal", "heel", "sneaker", "flat", "mule", "boot", "loafer", "espadrille"] },
-  { key: "sombreros", label: "Sombreros", keywords: ["hat", "cap", "beanie", "fedora", "visor"] },
-  { key: "accesorios", label: "Accesorios", keywords: ["scarf", "belt", "sunglasses", "wallet", "glove", "shawl", "pareo", "sarong"] },
-  { key: "ropa", label: "Ropa", keywords: [] },
+  { key: "trajes_bano", label: "Trajes de Baño" },
+  { key: "carteras", label: "Carteras" },
+  { key: "joyas", label: "Joyas" },
+  { key: "zapatos", label: "Zapatos" },
+  { key: "sombreros", label: "Sombreros" },
+  { key: "accesorios", label: "Accesorios" },
+  { key: "ropa", label: "Ropa" },
 ];
-const TYPE_RES = PRODUCT_TYPES.map((t) => ({ key: t.key, res: t.keywords.map((kw) => new RegExp("\\b" + kw.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&") + "(?:es|s)?\\b")) }));
-export function productTypeOf(item) {
-  const n = String((item && item.name) || "").toLowerCase();
-  for (const t of TYPE_RES) for (const re of t.res) if (re.test(n)) return t.key;
-  return "ropa";
+const TYPE_KEYS = new Set(PRODUCT_TYPES.map((t) => t.key));
+/* Joyas, as Danny ordered it (#443 c.6642247782): Johanna Ortiz first,
+   then Silvia Tcherassi, Vix (Paula Hermony), Montce, Farm Rio. */
+export const VIEW_ORDER = { joyas: ["johannaortiz", "silviatcherassi", "vix", "montce", "farmrio"] };
+let PT = null;
+function classifier(root = ROOT) {
+  if (!PT) { const win = {}; vm.runInNewContext(readFileSync(join(root, "product-type.js"), "utf8"), { window: win }); PT = win.AriaProductType; }
+  return PT;
+}
+/* The product's type: product-type.js's family. Anything else
+   (hogar, belleza, libros...) is not one of the page's types. */
+export function productTypeOf(item, retailer) {
+  return classifier().classify({ ...item, retailer: retailer || (item && item.retailer) || "" }) || "ropa";
+}
+export const isTypeKey = (k) => TYPE_KEYS.has(k);
+/* A view's designers, in order: VIEW_ORDER's, then the page's. */
+export function viewDesigners(t, keys = Object.keys(DESIGNER_MATCH)) {
+  const pin = VIEW_ORDER[t] || [];
+  return pin.filter((k) => keys.includes(k)).concat(keys.filter((k) => !pin.includes(k)));
 }
 export function designerKeyFor(item) {
   const b = String((item && item.brand) || "").toLowerCase().trim();
@@ -104,7 +133,7 @@ export function loadItems(root = ROOT) {
         rawWas: sale ? oRawUsd : 0,
         price, originalPrice: sale ? oFinal : null, onSale,
         image: typeof it.image === "string" && /^https?:\/\//i.test(it.image) ? it.image : "",
-        ptype: productTypeOf(it),
+        ptype: productTypeOf(it, rk),
         ph: photoCount(root, it.name || "", rk),
       });
     }
@@ -155,24 +184,27 @@ export function build(root = ROOT, labels) {
   const typeCounts = {};
   for (const it of items) {
     if (it.dkey) (byD[it.dkey] = byD[it.dkey] || []).push(it);
-    typeCounts[it.ptype] = (typeCounts[it.ptype] || 0) + 1;
+    if (isTypeKey(it.ptype)) typeCounts[it.ptype] = (typeCounts[it.ptype] || 0) + 1;
   }
-  const index = { v: 1, total: items.length, designers: {}, types: typeCounts, railCards: RAIL_CARDS, pageSize: PAGE_SIZE, views: {} };
+  const index = { v: 1, total: items.length, designers: {}, types: typeCounts, railCards: RAIL_CARDS, pageSize: PAGE_SIZE, views: {}, order: {} };
   for (const k of Object.keys(byD)) index.designers[k] = byD[k].length;
   let files = 1;
   for (const t of ["all"].concat(PRODUCT_TYPES.map((x) => x.key))) {
     const view = {};
-    for (const d of Object.keys(DESIGNER_MATCH)) {
+    const order = [];
+    for (const d of viewDesigners(t)) {
       const list = (byD[d] || []).filter((it) => t === "all" || it.ptype === t);
       if (!list.length) continue;
       const label = (labels && labels[d]) || d;
       const rails = roomRails(label, list);
+      order.push(d);
       view[d] = { count: list.length, pages: Math.ceil(list.length / PAGE_SIZE), rails: rails.map((r) => ({ k: r.k, title: r.title, count: r.items.length, pages: Math.ceil(r.items.length / PAGE_SIZE) })) };
       write(`room-${d}-${t}.json`, { d, t, rails: rails.map((r) => ({ k: r.k, cards: r.items.slice(0, RAIL_CARDS).map(cardOf) })) }); files++;
       for (const r of rails) for (let n = 0; n * PAGE_SIZE < r.items.length; n++) { write(`rail-${d}-${t}-${r.k}-${n}.json`, { page: n, pages: Math.ceil(r.items.length / PAGE_SIZE), count: r.items.length, cards: r.items.slice(n * PAGE_SIZE, (n + 1) * PAGE_SIZE).map(cardOf) }); files++; }
       for (let n = 0; n * PAGE_SIZE < list.length; n++) { write(`all-${d}-${t}-${n}.json`, { page: n, pages: Math.ceil(list.length / PAGE_SIZE), count: list.length, cards: list.slice(n * PAGE_SIZE, (n + 1) * PAGE_SIZE).map(cardOf) }); files++; }
     }
     index.views[t] = view;
+    if (VIEW_ORDER[t]) index.order[t] = order;
   }
   write("index.json", index);
   return { items: items.length, designers: Object.keys(byD).length, files };
