@@ -1067,6 +1067,7 @@ if (pw) {
       if ("${mode}" === "talk") { const o = ac.createOscillator(); o.frequency.value = 220; const g = ac.createGain(); g.gain.setValueAtTime(0.6, ac.currentTime); g.gain.setValueAtTime(0, ac.currentTime + 2.5); o.connect(g); g.connect(dst); o.start(); }
       const st = dst.stream;
       if ("${mode}" === "muted") Object.defineProperty(st.getAudioTracks()[0], "muted", { get: () => true });
+      window.__micStream = st;
       return st;
     };
   })()`;
@@ -1107,7 +1108,10 @@ if (pw) {
       await page.waitForSelector("#hsErr:not([hidden])", { timeout: 12000 });
       assert.equal(await page.locator("#hsErr").innerText(), I18N[L]["err.micSilent"]);
       await page.waitForTimeout(400);
-      assert.ok(ttsTexts().some((x) => I18N[L]["err.micSilent"].startsWith(x) || x.startsWith(I18N[L]["err.micSilent"].slice(0, 20))), "spoken: " + JSON.stringify(ttsTexts()));
+      // A muted track is said at once; a dead-silent one at the 5 s shutoff, which says goodbye.
+      const said = ttsTexts().join(" ");
+      if (mode === "muted") assert.ok(said.includes(I18N[L]["err.micSilent"].slice(0, 20)), "spoken: " + said);
+      else assert.ok(said.includes(I18N[L]["goodbye"].slice(0, 20)), "spoken: " + said);
       await page.click("#hsMic");
       await c.close();
     });
@@ -1223,6 +1227,55 @@ if (pw) {
       await c.close();
     });
   }
+
+  /* THE 5-SECOND SILENCE SHUTOFF (#443 c.6665962114, Danny's cost rule). */
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: 5 s of silence while listening -> her goodbye, then EVERYTHING off; no new round; a tap starts fresh`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(fakeMic("silent"));
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForFunction(() => window.HS_CONVO.state === "listening", null, { timeout: 8000 });
+      await page.waitForFunction(() => window.HS_GOODBYE_AT, null, { timeout: 9000 });
+      const gap = await page.evaluate(() => window.HS_GOODBYE_AT - window.HS_CONVO.startedAt);
+      assert.ok(gap >= 4900 && gap <= 6000, "goodbye after " + gap + " ms of listening");
+      await page.waitForTimeout(500);
+      assert.ok((await page.locator("#hsMsgs .hs-msg-a").last().innerText()) === I18N[L]["goodbye"], "goodbye in the chat");
+      assert.ok(ttsTexts().join(" ").includes(I18N[L]["goodbye"].split(" — ")[0]), "goodbye in her voice: " + JSON.stringify(ttsTexts()));
+      const st = await page.evaluate(() => ({
+        tracks: window.__micStream.getTracks().map((t) => t.readyState),
+        active: window.HS_CONVO.active, state: window.HS_CONVO.state, rec: window.HS_CONVO.rec, ctx: window.HS_CONVO.ctx, stream: window.HS_CONVO.stream, timer: window.HS_CONVO.timer,
+        glow: document.querySelector(".hs-star-mini").getAttribute("data-state"), mic: document.getElementById("hsMic").getAttribute("aria-pressed"),
+      }));
+      assert.deepEqual(st.tracks, ["ended"]); assert.equal(st.active, false); assert.equal(st.state, "off");
+      assert.equal(st.rec, null); assert.equal(st.ctx, null); assert.equal(st.stream, null); assert.equal(st.timer, 0);
+      assert.notEqual(st.glow, "listening"); assert.equal(st.mic, "false");
+      const n = log.length;
+      await page.waitForTimeout(6000);
+      assert.equal(await page.evaluate(() => window.HS_CONVO.state), "off", "no new listening round after the goodbye");
+      assert.deepEqual(log.slice(n).map((x) => x.fn), [], "nothing called after the goodbye");
+      await page.locator(".hs-star-mini").click();
+      await page.waitForFunction(() => window.HS_CONVO.active && window.HS_CONVO.state === "listening", null, { timeout: 5000 });
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("browser 390: goodbye when the voice fails -> the goodbye text and the real error are shown, and it shuts off anyway", async () => {
+    reset();
+    stub["hs-tts"] = () => ({ status: 503, json: { error: "voice not configured", code: "voice_not_configured" } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.addInitScript(fakeMic("silent"));
+    await page.goto(BASE + "/home-shield/?lang=es", { waitUntil: "load" });
+    await page.click("#hsFloat");
+    await page.waitForFunction(() => window.HS_GOODBYE_AT, null, { timeout: 12000 });
+    await page.waitForFunction((g) => document.getElementById("hsErr").innerText.includes(g), I18N.es["goodbye"], { timeout: 4000 });
+    assert.match(await page.locator("#hsErr").innerText(), /voice not configured/);
+    assert.equal(await page.evaluate(() => window.HS_CONVO.active), false);
+    assert.deepEqual(await page.evaluate(() => window.__micStream.getTracks().map((t) => t.readyState)), ["ended"]);
+    await c.close();
+  });
 
   await check("browser 390: Listen on the intro speaks the intro through hs-tts; again in Español; one voice at a time", async () => {
     reset();

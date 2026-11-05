@@ -539,7 +539,9 @@
      ================================================================ */
   var convo = (function () {
     var c = { active: false, state: "off", stream: null, ctx: null, an: null, buf: null, timer: 0, rec: null, chunks: [], mime: "", startedAt: 0, lastVoice: 0, heard: false, loud: 0, peak: 0, openedAt: 0, warned: false, calib: [], idleRounds: 0 };
-    var SILENCE_MS = 900, MAX_UTTER_MS = 30000, NO_SPEECH_MS = 15000, BARGE_MS = 260;
+    /* Danny's cost rule (#443 c.6665962114): 5 s of listening with no
+       speech ends the conversation, with her goodbye. Nothing keeps billing. */
+    var SILENCE_MS = 900, MAX_UTTER_MS = 30000, NO_SPEECH_MS = 5000, BARGE_MS = 260;
     c.uiState = function () { return c.state === "speaking" ? "speaking" : c.state === "thinking" ? "thinking" : c.state === "listening" ? "listening" : "idle"; };
     c.set = function (s) {
       c.state = s;
@@ -573,15 +575,11 @@
       var th = vadThresholds(c.calib), thr = th.speech, barge = th.barge;
       if (c.state === "listening") {
         if (lv > c.peak) c.peak = lv;
-        if (!c.warned && !c.heard && now - c.startedAt > 4000 && c.peak < 0.0015) { c.warned = true; micProblem(); }
+
         if (lv > thr) { if (!c.heard) { c.heard = true; c.set("listening"); } c.lastVoice = now; }
         if (c.heard && now - c.lastVoice > SILENCE_MS) return c.finish();
         if (c.heard && now - c.startedAt > MAX_UTTER_MS) return c.finish();
-        if (!c.heard && now - c.startedAt > NO_SPEECH_MS) {
-          c.idleRounds++;
-          if (c.idleRounds >= 3) { c.stop(); showErr(t("info.autoStop")); return; }
-          c.restartRec();
-        }
+        if (!c.heard && now - c.startedAt > NO_SPEECH_MS) return c.goodbye(c.peak < 0.0015);
       } else if (c.state === "speaking") {
         if (lv > barge) { c.loud += 50; if (c.loud >= BARGE_MS) { c.loud = 0; abortTurn(); c.listen(true); } } else c.loud = 0;
       }
@@ -676,11 +674,28 @@
         throw e;
       });
     };
+    /* End the conversation: everything off first (mic, recorder, audio
+       graph, timers, any reply stream or synthesis), then her goodbye, which
+       never reopens a listening round. */
+    c.goodbye = function (micSilent) {
+      if (!c.active || c.state !== "listening") return;
+      c.stop();
+      abortTurn();
+      if (micSilent) showErr(t("err.micSilent"));
+      var bye = t("goodbye");
+      addMsg("assistant", bye);
+      chat.messages.push({ role: "assistant", content: bye });
+      window.HS_GOODBYE_AT = Date.now();
+      return speak(bye, { owner: "chat" }).then(function (r) {
+        if (r && r.error) showErr(bye + " " + t("err.voice", { e: r.error.message }));
+        setStarState("idle");
+      });
+    };
     c.stop = function () {
       if (!c.active && !c.stream) return;
       c.active = false;
-      clearInterval(c.timer);
-      if (c.rec && c.rec.state !== "inactive") { c.rec.onstop = null; try { c.rec.stop(); } catch (e) { /* ignore */ } }
+      clearInterval(c.timer); c.timer = 0;
+      if (c.rec && c.rec.state !== "inactive") { c.rec.onstop = null; c.rec.ondataavailable = null; try { c.rec.stop(); } catch (e) { /* ignore */ } }
       if (c.stream) c.stream.getTracks().forEach(function (tr) { tr.stop(); });
       if (c.ctx) { try { c.ctx.close(); } catch (e) { /* ignore */ } }
       c.stream = null; c.ctx = null; c.an = null; c.rec = null;
