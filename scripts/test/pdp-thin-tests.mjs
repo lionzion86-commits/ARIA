@@ -27,6 +27,7 @@ import { gzipSync } from "node:zlib";
 import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 import { liftPage, sourceFiles, MAX_SHARD_GZ, ofertasRows } from "../build-pdp-slices.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
+import { loadSizeRuns, sizeRunFor } from "../lib/variant-families.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const PDP = ROOT + "assets/pdp/";
@@ -84,6 +85,17 @@ function oldHunt(key, files) {
   for (const f of files) { const it = firstByFile.get(f) && firstByFile.get(f).get(key); if (it) return it; }
   return null;
 }
+/* A shoe whose own store feed lists its run takes it at build time
+   (build-pdp-slices applyStoreSizeRun, #443 c.6644778221): the old
+   record plus exactly that run -- the feed's own product, found by its
+   handle, and only for a record the old scan had no sizes for. */
+const RUNS = loadSizeRuns(ROOT);
+function withStoreRun(want, rec) {
+  if (!String(rec.sizesSource || "").startsWith("scripts/data/variant-families/") || P.truthfulSizes(want.sizes).length) return want;
+  const run = sizeRunFor(RUNS, want.retailer, want.url);
+  if (!run || run.source !== rec.sizesSource) return want;
+  return { ...want, sizes: P.truthfulSizes(run.sizes), sizesTier: "scrape", sizesSource: run.source };
+}
 const SAME = ["name", "brand", "price", "wasPrice", "salePct", "image", "description", "dept", "retailer", "sizesTier", "sizesSource"];
 function same(a, b) {
   for (const k of SAME) if ((a[k] || "") !== (b[k] || "")) return k;
@@ -117,7 +129,7 @@ await check("every catalogue item opens through the shards, to the record the ol
           const cands = lookup(key);
           const rec = P.pickRecord(cands, list) || P.pickRecord(cands, P.CATALOG_FILES);
           if (!rec) { misses.push(`${k}: ${title} -- not in its shard`); continue; }
-          const d = want ? same(R.recordToItem(rec), want) : "old scan missed";
+          const d = want ? same(R.recordToItem(rec), withStoreRun(want, rec)) : "old scan missed";
           if (d) misses.push(`${k}: ${title} -- ${d} differs`);
         }
       }
