@@ -16,6 +16,8 @@ import { readFileSync, existsSync, readdirSync, writeFileSync, mkdtempSync, rmSy
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+// hs endpoints are v2 functions (default export, #443 c.6666325601); the webhook is still Lambda-shaped.
+const fnOf = (m) => m.default || m.handler;
 
 let passed = 0;
 const failures = [];
@@ -61,7 +63,7 @@ process.env.URL = "https://ariashop.pe";
 const fns = {};
 for (const n of ["hs-case-create", "hs-case-status", "hs-case-delete", "hs-case-messages", "hs-doc-upload", "hs-doc-get", "hs-policy-review",
   "hs-offer-respond", "hs-pro-signup", "hs-pro-login", "hs-pro-logout", "hs-pro-me", "hs-pro-feed", "hs-pro-offer", "hs-pro-case",
-  "hs-admin-pros", "hs-admin-verify", "hs-admin-cases"]) fns[n] = (await import(FN + n + ".js")).handler;
+  "hs-admin-pros", "hs-admin-verify", "hs-admin-cases"]) fns[n] = fnOf(await import(FN + n + ".js"));
 
 let ipSeq = 0;
 /** Call a function in-process. Returns { status, body, raw, headers, cookie }. */
@@ -495,6 +497,90 @@ await test("methods and ids: wrong method 405, malformed ids 404, OPTIONS 204", 
   assert.equal((await call("hs-pro-feed", { method: "OPTIONS" })).status, 204);
 });
 
+/* ---------------------------------------------------------------- P0 c.6666325601
+   Every rate-limited POST returned 500 in production: the stores were opened
+   with consistency "strong", which routes EVERY call (writes too) to the
+   context's uncachedEdgeURL -- and Lambda-compat functions never get one. */
+await test("P0 c.6666325601: a rate-limit write that throws never 500s (login 401, signup 400, case-create 400)", async () => {
+  const boom = () => { const e = new Error("Netlify Blobs has failed to perform a read using strong consistency"); e.name = "BlobsConsistencyError"; throw e; };
+  const broken = {};
+  store.__setStoreFactory((name) => (broken[name] ||= (name === "hs-rate" ? { ...memStore(), setJSON: async () => boom() } : memStore())));
+  const quiet = console.error; const logged = []; console.error = (...a) => logged.push(a.join(" "));
+  try {
+    const login = await call("hs-pro-login", { body: { email: "nobody@correo.test", password: "wrong-password" } });
+    assert.equal(login.status, 401); assert.equal(login.body.code, "bad_credentials");
+    const signup = await call("hs-pro-signup", { body: {} });
+    assert.equal(signup.status, 400, JSON.stringify(signup.body));
+    const cc = await call("hs-case-create", { body: {} });
+    assert.equal(cc.status, 400, JSON.stringify(cc.body));
+    assert.ok(logged.some((l) => /rate write failed \(fail-open\)/.test(l)), logged.join(" | "));
+  } finally { console.error = quiet; store.__setStoreFactory((name) => (STORES[name] ||= memStore())); }
+});
+
+await test("P0 c.6666325601: every hs endpoint is a Functions v2 handler (default export, no Lambda `handler`)", async () => {
+  const LAMBDA = new Set(["hs-stripe-webhook.js", "hs-stt.js", "hs-tts.js"]); // no strong store / raw-body signature
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "../../netlify/functions");
+  const files = readdirSync(dir).filter((f) => /^hs-.*\.js$/.test(f) && !LAMBDA.has(f));
+  assert.ok(files.length >= 22, files.length + " files");
+  for (const f of files) {
+    const src = readFileSync(join(dir, f), "utf8");
+    assert.ok(/^export default /m.test(src), f + ": no default export");
+    assert.ok(!/^export (const|async function|function) handler\b/m.test(src), f + ": a named `handler` export makes Netlify deploy it as Lambda-compat");
+  }
+  for (const f of LAMBDA) assert.ok(!/openStores\(/.test(readFileSync(join(dir, f), "utf8")) || f === "hs-stripe-webhook.js", f);
+});
+
+await test("P0 c.6666325601: the v2 Request path answers like the Lambda path (401 / 400 / 204, cookies kept)", async () => {
+  const h = fns["hs-pro-login"];
+  const r = await h(new Request("https://ariashop.pe/.netlify/functions/hs-pro-login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "nobody@correo.test", password: "x-wrong" }) }), { ip: "10.77.0.1" });
+  assert.ok(r instanceof Response);
+  assert.equal(r.status, 401); assert.equal((await r.json()).code, "bad_credentials");
+  const me = await fns["hs-pro-me"](new Request("https://ariashop.pe/.netlify/functions/hs-pro-me"), { ip: "10.77.0.2" });
+  assert.equal(me.status, 401);
+  const opt = await fns["hs-pro-me"](new Request("https://ariashop.pe/.netlify/functions/hs-pro-me", { method: "OPTIONS" }), {});
+  assert.equal(opt.status, 204); assert.equal(await opt.text(), "");
+  const cc = await fns["hs-case-create"](new Request("https://ariashop.pe/.netlify/functions/hs-case-create", { method: "POST", body: "{}" }), { ip: "10.77.0.3" });
+  assert.equal(cc.status, 400);
+  const st = await fns["hs-case-status"](new Request("https://ariashop.pe/.netlify/functions/hs-case-status?c=c_000000000000000000000000&t=" + "0".repeat(64)), { ip: "10.77.0.4" });
+  assert.equal(st.status, 404);
+  // A real signed-in pro over the v2 path: login sets the cookie, hs-pro-me reads it back.
+  const email = "v2.signup@correo.test";
+  const su = await fns["hs-pro-signup"](new Request("https://ariashop.pe/.netlify/functions/hs-pro-signup", { method: "POST", body: JSON.stringify({ ...PRO_BASE, email, name: "Pro V2", company: "Shield Co", trades: ["public_adjuster"], licenseType: "public_adjuster", licenseNumber: "W765432", serviceArea: { centerZip: "33130", radiusMiles: 25 } }) }), { ip: "10.77.0.7" });
+  assert.equal(su.status, 200, await su.clone().text());
+  const login = await h(new Request("https://ariashop.pe/.netlify/functions/hs-pro-login", { method: "POST", body: JSON.stringify({ email, password: PRO_BASE.password }) }), { ip: "10.77.0.5" });
+  assert.equal(login.status, 200, await login.clone().text());
+  const cookie = (login.headers.get("set-cookie") || "").split(";")[0];
+  assert.match(cookie, /^hs_pro=/);
+  const me2 = await fns["hs-pro-me"](new Request("https://ariashop.pe/.netlify/functions/hs-pro-me", { headers: { cookie } }), { ip: "10.77.0.6" });
+  assert.equal(me2.status, 200);
+});
+
+await test("P0 c.6666325601: real Blobs client: strong only with uncachedEdgeURL, eventual otherwise; the old pairing throws", async () => {
+  const { createServer } = await import("node:http");
+  const hits = [];
+  const mk = (tag) => new Promise((res) => { const srv = createServer((q, a) => { hits.push(tag + " " + q.method); q.resume(); q.on("end", () => { a.writeHead(200, { etag: '"1"' }); a.end(); }); }); srv.listen(0, "127.0.0.1", () => res(srv)); });
+  const edge = await mk("edge"), uncached = await mk("uncached");
+  const url = (s) => `http://127.0.0.1:${s.address().port}`;
+  const prevEnv = process.env.NETLIFY_BLOBS_CONTEXT;
+  const setCtx = (o) => { process.env.NETLIFY_BLOBS_CONTEXT = Buffer.from(JSON.stringify(o)).toString("base64"); };
+  const quiet = console.warn; console.warn = () => {};
+  store.__setStoreFactory(null);
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    setCtx({ edgeURL: url(edge), siteID: "site", token: "t" });
+    await assert.rejects(() => getStore({ name: "hs-rate", consistency: "strong" }).setJSON("k", { n: 1 }), (e) => e.name === "BlobsConsistencyError");
+    await store.openStores({ headers: {} }).rate.setJSON("k", { n: 1 });
+    setCtx({ edgeURL: url(edge), uncachedEdgeURL: url(uncached), siteID: "site", token: "t" });
+    await store.openStores({ headers: {} }).rate.setJSON("k", { n: 2 });
+    assert.deepEqual(hits, ["edge PUT", "uncached PUT"]);
+  } finally {
+    console.warn = quiet;
+    if (prevEnv === undefined) delete process.env.NETLIFY_BLOBS_CONTEXT; else process.env.NETLIFY_BLOBS_CONTEXT = prevEnv;
+    store.__setStoreFactory((name) => (STORES[name] ||= memStore()));
+    edge.close(); uncached.close();
+  }
+});
+
 /* ================================================================
    FRONT SECTION (homeowner page + hs-chat) -- added by the front builder.
    ================================================================ */
@@ -793,7 +879,7 @@ if (pw) {
   store.__setMailer(async () => ({ ok: true }));
   const real = {};
   for (const f of ["hs-case-create", "hs-case-status", "hs-offer-respond", "hs-case-messages", "hs-case-delete", "hs-doc-upload", "hs-policy-review"]) {
-    if (existsSync(join(ROOT, "netlify/functions", f + ".js"))) real[f] = (await import(`../../netlify/functions/${f}.js`)).handler;
+    if (existsSync(join(ROOT, "netlify/functions", f + ".js"))) real[f] = fnOf(await import(`../../netlify/functions/${f}.js`));
   }
   /* Per-test stubs for the model, the voice and the ears. */
   const log = [];

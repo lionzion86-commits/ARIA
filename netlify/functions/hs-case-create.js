@@ -78,7 +78,7 @@ export function buildDraft(body, now = Date.now()) {
   };
 }
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "case-create", limit: 6, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "case-create", limit: 6, windowSec: 3600 } }, async ({ S, body, now }) => {
   if (body.draft === true && !body.caseId) {
     const dft = buildDraft(body, now);
     await S.cases.setJSON(dft.id, dft);

@@ -13,6 +13,8 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+// hs endpoints are v2 functions (default export, #443 c.6666325601); the webhook is still Lambda-shaped.
+const fnOf = (m) => m.default || m.handler;
 
 let passed = 0;
 const failures = [];
@@ -43,7 +45,7 @@ STORES.sessions = memStore();
 await STORES.sessions.setJSON("adm", { email: "danny@correo.test", createdAt: new Date().toISOString() });
 const ADMIN = "aria_session=adm";
 const H = {};
-for (const n of ["hs-storm", "hs-pro-signup", "hs-partner", "hs-partner-admin", "hs-case-create", "hs-case-status", "hs-offer-respond", "hs-pro-feed", "hs-pro-case", "hs-pro-offer", "hs-stripe-webhook", "hs-admin-verify"]) H[n] = (await import(FN + n + ".js")).handler;
+for (const n of ["hs-storm", "hs-pro-signup", "hs-partner", "hs-partner-admin", "hs-case-create", "hs-case-status", "hs-offer-respond", "hs-pro-feed", "hs-pro-case", "hs-pro-offer", "hs-stripe-webhook", "hs-admin-verify"]) H[n] = fnOf(await import(FN + n + ".js"));
 let ip = 0;
 async function call(n, { method = "POST", body, query, cookie, headers = {}, raw } = {}) {
   const r = await H[n]({ httpMethod: method, headers: { "x-nf-client-connection-ip": `10.9.${ip >> 8 & 255}.${ip++ & 255}`, cookie: cookie || "", ...headers }, queryStringParameters: query || {}, body: raw ?? (body ? JSON.stringify(body) : undefined) });

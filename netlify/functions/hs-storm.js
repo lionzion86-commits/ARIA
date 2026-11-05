@@ -10,7 +10,7 @@ import { proFromEvent, adminFromEvent } from "./_hs-auth.js";
 import { zip3Info } from "./_hs-zip3.js";
 import { stormFor } from "./_hs-storm.js";
 
-export const handler = endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) => {
+export default endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) => {
   let state, zip, radius;
   const pro = await proFromEvent(event, S);
   if (query.state && (await adminFromEvent(event, S))) {

@@ -57,7 +57,7 @@ async function finish(S, c, bytes, file, kind, now) {
   return reply(200, { docId: id, name: meta.name, type: meta.type, size: meta.size, kind: meta.kind });
 }
 
-export const handler = endpoint({ methods: ["POST"], maxBody: 6 * 1024 * 1024, rate: { bucket: "doc-upload", limit: 80, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], maxBody: 6 * 1024 * 1024, rate: { bucket: "doc-upload", limit: 80, windowSec: 3600 } }, async ({ S, body, now }) => {
   const c = await caseForToken(S, body.caseId, body.token);
   if (!c) return fail(404, "not_found", "We could not find that case");
   const file = body.file && typeof body.file === "object" ? body.file : null;
