@@ -28,7 +28,7 @@ export async function deleteCase(S, c) {
   return docs;
 }
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "case-delete", limit: 20, windowSec: 3600 } }, async ({ S, body }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "case-delete", limit: 20, windowSec: 3600 } }, async ({ S, body }) => {
   const c = await caseForToken(S, body.caseId, body.token);
   if (!c) return fail(404, "not_found", "We could not find that case");
   const docs = await deleteCase(S, c);

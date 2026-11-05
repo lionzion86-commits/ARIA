@@ -13,7 +13,7 @@
 import { endpoint, reply, fail, caseForToken, getJSON, isId, scrubText, knownPrivate } from "./_hs-store.js";
 import { extractPdfText, policyFindings, noTextMessage, notPdfMessage } from "./_hs-policy.js";
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "policy-review", limit: 30, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "policy-review", limit: 30, windowSec: 3600 } }, async ({ S, body, now }) => {
   const lang = body.lang === "es" ? "es" : "en";
   const c = await caseForToken(S, body.caseId, body.token);
   if (!c) return fail(404, "not_found", "We could not find that case");

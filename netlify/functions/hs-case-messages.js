@@ -48,7 +48,7 @@ async function resolve(event, S, src) {
   return { c, o, side: "pro", proId: pro.id };
 }
 
-export const handler = endpoint({ methods: ["GET", "POST"], rate: { bucket: "case-messages", limit: 120, windowSec: 3600 } }, async ({ event, S, body, query, now }) => {
+export default endpoint({ methods: ["GET", "POST"], rate: { bucket: "case-messages", limit: 120, windowSec: 3600 } }, async ({ event, S, body, query, now }) => {
   const r = await resolve(event, S, event.httpMethod === "GET" ? query : body);
   if (r.error) return r.error;
   const { c, o, side, proId } = r;
