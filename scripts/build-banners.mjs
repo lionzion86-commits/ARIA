@@ -121,6 +121,11 @@ export function tierOf(kind, { logo, backdrop, models, tiles, photo }) {
 }
 const statusOf = (kind, tier) => (tier === 0 ? "MISSING" : kind === "dept" ? (tier === 1 ? "REPRESENTED" : "NOT-YET-REPRESENTED") : tier <= 2 ? "REPRESENTED" : "NOT-YET-REPRESENTED");
 
+/* A store still AWAITING its catalogue (/off-sale.js, Marc Jacobs) has no
+   page yet: no banner file, and its kind's index never lists it. */
+export const isGated = (id) => { const [kind, key] = id.split(":"); return kind === "store" && isAwaitingCatalog(key); };
+export const liveEntries = () => Object.entries(BANNER_REGISTRY).filter(([id]) => !isGated(id));
+
 export function buildEntry(id, e) {
   const [kind, key] = id.split(":");
   if (e.logo && !has(e.logo)) throw new Error(`${id}: logo ${e.logo} is not in the repo -- never invent one`);
@@ -254,13 +259,7 @@ function markdown(rep) {
 
 export function buildAll({ date = new Date().toISOString().slice(0, 10), write = true } = {}) {
   const built = {};
-  /* A store still AWAITING its catalogue (/off-sale.js) has no page yet:
-     no banner file, and its kind's index never lists it. */
-  for (const [id, e] of Object.entries(BANNER_REGISTRY)) {
-    const [kind, key] = id.split(":");
-    if (kind === "store" && isAwaitingCatalog(key)) continue;
-    built[id] = buildEntry(id, e);
-  }
+  for (const [id, e] of liveEntries()) built[id] = buildEntry(id, e);
   const pages = audit(built);
   const has1 = (r) => r.base.class === "HAS-relevant";
   const nowHas = (r) => r.now.tier > 0;
