@@ -36,7 +36,10 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES, BRANDS_DIR, BLOCKED, deptRegistry, noDeadEnds, nmMarkup } from "../build-nav-menu.mjs";
+import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES, BRANDS_DIR, BLOCKED, deptRegistry, noDeadEnds, nmMarkup, TABS, isBrandCol } from "../build-nav-menu.mjs";
+import { readdirSync } from "node:fs";
+import { loadStore } from "../../netlify/functions/_tienda-core.js";
+import { loadItems as loadBrandItems, filterByBrand, brandKeyOf } from "../../netlify/functions/_brand-core.js";
 import { navFilter, normSize, readFilters, answerNav } from "../../netlify/functions/_nav-filter-core.js";
 import { loadDept, filterList, answer as deptAnswer } from "../../netlify/functions/_department-core.js";
 import { SHOE_CLASSES, isGarmentTail } from "../lib/footwear.js";
@@ -76,9 +79,18 @@ await check("the menu is small and lazy: under 64KB, fetched by the script, neve
 });
 await check("every section Danny named is a tab or a section in one", () => {
   const all = JSON.stringify(B.menu);
-  for (const name of ["Deportes", "Gym Rat", "Fútbol", "Tenis", "Aria Fight Club", "Surf & Skate", "Diseñadores Latinos", "Tallas Plus", "Perfumes", "Aria Beauty",
+  for (const name of ["Deportes", "Diseñadores Latinos", "Tallas Plus", "Aria Perfumes",
     "Mujer", "Hombre", "Niños", "Belleza", "Zapatos", "Zapatillas", "Accesorios", "Diseñador", "Joyas", "Hogar", "Electrónica", "Juguetes", "Lencería", "Ropa Interior Hombre", "Lentes de Sol", "Aria Auto", "Motos", "Ofertas"])
     assert.ok(all.includes('"' + name), name + " is missing from the menu");
+  /* The sections the old «Secciones» block listed keep their own door
+     outside the menu: the homepage's category pills or Categorías. */
+  const reg = deptRegistry(ROOT), cats = read("categorias.html");
+  const bundle = readdirSync(join(ROOT, "build")).filter((f) => /^app-[0-9a-f]{16}\.js$/.test(f)).map((f) => read("build/" + f)).join("");
+  const pills = (/const CATEGORY_TAB_ORDER = \[([^\]]*)\]/.exec(bundle) || ["", ""])[1];
+  for (const k of ["gym_rat", "soccer", "tennis", "combat_sports", "surf_skate", "spearfishing", "party", "moms", "toys", "books", "candy_chocolate", "mens_grooming", "reacondicionados", "shoes_women", "shoes_men"]) {
+    if (!reg[k]) continue;
+    assert.ok(cats.includes("dept=" + k + '"') || pills.includes("'" + k + "'"), reg[k].name + " (" + k + ") has no door of its own outside the menu");
+  }
   assert.deepEqual(B.unplaced, [], "registry departments with products under no tab");
 });
 /* ---------- no dead ends (#443 c.6623258189) ---------- */
@@ -95,7 +107,6 @@ await check("no dead ends: a tab without columns is a plain link (no sheet); no 
     for (const c of t.cols) {
       assert.notEqual(c.links.length, 1, `${t.label} > ${c.h}: a column of one leaf (a one-item drill)`);
       if (!c.links.length) assert.ok(c.href && c.href !== t.href, `${t.label} > ${c.h}: an empty column, or one that is the tab itself`);
-      if (c.h === "Secciones") for (const l of c.links) assert.notEqual(l[1], t.href, `${t.label} > Secciones > ${l[0]} repeats the tab`);
     }
   }
   /* The rule itself, and the markup of a tab without columns. */
@@ -198,8 +209,9 @@ await check("a type that has its own section is not a fashion department's leaf 
     const ropa = t.cols.find((c) => c.h === "Ropa");
     for (const [l, h] of ropa.links) assert.ok(!/[?&]t=(zapatos|zapatillas|sandalias|tacones|botas-y-botines|carteras|lentes-de-sol|joyas|aretes|anillos|fragancia|lenceria|fajas-y-shapewear|ropa-interior)(&|$)/.test(h), `${t.label} > Ropa > ${l}: ${h}`);
   }
-  const mujer = B.menu.tabs.find((x) => x.k === "mujer").cols.find((c) => c.h === "Secciones").links.map((l) => l[1]);
-  for (const h of ["/ropa-interior.html#mujer", "/departamento.html?dept=perfumes", "/departamento.html?dept=purses", "/departamento.html?dept=sunglasses"]) assert.ok(mujer.includes(h), "Mujer > Secciones lacks " + h);
+  /* Each owning section is still in the menu: a tab or a column of its own. */
+  const doors = B.menu.tabs.flatMap((t) => [t.href, ...t.cols.map((c) => c.href)]);
+  for (const h of ["/ropa-interior.html#mujer", "/departamento.html?dept=perfumes", "/departamento.html?dept=purses", "/departamento.html?dept=sunglasses", "/departamento.html?dept=shoes", "/departamento.html?dept=joyas_accesorios"]) assert.ok(doors.includes(h), "no tab or column opens " + h);
 });
 await check("Perfumes in the menu is the real Aria Perfumes department: the homepage's own address and its own doors", () => {
   const home = read("index.html");
@@ -282,7 +294,12 @@ await check("departamento.html's first script sends a nav=1 URL to the canonical
   const first = s.indexOf("<script"), redirect = s.indexOf("window.__ariaCanon = 1");
   assert.ok(redirect > first && redirect < s.indexOf("</script>", first), "the redirect is not the first script");
   assert.ok(redirect < s.indexOf("<title>"), "the redirect is not at the top of <head>");
-  for (const f of ["departamento.html", "ofertas.html", "ropa-interior.html"]) assert.ok(!/nav-filter\.js|nfBoot|AriaNFHost/.test(read(f)), f + " still loads the filter bar");
+  for (const f of ["departamento.html", "ropa-interior.html"]) assert.ok(!/nav-filter\.js|nfBoot|AriaNFHost/.test(read(f)), f + " still loads the filter bar");
+  /* Ofertas mounts the bar only inside one of its own categories (#443
+     c.6629871333: "Ofertas zapatos mujer / hombre / niños"), never on
+     its store view: no static script tag, only nfSync's category source. */
+  assert.doesNotMatch(read("ofertas.html"), /<script[^>]*src="\/assets\/js\/nav-filter\.js"/);
+  assert.match(read("ofertas.html"), /'ofertas=1&cat=' \+ encodeURIComponent\(S\.cat\)/);
   assert.ok(!/AriaDept|nav=1|'nav'/.test(read("assets/js/nav-filter.js")), "nav-filter.js still builds the department's filtered view");
 });
 await check("sizes are the store's own labels, read not invented", () => {
@@ -338,6 +355,79 @@ await check("the homepage's Categorías store rail is chips, not a checkbox side
 await check("the menu and the bar lay nothing out on a grid (carousels only)", () => {
   for (const f of ["assets/js/nav-filter.js", "assets/js/nav-menu.js"]) assert.ok(!/display\s*:\s*grid/.test(read(f)), f);
   assert.match(read("assets/js/nav-filter.js"), /class="rail nf-rail" id="nfRail"/);
+});
+
+/* ---------- no «Secciones» (#443 c.6635728704, c.6635797675, c.6635799980) ---------- */
+await check("no «Secciones» anywhere: no tab's column (every tab), the menu file, the complete lists, the inventory, every page's tab row and markup, the scripts", () => {
+  for (const t of B.menu.tabs) for (const c of t.cols) assert.ok(!/Secciones/i.test(c.h), `${t.label} > ${c.h}`);
+  for (const k of ["mujer", "hombre", "ninos", "zapatos", "belleza", "accesorios", "disenador", "hogar", "ofertas"]) assert.ok(B.menu.tabs.some((t) => t.k === k), k + " tab is missing");
+  assert.ok(!/Secciones/i.test(read(MENU_FILE)), MENU_FILE);
+  for (const f of readdirSync(join(ROOT, BRANDS_DIR))) assert.ok(!/Secciones/i.test(read(BRANDS_DIR + "/" + f)), f);
+  assert.ok(!/«Secciones»|### Secciones|· Secciones/.test(read(INVENTORY_FILE).replace(/No hay bloque «Secciones»/, "")), INVENTORY_FILE);
+  for (const f of NM_PAGES) if (existsSync(join(ROOT, f))) assert.ok(!/Secciones/.test(read(f)), f + " says «Secciones»");
+  for (const f of ["assets/js/nav-menu.js", "assets/js/dept-header.js", "assets/js/header-search.js", "scripts/header-search.mjs"]) assert.ok(!/Secciones/.test(read(f)), f);
+  for (const f of readdirSync(join(ROOT, "build")).filter((x) => /^app-[0-9a-f]{16}\.js$/.test(x))) assert.ok(!/Secciones/.test(read("build/" + f)), f);
+});
+
+/* ---------- nav count truth (#443 c.6635540929, c.6635573276) ---------- */
+const listCache = new Map();
+const deptList = (k) => { if (!listCache.has(k)) { const d = loadDept(k, [ROOT]); listCache.set(k, d ? d.list.filter((p) => p.image) : null); } return listCache.get(k); };
+const behind = (href) => {
+  const u = new URL(href, "http://x");
+  if (u.pathname !== "/departamento.html") return null;
+  const l = deptList(u.searchParams.get("dept"));
+  const q = (k) => u.searchParams.get(k) || "";
+  return l ? filterList(l, { b: q("b"), t: q("t"), a: q("a"), u: q("para") }) : null;
+};
+const brandsOf = (list) => new Set(list.map((p) => String(p.brand || "").trim().toLowerCase()).filter(Boolean));
+await check("Marcas counts distinct brands in every scope: the list plus its «Ver todas» remainder, and an independent count of the brands its page renders", () => {
+  let n = 0;
+  for (const t of B.menu.tabs) for (const c of t.cols) {
+    if (!isBrandCol(c.h)) continue;
+    const full = c.more ? JSON.parse(read(c.more.slice(1))) : c.links;
+    assert.equal(c.n, full.length, `${t.label} > ${c.h}: shows ${c.n}, its list has ${full.length} brands`);
+    assert.equal(c.n, c.all || c.links.length, `${t.label} > ${c.h}: ${c.n} vs «Ver todas» ${c.all}`);
+    assert.notEqual(c.n, t.n, `${t.label} > ${c.h}: the brand number is the product total`);
+    const set = c.href && behind(c.href);
+    if (set) assert.equal(c.n, brandsOf(set).size, `${t.label} > ${c.h}: ${c.n} shown, ${brandsOf(set).size} distinct brands behind ${c.href}`);
+    n++;
+  }
+  assert.ok(n >= 12, n + " brand columns");
+  /* The client labels the number as brands. */
+  assert.match(read("assets/js/nav-menu.js"), /' marcas'/);
+});
+await check("a store and a brand page: the Marca panel's brands are the distinct brands of the products the page draws", async () => {
+  for (const qs of [{ tienda: "macys" }, { marca: "nike" }]) {
+    const r = await answerNav(qs, [ROOT]);
+    assert.equal(r.status, 200, JSON.stringify(qs));
+    let rows;
+    if (qs.tienda) rows = (loadStore(qs.tienda, [ROOT]).rows || []).filter((x) => x[5]).map((x) => x[1]);
+    else rows = filterByBrand(loadBrandItems([ROOT]).items, brandKeyOf(qs.marca)).filter((p) => p.image).map((p) => p.brand);
+    const real = new Set(rows.map((b) => String(b || "").trim().toLowerCase()).filter(Boolean));
+    assert.equal(r.body.facets.b.length, real.size, JSON.stringify(qs));
+  }
+});
+await check("buckets reconcile: a column shows a product number only when it is what its link renders and the columns partition the tab's total; otherwise none", () => {
+  let shown = 0;
+  for (const t of B.menu.tabs) {
+    const parts = t.cols.filter((c) => !isBrandCol(c.h) && c.n);
+    if (!parts.length) continue;
+    shown++;
+    const whole = behind(t.href);
+    assert.ok(whole, t.label + ": numbered columns under a tab whose total is not a department view");
+    assert.equal(parts.length, t.cols.filter((c) => !isBrandCol(c.h)).length, t.label + ": only some columns are numbered");
+    const seen = new Set(), keyOf = (p) => p.retailer + "\u0001" + p.title;
+    for (const c of parts) {
+      const set = behind(c.href);
+      assert.ok(set, `${t.label} > ${c.h}: a number with no department view behind it`);
+      assert.equal(c.n, set.length, `${t.label} > ${c.h}: shows ${c.n}, its page renders ${set.length}`);
+      for (const p of set) { assert.ok(!seen.has(keyOf(p)), `${t.label} > ${c.h}: a product counted twice`); seen.add(keyOf(p)); }
+    }
+    assert.equal(parts.reduce((s, c) => s + c.n, 0), t.n, t.label + ": the columns do not sum to the total");
+  }
+  /* Mujer's Ropa / Zapatos / Accesorios overlap (24,680 against 17,417 before): they carry no product number. */
+  for (const k of ["mujer", "hombre", "ninos", "zapatos"]) for (const c of B.menu.tabs.find((x) => x.k === k).cols) if (!isBrandCol(c.h)) assert.equal(c.n, undefined, k + " > " + c.h);
+  void shown;
 });
 
 let pw = null;
@@ -620,12 +710,14 @@ if (pw) {
       assert.equal(await page.$("#nf"), null);
       await c.close();
     });
-    await check("browser phone 390: Ofertas and Ropa Interior keep their own filters (no second rendering); ?ver=type:bra opens Lencería's own Explorar todo", async () => {
+    await check("browser phone 390: Ofertas keeps its own category pills and filters inside the chosen category (Mujer / Hombre / Niños, the bar on that category only); Ropa Interior keeps its own filters (no second rendering); ?ver=type:bra opens Lencería's own Explorar todo", async () => {
       const { c, page } = await ctx(false);
       const errors = []; page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(BASE + "/ofertas.html?vista=categoria&cat=zapatos", { waitUntil: "domcontentloaded" });
       await page.waitForSelector('#cats button[data-cat="zapatos"][aria-pressed="true"]', { timeout: 60000 });
-      assert.equal(await page.$("#nf"), null);
+      await page.waitForSelector("#nfAud .nf-pill", { timeout: 60000 });
+      assert.equal(await page.evaluate(() => window.AriaNFHost.src), "ofertas=1&cat=zapatos");
+      assert.equal(await page.$$eval("#cats", (x) => x.length), 1, "a second rendering of the category pills");
       await page.goto(BASE + "/ropa-interior.html?ver=type:bra#mujer", { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => { const s = document.getElementById("w-fType"); return s && s.value === "type:bra" && document.querySelectorAll("#w-grid .card, #w-grid a").length > 0; }, null, { timeout: 60000 });
       assert.equal(await page.$("#nf"), null);
@@ -742,6 +834,8 @@ if (pw) {
         assert.equal(await page.$("#nmFlyout .nmf-msg"), null, t.label + ": a placeholder");
         assert.equal(got.length, t.cols.length, t.label);
         for (const col of got) assert.ok(col.leaves >= 2 || (col.leaves === 0 && col.head), `${t.label} > ${col.h}: ${col.leaves} leaves`);
+        assert.ok(!/Secciones/.test(await page.textContent("#nmFlyout")), t.label + " 1366: «Secciones» in the flyout");
+        if (SHOT && ["mujer", "hombre", "ninos"].includes(t.k)) await page.screenshot({ path: join(SHOT, "nosecc-" + t.k + "-1366.png") });
         await page.keyboard.press("Escape");
         await page.waitForSelector("#nmFlyout", { state: "hidden" });
       }
@@ -787,9 +881,17 @@ if (pw) {
         const leavesIn = (sel) => page.$$eval(sel + " li a", (as) => as.filter((a) => a.getBoundingClientRect().height > 0).length);
         if (!(await page.$("#nmFlyout [data-nm-l0]"))) {
           assert.ok(await leavesIn('#nmFlyout [data-nm-lvl="0"]') >= 2, t.label + ": its one list");
+          assert.ok(!/Secciones/.test(await page.textContent("#nmFlyout")), t.label + " 390: «Secciones» in the sheet");
         } else {
-          const rows = await page.$$eval("#nmFlyout [data-nm-l0] > li > .nmf-go", (xs) => xs.map((x) => ({ tag: x.tagName, go: x.getAttribute("data-nm-go"), href: x.getAttribute("href") })));
+          const rows = await page.$$eval("#nmFlyout [data-nm-l0] > li > .nmf-go", (xs) => xs.map((x) => ({ tag: x.tagName, go: x.getAttribute("data-nm-go"), href: x.getAttribute("href"), text: x.textContent })));
           assert.equal(rows.length, t.cols.length, t.label);
+          assert.ok(!rows.some((r) => /Secciones/.test(r.text)), t.label + " 390: a «Secciones» row");
+          for (const [i, c] of t.cols.entries()) {
+            const small = rows[i].text.slice(c.h.length);
+            if (isBrandCol(c.h)) assert.equal(small, c.n.toLocaleString("es-PE") + " marcas", t.label + " 390: the Marcas row");
+            else if (!c.n) assert.equal(small, "", `${t.label} 390 > ${c.h}: a product number on an overlapping column`);
+          }
+          if (SHOT && ["mujer", "hombre", "ninos"].includes(t.k)) await page.screenshot({ path: join(SHOT, "nosecc-" + t.k + "-390.png") });
           for (const r of rows) {
             if (r.tag === "A") { assert.ok(r.href && r.href !== t.href, t.label + ": a row that is the tab"); continue; }
             await page.tap('#nmFlyout [data-nm-go="' + r.go + '"]');

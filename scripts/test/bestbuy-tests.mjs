@@ -260,7 +260,11 @@ await launchOnly("tienda.html registers a themed, sliced Best Buy storefront", (
   assert.ok(boot.indexOf("bootSliced();") !== -1 && !/function loadStore\(/.test(tienda),
     "the storefront could reach a catalogue download");
   assert.equal(s.trust, "bestbuy");
-  assert.match(s.heroPhoto, /^\/assets\/stores\/bestbuy-interior\.jpg$/);
+  /* The registry's heroPhoto (bestbuy-interior.jpg) never existed and
+     404'd (#443 banner audit c.6642097765): Best Buy wears its store
+     photo through the phone-sized hero (scripts/build-tienda-heroes.py). */
+  assert.ok(!s.heroPhoto || existsSync(ROOT + s.heroPhoto.slice(1)), "Best Buy's heroPhoto 404s");
+  assert.ok(existsSync(ROOT + "assets/tienda/hero/bestbuy.jpg"), "no Best Buy backdrop");
   /* The "Por qué compramos en Best Buy" trust strip was promotional
      markup; it went with the rest of Best Buy's merchandising (#443). */
   assert.doesNotMatch(tienda, /Por qué compramos en Best Buy/);

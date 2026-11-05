@@ -24,7 +24,7 @@
     if (dept === 'perfumes'){ if (t === 'cuidado-corporal' && !a) a = 'cuidado'; t = ''; }
     var out = [['dept', dept], ['a', a], ['b', first(sp.get('b'))], ['t', t], ['q', sp.get('q') || sp.get('w') || ''],
       ['tienda', sp.get('tienda') || first(sp.get('r'))], ['para', sp.get('para') || (/^(women|men|kids)$/.test(u || '') ? u : '')],
-      ['ver', sp.get('ver') || (sp.get('o') === '1' ? 'ofertas' : '')], ['tp', sp.get('tp') || ''], ['pasillo', sp.get('pasillo') || '']];
+      ['ver', sp.get('ver') || (sp.get('o') === '1' ? 'ofertas' : '')], ['pt', sp.get('pt') || ''], ['tp', sp.get('tp') || ''], ['pasillo', sp.get('pasillo') || '']];
     window.__ariaCanon = 1;
     document.documentElement.style.visibility = 'hidden';
     location.replace(location.pathname + '?' + out.filter(function(x){ return x[1]; }).map(function(x){ return x[0] + '=' + encodeURIComponent(x[1]); }).join('&') + location.hash);
@@ -149,6 +149,12 @@
   .hub-pill{flex:0 0 auto;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit;white-space:nowrap}
   .hub-pill[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .lens{max-width:1240px;margin:8px auto 0;padding:6px 0 10px;border-bottom:1px solid var(--line)}
+  /* A PILL CHANGES THE WHOLE VIEW (#443 c.6635829511): a hub pill's lens
+     IS the page -- the department's own carousels (and its Por tipo /
+     marca / tienda views) step aside until «Todas» brings them back. */
+  html[data-lens] #salesTop,html[data-lens] #rails,html[data-lens] #perfumesLead,html[data-lens] #dhAxes,html[data-lens] #emptyState{display:none!important}
+  html[data-lens] .lens{border-bottom:0}
+  .lens-head .lens-n{font-size:13px;font-weight:700;color:#6B7487;white-space:nowrap}
   /* A search landing (?ver=, #443 "never a side-by-side grid"): the hero
      names the set and stays short; its own stats chips stay. */
   body.type-page .hero-in{padding:22px 16px 20px}
@@ -207,9 +213,11 @@
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
+<script src="/assets/js/page-banner.js" defer></script>
 <script src="/assets/js/dept-header.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
@@ -266,6 +274,15 @@ html{scroll-padding-top:76px}
 @media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
 </style>
 <script src="/assets/js/nav-menu.js" defer></script>
+<style id="aria-mosaic-css">
+/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */
+:root{--aria-mosaic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D8C08A'%3E%3Cuse href='%23t' x='120' y='10'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='100' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3Cuse href='%23t' x='110' y='110'/%3E%3Cuse href='%23t' x='80' y='120'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3Cuse href='%23t' x='150' y='90'/%3E%3Cuse href='%23t' x='100' y='100'/%3E%3Cuse href='%23t' x='150' y='110'/%3E%3Cuse href='%23t' x='60' y='120'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='120'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='100' y='0'/%3E%3Cuse href='%23t' x='120' y='0'/%3E%3Cuse href='%23t' x='120' y='150'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='110' y='60'/%3E%3Cuse href='%23t' x='130' y='70'/%3E%3Cuse href='%23t' x='150' y='80'/%3E%3Cuse href='%23t' x='120' y='140'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='150' y='40'/%3E%3Cuse href='%23t' x='150' y='50'/%3E%3Cuse href='%23t' x='160' y='50'/%3E%3Cuse href='%23t' x='120' y='60'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='70' y='100'/%3E%3Cuse href='%23t' x='50' y='140'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='150' y='150'/%3E%3Cuse href='%23t' x='130' y='160'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='140' y='120'/%3E%3Cuse href='%23t' x='20' y='160'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Crect width='100' height='100' fill='%23CEDAE8'/%3E%3Cg fill='%23DEE9F6'%3E%3Cuse href='%23t' x='0' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='80' y='10'/%3E%3Cuse href='%23t' x='30' y='20'/%3E%3Cuse href='%23t' x='60' y='20'/%3E%3Cuse href='%23t' x='0' y='30'/%3E%3Cuse href='%23t' x='80' y='30'/%3E%3Cuse href='%23t' x='60' y='40'/%3E%3Cuse href='%23t' x='30' y='50'/%3E%3Cuse href='%23t' x='80' y='50'/%3E%3Cuse href='%23t' x='40' y='60'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='70'/%3E%3Cuse href='%23t' x='30' y='80'/%3E%3Cuse href='%23t' x='70' y='80'/%3E%3Cuse href='%23t' x='0' y='90'/%3E%3Cuse href='%23t' x='80' y='90'/%3E%3C/g%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='10' y='0'/%3E%3Cuse href='%23t' x='30' y='10'/%3E%3Cuse href='%23t' x='40' y='20'/%3E%3Cuse href='%23t' x='20' y='30'/%3E%3Cuse href='%23t' x='70' y='30'/%3E%3Cuse href='%23t' x='10' y='40'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='20' y='50'/%3E%3Cuse href='%23t' x='30' y='60'/%3E%3Cuse href='%23t' x='70' y='60'/%3E%3Cuse href='%23t' x='40' y='80'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='20' y='0'/%3E%3Cuse href='%23t' x='80' y='0'/%3E%3Cuse href='%23t' x='0' y='10'/%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='10' y='20'/%3E%3Cuse href='%23t' x='70' y='20'/%3E%3Cuse href='%23t' x='60' y='30'/%3E%3Cuse href='%23t' x='0' y='40'/%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='90' y='50'/%3E%3Cuse href='%23t' x='20' y='60'/%3E%3Cuse href='%23t' x='80' y='60'/%3E%3Cuse href='%23t' x='10' y='70'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='50' y='70'/%3E%3Cuse href='%23t' x='30' y='90'/%3E%3Cuse href='%23t' x='50' y='90'/%3E%3Cuse href='%23t' x='90' y='90'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='30' y='0'/%3E%3Cuse href='%23t' x='70' y='10'/%3E%3Cuse href='%23t' x='90' y='10'/%3E%3Cuse href='%23t' x='50' y='20'/%3E%3Cuse href='%23t' x='10' y='30'/%3E%3Cuse href='%23t' x='20' y='40'/%3E%3Cuse href='%23t' x='60' y='50'/%3E%3Cuse href='%23t' x='10' y='60'/%3E%3Cuse href='%23t' x='50' y='60'/%3E%3Cuse href='%23t' x='90' y='60'/%3E%3Cuse href='%23t' x='10' y='90'/%3E%3Cuse href='%23t' x='70' y='90'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='40' y='0'/%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='0' y='20'/%3E%3Cuse href='%23t' x='40' y='30'/%3E%3Cuse href='%23t' x='80' y='40'/%3E%3Cuse href='%23t' x='40' y='50'/%3E%3Cuse href='%23t' x='40' y='70'/%3E%3Cuse href='%23t' x='80' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='10' y='10'/%3E%3Cuse href='%23t' x='80' y='20'/%3E%3Cuse href='%23t' x='90' y='30'/%3E%3Cuse href='%23t' x='70' y='40'/%3E%3Cuse href='%23t' x='0' y='50'/%3E%3Cuse href='%23t' x='50' y='50'/%3E%3Cuse href='%23t' x='60' y='70'/%3E%3Cuse href='%23t' x='0' y='80'/%3E%3Cuse href='%23t' x='80' y='80'/%3E%3Cuse href='%23t' x='20' y='90'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='50' y='10'/%3E%3Cuse href='%23t' x='30' y='30'/%3E%3Cuse href='%23t' x='50' y='40'/%3E%3Cuse href='%23t' x='0' y='70'/%3E%3Cuse href='%23t' x='20' y='80'/%3E%3Cuse href='%23t' x='60' y='80'/%3E%3Cuse href='%23t' x='90' y='80'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='40' y='10'/%3E%3Cuse href='%23t' x='20' y='20'/%3E%3Cuse href='%23t' x='90' y='20'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='40' y='40'/%3E%3Cuse href='%23t' x='90' y='40'/%3E%3Cuse href='%23t' x='10' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='20' y='70'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='10' y='80'/%3E%3Cuse href='%23t' x='50' y='80'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3C/g%3E%3C/svg%3E")}
+.ariaMosaic{background-color:#CEDAE8 !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:130px 130px,170px 170px,100px 100px !important;background-position:0 0 !important}
+html body,html body.lux-perfumes{background-color:#CEDAE8;background-image:var(--aria-mosaic);background-repeat:repeat;background-size:130px 130px,170px 170px,100px 100px;background-position:0 0}
+html body .count,html body .dh-sec>h2,html body .dh-sec .dh-note,html body .dh-count,html body .dh-empty,html body .re-more,html body .state p,html body .nf-count,html body .nf-msg,html body .tp-row .tp-lead,html body footer{color:#3A4A6B}
+html body footer a,html body .rail-head .ver-todo,html body .lens-head a{color:#1E3FAE}
+/* aria-mosaic:end */
+</style>
 </head>
 <body>
 
@@ -473,6 +490,39 @@ html{scroll-padding-top:76px}
 
   function show(el){ if(el) el.hidden = false; }
   function hide(el){ if(el) el.hidden = true; }
+  /* A PILL NEVER MOVES THE SHOPPER (#443 c.6635829511, Danny: "anything
+     that moves his scroll position fails"). While a pill's view loads the
+     page keeps its height, so the browser cannot pull the scroll up; the
+     scroll stays where the shopper had it (unless they scroll meanwhile);
+     a pill row that sits above the screen (never, unless it is sticky)
+     brings the view's top into sight. release() runs once the new view
+     is drawn; only the latest hold lets go of the height. */
+  var HOLD_ID = 0, PENDING_RELEASE = null;
+  function keepPlace(anchor){
+    var root = document.documentElement, y = window.pageYOffset || root.scrollTop || 0, done = false, mine = ++HOLD_ID, moved = false;
+    function user(){ moved = true; }
+    ['wheel', 'touchmove', 'keydown'].forEach(function(ev){ window.addEventListener(ev, user, { passive: true }); });
+    root.style.minHeight = root.scrollHeight + 'px';
+    function pin(){ if (!moved && Math.abs((window.pageYOffset || 0) - y) > 1) window.scrollTo(0, y); }
+    var t = setTimeout(release, 10000);
+    function release(){
+      if (done) return;
+      done = true; clearTimeout(t);
+      ['wheel', 'touchmove', 'keydown'].forEach(function(ev){ window.removeEventListener(ev, user); });
+      /* A newer pill owns the place now: this one lets go silently. */
+      if (mine !== HOLD_ID) return;
+      pin();
+      root.style.minHeight = '';
+      var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+      if (r && r.top < 0 && !moved) window.scrollBy(0, r.top);
+    }
+    if (window.requestAnimationFrame) requestAnimationFrame(pin); else pin();
+    return release;
+  }
+  function releasePending(){ var r = PENDING_RELEASE; PENDING_RELEASE = null; if (r) r(); }
+  /* A pill whose view loadAll() draws: hold the place until it is drawn
+     (a newer hold supersedes the pending one). */
+  function holdFor(anchor){ PENDING_RELEASE = keepPlace(anchor); }
 
   /* ---------- invalid department: show picker, never blank ---------- */
   if (!dept){
@@ -499,17 +549,21 @@ html{scroll-padding-top:76px}
   document.getElementById('heroDesc').textContent = dept.desc;
   /* DEPT HERO IMAGE (2026-10-07): category backdrop from assets/category/.
      It is 100-470KB of decoration: it starts after the first cards are
-     on screen, so it never competes with them on a slow link. */
+     on screen, so it never competes with them on a slow link.
+     THE HEADER BANNER (#443 c.6642024745): assets/js/page-banner.js paints
+     the department's banner file (assets/banners/dept/<key>.json) when it
+     has one; else its category photo, then the photo of a department that
+     redirects here (Joyería -> Joyas y Accesorios). */
   function heroImage(){
     try{
       var _dk = (deptKey||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
       var _dImg = document.getElementById('deptHeroBg');
-      var _dScrim = document.getElementById('deptHeroScrim');
-      if (_dImg && !_dImg.getAttribute('src')){
-        _dImg.onload = function(){ _dImg.hidden = false; if (_dScrim) _dScrim.hidden = false; };
-        _dImg.onerror = function(){ _dImg.hidden = true; if(_dScrim) _dScrim.hidden = true; };
-        _dImg.src = 'assets/category/' + _dk + '.jpg';
-      }
+      if (!_dImg || _dImg.getAttribute('src')) return;
+      var fb = ['/assets/category/' + _dk + '.jpg'];
+      Object.keys(DEPTS).forEach(function(k){ if (DEPTS[k].alias && String(DEPTS[k].href || '').indexOf('dept=' + _dk) !== -1) fb.push('/assets/category/' + k + '.jpg'); });
+      var o = { kind: 'dept', key: _dk, host: document.getElementById('deptHero'), bg: _dImg, scrim: document.getElementById('deptHeroScrim'), fallbacks: fb };
+      if (window.AriaBanner) window.AriaBanner.paint(o);
+      else (window.AriaBannerQ = window.AriaBannerQ || []).push(o);
     }catch(_e){}
   }
   document.title = dept.name + ' | Aria Shop';
@@ -556,11 +610,20 @@ html{scroll-padding-top:76px}
     var _vm = /[?&]ver=([^&]*)/.exec(window.location.search || '');
     if (_vm) VER = decodeURIComponent(_vm[1].replace(/\+/g, ' ')).slice(0, 80);
   } catch(e){}
+  /* ?pt=<type rule> (#443 c.6632585468): the landing shows that type only
+     -- the server picks it from the whole department (_department-core.js
+     ofType); a type nothing in stock meets says so. */
+  var PT = '';
+  try {
+    var _pm = /[?&]pt=([a-z0-9-]{2,40})(?:&|$)/.exec(window.location.search || '');
+    if (_pm) PT = _pm[1];
+  } catch(e){}
   var SEQ = 0;               // a newer filter wins over an older answer
   var nextBatch = 0;         // the next carousels to append
   var batchBusy = false;
 
   function showError(msg){
+    releasePending();
     hide(loadingState); hide(emptyState); hide(toolbar);
     railsEl.innerHTML = '';
     if (msg) errorMsg.textContent = msg;
@@ -911,6 +974,7 @@ function cardHTML(c){
     if (fT) u += '&t=' + encodeURIComponent(fT);
     if (fU) u += '&u=' + encodeURIComponent(fU);
     if (VER) u += '&ver=' + encodeURIComponent(VER);
+    if (VER && PT) u += '&pt=' + encodeURIComponent(PT);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -959,7 +1023,8 @@ function cardHTML(c){
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
       + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
       /* The door from a new-only shelf to Reacondicionados (c.6488544902). */
-      + (r.door ? '<p class="rail-door"><a href="#" data-to-refurb>' + esc(r.door) + ' &#8594;</a></p>' : '')
+      /* ...a real door: Reacondicionados' own page, opened at its top (never an anchor jump, #443 c.6635829511). */
+      + (r.door ? '<p class="rail-door"><a href="departamento.html?dept=reacondicionados">' + esc(r.door) + ' &#8594;</a></p>' : '')
       + '<div class="rail">' + cards + '</div></section>';
   }
   var MORE_IO = null;
@@ -1081,7 +1146,14 @@ function cardHTML(c){
     railsEl.innerHTML = first.map(railSecHTML).join('')
       + (HEAD.rails.length > HEAD.headRails ? '<div id="railsMore" class="rails-more"></div>' : '');
     countEl.textContent = HEAD.count ? HEAD.count.toLocaleString('es-PE') + ' productos' : '';
-    if (!HEAD.count) show(emptyState);
+    if (!HEAD.count){
+      /* A type the catalogue does not carry right now: said plainly, no lookalikes. */
+      if (HEAD.pt && HEAD.ptl){
+        emptyState.querySelector('h2').textContent = 'Por ahora no tenemos ' + HEAD.ptl.toLowerCase();
+        emptyState.querySelector('p').textContent = 'Ninguna tienda de Aria tiene ' + HEAD.ptl.toLowerCase() + ' en el catálogo en este momento. Prueba con otra categoría o revisa las ofertas de hoy.';
+      }
+      show(emptyState);
+    }
     watchPhotos(railsEl);
     watchMore();
   }
@@ -1166,9 +1238,11 @@ function cardHTML(c){
       renderHead();
       /* The header (assets/js/dept-header.js): stats, switch, axes, Explorar todo. */
       try { HEAD_HOOKS.forEach(function(fn){ fn(HEAD, filtered()); }); } catch(e){}
+      releasePending();
       afterFirstPhotos(heroImage);
     }).catch(function(){
       if (seq !== SEQ) return;
+      releasePending();
       showError('No pudimos cargar los productos. Revisa tu conexión e inténtalo de nuevo.');
     });
   }
@@ -1247,8 +1321,18 @@ function cardHTML(c){
      that store's or brand's own carousels here, above the department's,
      and the department's carousels below stay exactly where they are.
      One small pre-built file per lens (lens-<slug>.json). */
+  /* ...and since #443 c.6635829511 a pill FILTERS: its lens replaces the
+     department's carousels in place (html[data-lens]), the hero's counts
+     become the lens's own (its stats), and «Todas» -- or the active pill
+     tapped again -- brings the whole department back. The shopper's
+     scroll never moves (keepPlace). */
   var hubEl = document.getElementById('hubPills'), lensEl = document.getElementById('lens');
-  var HUB = null, HUB_ALL = 'Todas', hubActive = '', lensSeq = 0;
+  var HUB = null, HUB_ALL = 'Todas', hubActive = '', lensSeq = 0, LENS_HOOKS = [];
+  function lensMode(l){
+    if (l) document.documentElement.setAttribute('data-lens', hubActive);
+    else document.documentElement.removeAttribute('data-lens');
+    try { LENS_HOOKS.forEach(function(fn){ fn(l || null); }); } catch(e){}
+  }
   function renderHub(){
     if (!HUB || !HUB.length){ hide(hubEl); return; }
     var h = '<button type="button" class="hub-pill" role="tab" data-k="" aria-selected="' + (!hubActive) + '">' + esc(HUB_ALL) + '</button>';
@@ -1261,14 +1345,16 @@ function cardHTML(c){
   function openLens(k){
     hubActive = k; renderHub();
     var seq = ++lensSeq;
-    if (!k){ lensEl.innerHTML = ''; hide(lensEl); return; }
+    var release = keepPlace(hubEl);
+    if (!k){ lensEl.innerHTML = ''; hide(lensEl); lensMode(null); release(); return; }
     lensEl.innerHTML = '<section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="sk-h"><i></i></h2></div><div class="rail">' + skeletons(4) + '</div></section>';
     show(lensEl);
+    lensMode({ k: k, loading: true });
     getJSON(SLICES + 'lens-' + encodeURIComponent(k) + '.json').then(function(l){
       if (seq !== lensSeq) return;
       if (!l || !Array.isArray(l.rails) || !l.rails.length){ openLens(''); return; }
       var door = l.link ? '<a href="' + esc(l.link) + '">' + (l.link.indexOf('tienda.html') === 0 ? 'Ver la tienda' : 'Ver todo') + ' &#8594;</a>' : '';
-      lensEl.innerHTML = '<div class="lens-head"><h2>' + esc(l.label) + '</h2>' + door + '</div>'
+      lensEl.innerHTML = '<div class="lens-head"><h2>' + esc(l.label) + '</h2><span class="lens-n" id="lensCount">' + Number(l.count).toLocaleString('es-PE') + (l.count === 1 ? ' producto' : ' productos') + '</span>' + door + '</div>'
         + l.rails.map(function(r){
           return '<section class="rail-sec" aria-label="' + esc(l.label + ': ' + r.title) + '">'
             + '<div class="rail-head"><h2>' + esc(r.title) + '</h2><span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span></div>'
@@ -1276,13 +1362,15 @@ function cardHTML(c){
             + '<div class="rail">' + r.cards.map(cardHTML).join('') + '</div></section>';
         }).join('');
       watchPhotos(lensEl);
+      lensMode(l);
+      release();
     }).catch(function(){ if (seq === lensSeq) openLens(''); });
   }
   hubEl.addEventListener('click', function(e){
     var b = e.target.closest('.hub-pill'); if (!b) return;
     var k = b.getAttribute('data-k') || '';
-    if (k === hubActive) return;
-    openLens(k);
+    /* The active pill tapped again clears it, as «Todas» does. */
+    openLens(k === hubActive ? '' : k);
   });
   function syncChips(){
     document.querySelectorAll('#retChips .chip').forEach(function(c){
@@ -1292,11 +1380,10 @@ function cardHTML(c){
   document.getElementById('retChips').addEventListener('click', function(e){
     var b = e.target.closest('.chip'); if(!b) return;
     if (b.dataset.r === fRet) return;
+    holdFor(this);
     fRet = b.dataset.r; syncChips(); loadAll();
   });
   function railsClick(e){
-    var door = e.target.closest('[data-to-refurb]');
-    if (door){ e.preventDefault(); var t = document.getElementById('rail-reacondicionados'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
     var g = e.target.closest('button.rail-next');
@@ -1410,9 +1497,10 @@ function cardHTML(c){
         var bk = btn.getAttribute('data-brand') || '';
         fB = (bk === fB) ? '' : bk;
       }
+      /* The view re-renders under the pills; the shopper stays put (#443 c.6635829511). */
+      holdFor(nav);
       renderScope(); renderPerfumePills(); loadAll();
       try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
-      var top = document.getElementById('toolbar'); if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start' });
     });
   });
 
@@ -1454,12 +1542,18 @@ function cardHTML(c){
     /* The brand pill's choice (a brand room: Diseñador, Joyas...), '' for none. */
     brand: function(){ return fB; },
     setAudience: function(u){
+      holdFor(document.getElementById('dhAud'));
       fU = u || '';
       /* The brand pills are counted again for the new audience. */
       if (deptKey !== 'perfumes'){ P_BRANDS = null; if (fB) brandsBesideBrand(); }
       try { var url = new URL(location.href); if (fU) url.searchParams.set('para', fU); else url.searchParams.delete('para'); history.replaceState(null, '', url); } catch(e){}
       loadAll();
     },
+    /* The hub pills' lens (a filter that replaces the view): who listens, and how to close it. */
+    onLens: function(fn){ LENS_HOOKS.push(fn); },
+    lensActive: function(){ return hubActive; },
+    closeLens: function(){ if (hubActive) openLens(''); },
+    keepPlace: function(anchor){ return keepPlace(anchor); },
     cardHTML: function(c){ return cardHTML(c); },
     watchPhotos: function(root){ watchPhotos(root); },
     paintPrices: function(root){ paintPrices(root); },

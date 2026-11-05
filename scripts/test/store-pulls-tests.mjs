@@ -16,7 +16,7 @@ import http from "node:http";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaHerrera, chDept } from "../lib/store-pull-normalize.js";
+import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaHerrera, chDept, applySnipesPass } from "../lib/store-pull-normalize.js";
 import { isSizesPending, sizesPendingLines, sizesPendingKey } from "../lib/sizes-pending.js";
 import { SIZES_PENDING } from "../lib/sizes-pending-data.js";
 import { RETAILERS } from "../lib/retailers.js";
@@ -84,7 +84,55 @@ await check("Carolina Herrera: the storefront's own category; jewellery and bags
   assert.equal(departments.fragancias.items[0].sizesPending, undefined);
 });
 
+/* ONE-SIZE SHOES (#443, Danny's QA on #648: "we're showing shoes that
+   only have one size"). The SNIPES pass reads every size button on the
+   product page; the disabled ones are sold out there. Only the in-stock
+   ones are `sizes` (sold); the rest of the store's run rides as
+   `sizesOut` (shown, marked agotada, never sold). */
+await check("the SNIPES pass: in-stock sizes are sold, the rest of the store's run is kept as sold out, nothing invented", () => {
+  const run = ["M7.5/W9", "M8/W9.5", "M8.5/W10", "M9/W10.5", "M9.5/W11"];
+  const deps = { calzado: { items: [
+    { sku: "1", name: "Air DT Max '96", price: 89.99 },
+    { sku: "2", name: "Dunk Low", price: 100 },
+    { sku: "3", name: "Sold Out Runner", price: 100 },
+    { sku: "4", name: "Crep Protect", price: 18 },
+  ] } };
+  const pass = [
+    { sku: "1", salesPrice: 89.99, compareAtPrice: 180, sizes: run, availableSizes: ["M9/W10.5"] },
+    { sku: "2", salesPrice: 100, sizes: run, availableSizes: run },
+    { sku: "3", salesPrice: 100, sizes: run, availableSizes: [] },
+    { sku: "4", salesPrice: 18, sizes: [], availableSizes: [] },
+  ];
+  const report = applySnipesPass(deps, pass);
+  const [dt, dunk, crep] = deps.calzado.items;
+  assert.deepEqual(dt.sizes, ["M9/W10.5"]);
+  assert.deepEqual(dt.sizesOut, ["M7.5/W9", "M8/W9.5", "M8.5/W10", "M9.5/W11"]);
+  assert.deepEqual(dunk.sizes, run);
+  assert.equal(dunk.sizesOut, undefined, "a full run in stock has nothing sold out");
+  assert.ok(!deps.calzado.items.some((i) => i.name === "Sold Out Runner"), "every size sold out: not listed");
+  assert.equal(crep.sizes, undefined);
+  assert.equal(crep.sizesOut, undefined);
+  assert.equal(report.soldOutSizes, 1);
+  assert.equal(report.left["every size out of stock"], 1);
+});
+
 const cat = (k) => Object.values(JSON.parse(read(k + "-catalog.json")).retailers[k].departments).flatMap((d) => d.items);
+await check("the committed SNIPES catalogue: the Air DT Max '96 sells its one in-stock size and shows the other 12 sold out (the store's own run)", () => {
+  const items = cat("snipes");
+  /* SNIPES' page, 2026-10-28: 13 size buttons, only M9/W10.5 enabled
+     (data-drops/snipes-pass-2026-10-28, sku 1000124007). */
+  const dt = items.find((i) => i.sku === "1000124007");
+  assert.ok(dt, "the Air DT Max '96 left the catalogue");
+  assert.deepEqual(dt.sizes, ["M9/W10.5"]);
+  assert.equal(dt.sizesOut.length, 12);
+  assert.ok(dt.sizesOut.includes("M7.5/W9") && dt.sizesOut.includes("M15/W16.5"));
+  for (const it of items) {
+    if (!it.sizesOut) continue;
+    assert.ok(Array.isArray(it.sizes) && it.sizes.length, it.name + ": sold-out sizes with nothing in stock");
+    assert.ok(it.sizesOut.every((x) => typeof x === "string" && x.trim() && !it.sizes.includes(x)), it.name + ": a size both in stock and sold out");
+  }
+  assert.ok(items.filter((i) => i.sizesOut).length > 2000, "the sold-out runs went missing");
+});
 await check("the committed catalogues: real photos, prices, estimated weights, Spanish only, sizes never invented", () => {
   for (const k of ["snipes", "carolinaherrera"]) {
     const items = cat(k);
@@ -215,6 +263,28 @@ await check("the product page: a sized SNIPES sneaker offers its in-stock sizes 
   assert.equal(s.disabled, false);
   assert.deepEqual([...s.opts].sort(), [...new Set(shoe.sizes)].sort());
   if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-sized.png" });
+  await ctx.close();
+});
+
+await check("the product page: a SNIPES shoe with one size in stock lists the store's whole run, sells only that size", async () => {
+  const dt = cat("snipes").find((i) => i.sku === "1000124007");
+  const { pg, ctx } = await pdp(dt);
+  await pg.waitForSelector("#size-select");
+  const s = await pg.evaluate(() => ({
+    all: [...document.querySelectorAll("#size-select option")].slice(1).map((o) => ({ t: o.textContent, v: o.value, off: o.disabled })),
+    note: (document.querySelector("#size-out-note") || {}).textContent || "" }));
+  assert.equal(s.all.length, 13, "the store's 13 sizes");
+  assert.deepEqual(s.all.filter((o) => !o.off).map((o) => o.v), ["M9/W10.5"]);
+  assert.ok(s.all.filter((o) => o.off).every((o) => o.v === "" && / \(agotada\)$/.test(o.t)), "a sold-out size is selectable");
+  assert.equal(s.note, "1 de 13 tallas disponible en la tienda; las demás están agotadas.");
+  /* A sold-out size cannot be chosen; the in-stock one reaches the cart. */
+  await pg.selectOption("#size-select", "M9/W10.5");
+  await pg.click("#add-cart-btn");
+  await pg.waitForSelector("#cart-confirm:not([hidden])", { timeout: 10000 });
+  const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
+  assert.equal(cart.length, 1);
+  assert.equal(cart[0].selectedSize || cart[0].size, "M9/W10.5");
+  if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-sold-out-run.png", fullPage: false });
   await ctx.close();
 });
 

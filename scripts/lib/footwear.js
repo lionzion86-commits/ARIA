@@ -55,6 +55,8 @@
        Trainer", and zero shoes.
    ============================================================ */
 
+import { isShoeModel } from "./shoe-models.js";
+
 /* Matched against the retailer's own `type`, upper-cased. These are the
    real values in ssense-catalog.json and macys-catalog.json, not a
    guess at what a type field might contain. */
@@ -188,7 +190,11 @@ export function isShoeForDept(item, retailer) {
   const type = String(item.type || "");
   if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type) && !MODEL_CODE_TYPE.test(type.trim())) return isFootwearType(type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
-  return isFootwearTitle(title);
+  /* A footwear house's model line (#443 c.6635296341, the full store
+     audit): the surf shops' «Skate Old Skool 195», «Cambridge kids
+     KS123», «Nike SB Zoom Janoski OG+» name no shoe, and their type is the
+     blind «Accesorios» stamp (scripts/lib/shoe-models.js). */
+  return isFootwearTitle(title) || isShoeModel(title, item.brand);
 }
 /* A style code in the type field is not a type (JW PEI files "Alessia
    High Heel Pumps" as type "4PS98"): the title decides (#443 re-route

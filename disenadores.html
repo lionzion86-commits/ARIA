@@ -38,8 +38,15 @@ button{font:inherit;cursor:pointer}
 .pe-badge{display:none;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
 @media(min-width:640px){.pe-badge{display:inline-flex}}
 .inpage-nav{display:flex;gap:4px}
-.inpage-nav a{text-decoration:none;font-size:13.5px;font-weight:700;color:var(--navy);padding:8px 12px;border-radius:10px}
-.inpage-nav a:hover{background:#EEF2F7}
+.inpage-nav button{border:0;background:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--navy);padding:8px 12px;border-radius:10px}
+.inpage-nav button:hover{background:#EEF2F7}
+.inpage-nav button[aria-pressed="true"]{background:var(--navy);color:#fff}
+/* THE VIEW SWITCH (#443 c.6635829511): the header's Por tipo /
+   Diseñadores / Próximamente replace the page's view in place, from its
+   top -- never an anchor jump. The active one tapped again shows it all. */
+main[data-view="tipo"] #designerChips,main[data-view="tipo"] #proximamente,
+main[data-view="disenadores"] #vestidor,main[data-view="disenadores"] #proximamente,
+main[data-view="proximamente"] #vestidor,main[data-view="proximamente"] #designerChips,main[data-view="proximamente"] #galeria,main[data-view="proximamente"] #emptyState{display:none!important}
 @media(max-width:560px){.inpage-nav{display:none}}
 
 /* ---------- fatal / load error (never blank) ---------- */
@@ -213,6 +220,7 @@ button{font:inherit;cursor:pointer}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
@@ -269,6 +277,14 @@ html{scroll-padding-top:76px}
 @media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
 </style>
 <script src="/assets/js/nav-menu.js" defer></script>
+<style id="aria-mosaic-css">
+/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */
+:root{--aria-mosaic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D8C08A'%3E%3Cuse href='%23t' x='120' y='10'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='100' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3Cuse href='%23t' x='110' y='110'/%3E%3Cuse href='%23t' x='80' y='120'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3Cuse href='%23t' x='150' y='90'/%3E%3Cuse href='%23t' x='100' y='100'/%3E%3Cuse href='%23t' x='150' y='110'/%3E%3Cuse href='%23t' x='60' y='120'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='120'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='100' y='0'/%3E%3Cuse href='%23t' x='120' y='0'/%3E%3Cuse href='%23t' x='120' y='150'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='110' y='60'/%3E%3Cuse href='%23t' x='130' y='70'/%3E%3Cuse href='%23t' x='150' y='80'/%3E%3Cuse href='%23t' x='120' y='140'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='150' y='40'/%3E%3Cuse href='%23t' x='150' y='50'/%3E%3Cuse href='%23t' x='160' y='50'/%3E%3Cuse href='%23t' x='120' y='60'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='70' y='100'/%3E%3Cuse href='%23t' x='50' y='140'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='150' y='150'/%3E%3Cuse href='%23t' x='130' y='160'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='140' y='120'/%3E%3Cuse href='%23t' x='20' y='160'/%3E%3C/g%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3Crect id='t' width='9' height='9' rx='1.35'/%3E%3C/defs%3E%3Crect width='100' height='100' fill='%23CEDAE8'/%3E%3Cg fill='%23DEE9F6'%3E%3Cuse href='%23t' x='0' y='0'/%3E%3Cuse href='%23t' x='60' y='0'/%3E%3Cuse href='%23t' x='80' y='10'/%3E%3Cuse href='%23t' x='30' y='20'/%3E%3Cuse href='%23t' x='60' y='20'/%3E%3Cuse href='%23t' x='0' y='30'/%3E%3Cuse href='%23t' x='80' y='30'/%3E%3Cuse href='%23t' x='60' y='40'/%3E%3Cuse href='%23t' x='30' y='50'/%3E%3Cuse href='%23t' x='80' y='50'/%3E%3Cuse href='%23t' x='40' y='60'/%3E%3Cuse href='%23t' x='60' y='60'/%3E%3Cuse href='%23t' x='90' y='70'/%3E%3Cuse href='%23t' x='30' y='80'/%3E%3Cuse href='%23t' x='70' y='80'/%3E%3Cuse href='%23t' x='0' y='90'/%3E%3Cuse href='%23t' x='80' y='90'/%3E%3C/g%3E%3Cg fill='%23D2E0F0'%3E%3Cuse href='%23t' x='10' y='0'/%3E%3Cuse href='%23t' x='30' y='10'/%3E%3Cuse href='%23t' x='40' y='20'/%3E%3Cuse href='%23t' x='20' y='30'/%3E%3Cuse href='%23t' x='70' y='30'/%3E%3Cuse href='%23t' x='10' y='40'/%3E%3Cuse href='%23t' x='30' y='40'/%3E%3Cuse href='%23t' x='20' y='50'/%3E%3Cuse href='%23t' x='30' y='60'/%3E%3Cuse href='%23t' x='70' y='60'/%3E%3Cuse href='%23t' x='40' y='80'/%3E%3C/g%3E%3Cg fill='%23C4D4E6'%3E%3Cuse href='%23t' x='20' y='0'/%3E%3Cuse href='%23t' x='80' y='0'/%3E%3Cuse href='%23t' x='0' y='10'/%3E%3Cuse href='%23t' x='60' y='10'/%3E%3Cuse href='%23t' x='10' y='20'/%3E%3Cuse href='%23t' x='70' y='20'/%3E%3Cuse href='%23t' x='60' y='30'/%3E%3Cuse href='%23t' x='0' y='40'/%3E%3Cuse href='%23t' x='70' y='50'/%3E%3Cuse href='%23t' x='90' y='50'/%3E%3Cuse href='%23t' x='20' y='60'/%3E%3Cuse href='%23t' x='80' y='60'/%3E%3Cuse href='%23t' x='10' y='70'/%3E%3Cuse href='%23t' x='30' y='70'/%3E%3Cuse href='%23t' x='50' y='70'/%3E%3Cuse href='%23t' x='30' y='90'/%3E%3Cuse href='%23t' x='50' y='90'/%3E%3Cuse href='%23t' x='90' y='90'/%3E%3C/g%3E%3Cg fill='%23A8BEDC'%3E%3Cuse href='%23t' x='30' y='0'/%3E%3Cuse href='%23t' x='70' y='10'/%3E%3Cuse href='%23t' x='90' y='10'/%3E%3Cuse href='%23t' x='50' y='20'/%3E%3Cuse href='%23t' x='10' y='30'/%3E%3Cuse href='%23t' x='20' y='40'/%3E%3Cuse href='%23t' x='60' y='50'/%3E%3Cuse href='%23t' x='10' y='60'/%3E%3Cuse href='%23t' x='50' y='60'/%3E%3Cuse href='%23t' x='90' y='60'/%3E%3Cuse href='%23t' x='10' y='90'/%3E%3Cuse href='%23t' x='70' y='90'/%3E%3C/g%3E%3Cg fill='%23E9F0F8'%3E%3Cuse href='%23t' x='40' y='0'/%3E%3Cuse href='%23t' x='70' y='0'/%3E%3Cuse href='%23t' x='90' y='0'/%3E%3Cuse href='%23t' x='0' y='20'/%3E%3Cuse href='%23t' x='40' y='30'/%3E%3Cuse href='%23t' x='80' y='40'/%3E%3Cuse href='%23t' x='40' y='50'/%3E%3Cuse href='%23t' x='40' y='70'/%3E%3Cuse href='%23t' x='80' y='70'/%3E%3Cuse href='%23t' x='40' y='90'/%3E%3C/g%3E%3Cg fill='%23B2C6E0'%3E%3Cuse href='%23t' x='50' y='0'/%3E%3Cuse href='%23t' x='10' y='10'/%3E%3Cuse href='%23t' x='80' y='20'/%3E%3Cuse href='%23t' x='90' y='30'/%3E%3Cuse href='%23t' x='70' y='40'/%3E%3Cuse href='%23t' x='0' y='50'/%3E%3Cuse href='%23t' x='50' y='50'/%3E%3Cuse href='%23t' x='60' y='70'/%3E%3Cuse href='%23t' x='0' y='80'/%3E%3Cuse href='%23t' x='80' y='80'/%3E%3Cuse href='%23t' x='20' y='90'/%3E%3C/g%3E%3Cg fill='%23BCCEE8'%3E%3Cuse href='%23t' x='20' y='10'/%3E%3Cuse href='%23t' x='50' y='10'/%3E%3Cuse href='%23t' x='30' y='30'/%3E%3Cuse href='%23t' x='50' y='40'/%3E%3Cuse href='%23t' x='0' y='70'/%3E%3Cuse href='%23t' x='20' y='80'/%3E%3Cuse href='%23t' x='60' y='80'/%3E%3Cuse href='%23t' x='90' y='80'/%3E%3C/g%3E%3Cg fill='%23C8D6EA'%3E%3Cuse href='%23t' x='40' y='10'/%3E%3Cuse href='%23t' x='20' y='20'/%3E%3Cuse href='%23t' x='90' y='20'/%3E%3Cuse href='%23t' x='50' y='30'/%3E%3Cuse href='%23t' x='40' y='40'/%3E%3Cuse href='%23t' x='90' y='40'/%3E%3Cuse href='%23t' x='10' y='50'/%3E%3Cuse href='%23t' x='0' y='60'/%3E%3Cuse href='%23t' x='20' y='70'/%3E%3Cuse href='%23t' x='70' y='70'/%3E%3Cuse href='%23t' x='10' y='80'/%3E%3Cuse href='%23t' x='50' y='80'/%3E%3Cuse href='%23t' x='60' y='90'/%3E%3C/g%3E%3C/svg%3E")}
+.ariaMosaic{background-color:#CEDAE8 !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:130px 130px,170px 170px,100px 100px !important;background-position:0 0 !important}
+html body{background-color:#CEDAE8;background-image:var(--aria-mosaic);background-repeat:repeat;background-size:130px 130px,170px 170px,100px 100px;background-position:0 0}
+html body .soon>p{color:#3A4A6B}
+/* aria-mosaic:end */
+</style>
 </head>
 <body>
 
@@ -278,9 +294,9 @@ html{scroll-padding-top:76px}
       <span class="w1">Aria</span><span class="w2">Shop</span>
     </a>
     <nav class="inpage-nav" aria-label="En esta página">
-      <a href="#vestidor">Por tipo</a>
-      <a href="#galeria">Diseñadores</a>
-      <a href="#proximamente">Próximamente</a>
+      <button type="button" data-view="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-view="disenadores" aria-pressed="false">Diseñadores</button>
+      <button type="button" data-view="proximamente" aria-pressed="false">Próximamente</button>
     </nav>
     <div class="hs" data-hs><button type="button" class="hs-pill" aria-label="Buscar productos, marcas o tiendas" aria-expanded="false" aria-controls="hsForm"><span class="hs-pi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span class="hs-lbl">Buscar</span></span></button><form class="hs-form" id="hsForm" role="search" action="/search.html" method="get"><span class="hs-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><input class="hs-in" id="hsInput" type="search" name="q" placeholder="Buscar productos, marcas o tiendas" aria-label="Buscar productos, marcas o tiendas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="120"><button type="submit" class="hs-go" aria-label="Buscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></span><button type="button" class="hs-x" aria-label="Cerrar búsqueda"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -908,9 +924,24 @@ function closeRoomRail(){
   }catch(e){}
 }
 if (typeof window !== 'undefined'){ window.closeRoomRail = closeRoomRail; }
+/* The header's view switch: the view changes under the sticky header;
+   the scroll stays, unless the shopper is past the view's top -- then it
+   starts at its top, under the header (never mid-section). */
+function setView(v){
+  var main = document.querySelector('main');
+  if (!main) return;
+  if (v === (main.getAttribute('data-view') || '')) v = '';
+  if (v) main.setAttribute('data-view', v); else main.removeAttribute('data-view');
+  Array.prototype.forEach.call(document.querySelectorAll('.inpage-nav button[data-view]'), function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-view') === v)); });
+  var hdr = document.querySelector('.site-header'), first = document.querySelector('main .wrap');
+  var under = hdr ? hdr.getBoundingClientRect().bottom : 0, top = first ? first.getBoundingClientRect().top : 0;
+  if (top < under - 1) window.scrollBy(0, top - under);
+}
 document.addEventListener('click', function(e){
   var t = e.target;
   if (!t || !t.closest) return;
+  var vb = t.closest('.inpage-nav button[data-view]');
+  if (vb){ setView(vb.getAttribute('data-view')); return; }
   try{
     if (t.closest('#reMore')){ moreRoomRail(false); return; }
     var r = t.closest('.room-retry');

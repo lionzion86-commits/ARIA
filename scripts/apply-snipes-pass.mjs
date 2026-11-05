@@ -7,6 +7,12 @@
    scripts/lib/store-pull-normalize.js.
 
      node scripts/apply-snipes-pass.mjs --pass <dataset.json>
+     node scripts/apply-snipes-pass.mjs --pass <dataset.json> --refresh
+
+   --refresh re-applies the same pass to a catalogue that already carries
+   it (a rule change, e.g. the sold-out sizes `sizesOut`, 2026-11-04):
+   same prices, same in-stock sizes, nothing appended to the source, and
+   the pass report and the shown-not-sold list are left as they are.
 
    Runs on the committed catalogue (after build-pull-catalogs, the weight
    estimates and the description memory). Rewrites the shown-not-sold list
@@ -24,19 +30,26 @@ import { SIZES_PENDING } from "./lib/sizes-pending-data.js";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 const PASS = arg("--pass");
+const REFRESH = process.argv.includes("--refresh");
 if (!PASS) { console.error("usage: node scripts/apply-snipes-pass.mjs --pass <snipes-pass-2026-10-28/dataset.json>"); process.exit(2); }
 
 const file = join(ROOT, "snipes-catalog.json");
 const cat = JSON.parse(readFileSync(file, "utf8"));
-if (/2026-10-28 PDP pass/.test(cat.source || "")) { console.error("snipes-catalog.json already carries the 2026-10-28 pass"); process.exit(1); }
+const carries = /2026-10-28 PDP pass/.test(cat.source || "");
+if (carries && !REFRESH) { console.error("snipes-catalog.json already carries the 2026-10-28 pass (--refresh re-applies it)"); process.exit(1); }
+if (!carries && REFRESH) { console.error("--refresh: snipes-catalog.json does not carry the 2026-10-28 pass yet"); process.exit(1); }
 const deps = cat.retailers.snipes.departments;
 const count = () => Object.values(deps).reduce((n, d) => n + d.items.length, 0);
 const before = count();
 const report = applySnipesPass(deps, JSON.parse(readFileSync(resolve(PASS), "utf8")));
 const kept = count();
 cat.declaredProductCount = kept;
-cat.source += "; sizes and compare-at prices from the 2026-10-28 PDP pass (snipes-pass-2026-10-28)";
+if (!REFRESH) cat.source += "; sizes and compare-at prices from the 2026-10-28 PDP pass (snipes-pass-2026-10-28)";
 writeFileSync(file, JSON.stringify(cat));
+if (REFRESH) {
+  console.log(JSON.stringify({ refreshed: true, before, kept, sized: report.sized, soldOutSizes: report.soldOutSizes, priceChanged: report.priceChanged, left: report.left }, null, 1));
+  process.exit(0);
+}
 
 const pending = new Set(SIZES_PENDING.filter((k) => !k.startsWith("snipes::")));
 for (const d of Object.values(deps)) for (const it of d.items) if (it.sizesPending) pending.add(sizesPendingKey("snipes", it.name));

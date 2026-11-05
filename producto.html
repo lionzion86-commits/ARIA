@@ -21,6 +21,15 @@ a:hover{text-decoration:underline}
 .nav-links a{color:#DCE4F7}
 @media(max-width:760px){.nav-links{display:none}}
 main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:32px 20px 48px}
+/* «← Regresar» and «Ir a la tienda» (#443 c.6641939238): the first thing
+   on the page, before the photo; /assets/js/regresar.js points Regresar
+   at the card the shopper tapped. */
+.rg-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-18px 0 16px;min-height:40px}
+.rg-pill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:999px;border:1px solid #D9E0EB;background:#fff;color:var(--navy);font-size:14px;font-weight:800;line-height:1;text-decoration:none;white-space:nowrap;box-shadow:0 1px 2px rgba(10,31,68,.06);-webkit-tap-highlight-color:transparent}
+.rg-pill:hover{text-decoration:none;border-color:var(--navy)}
+.rg-pill:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.rg-pill svg{flex:0 0 auto;display:block}
+.rg-pill[hidden]{display:none}
 .hero{text-align:center;margin:0 0 32px}
 .kicker{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:12px}
 .hero h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:12px}
@@ -182,6 +191,7 @@ footer a{color:#fff}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <style id="hs-css">
@@ -263,6 +273,7 @@ html{scroll-padding-top:76px}
 <!-- nm:end -->
 </header>
 <main>
+<nav class="rg-bar" aria-label="Volver o ir a la tienda"><a class="rg-pill" id="rgBack" href="/categorias.html" data-rg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>Regresar</a><a class="rg-pill" id="rgStore" href="/tiendas.html" hidden>Ir a la tienda<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="3" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a></nav>
 <div id="product-wrap">
   <div id="p-loading" class="grid2" style="align-items:start" aria-busy="true">
     <div class="p-photo"></div>
@@ -379,6 +390,7 @@ function recordToItem(r){
     name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
     image: r.image || "", url: /^https?:\/\/[^\s\/?#]+/i.test(String(r.url || "").trim()) ? String(r.url).trim() : "", retailer: r.retailer || "",
     description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
+    sizesOut: Array.isArray(r.sizesOut) ? r.sizesOut : [],
     images: unpackImages(r.images, r.image),
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "", sizesPending: r.sizesPending === true,
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
@@ -914,6 +926,10 @@ function normalizeItem(it, retailerKey){
       /* `sizes` is where the variant-truth merge writes (#411);
          availableSizes is the older scrape field. Never invented. */
       sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
+      /* The rest of the store's own run, sold out there (sizesOut, #443
+         one-size shoes): shown marked agotada, never sold (soldOutSizes
+         decides at the picker). */
+      sizesOut: Array.isArray(it.sizesOut) ? it.sizesOut.filter(function(s){ return typeof s === "string" && s.trim(); }) : [],
       images: images,
       /* Where the size list came from (#411 provenance), as the
          catalogue record says it: a tier (scrape / verified / live /
@@ -1015,6 +1031,19 @@ function fail(msg, ctx){
    no "Ver más en" door to one. Its products stay as they are until Danny
    and Lucifer decide. Mirrors NO_STOREFRONT_STORES in the app bundle;
    scripts/test/removed-store-merch-tests.mjs pins the two. */
+/* «Ir a la tienda», beside «Regresar» at the top (#443 c.6641939238):
+   the same door as «Ver más en <tienda>» -- our store page, a designer's
+   room, Aria Auto -- never the retailer's site; none for a product off
+   sale or a store without a storefront. */
+function storePill(p, offSale){
+  var a = el("rgStore"); if (!a) return;
+  var tk = String(p.retailer || '').toLowerCase();
+  var designers = {farmrio:1,aguabendita:1,patbo:1,johannaortiz:1,silviatcherassi:1,capittana:1,ancora:1,vix:1,montce:1,eberjey:1,tns:1};
+  var href = offSale || !tk ? '' : p.partNumber ? 'auto.html' : designers[tk] ? 'disenadores.html#d-' + tk : NO_STOREFRONT[tk] ? '' : 'tienda.html?tienda=' + encodeURIComponent(tk);
+  a.hidden = !href;
+  if (href) a.href = href;
+  a.firstChild.nodeValue = p.partNumber ? 'Abrir Aria Auto' : 'Ir a la tienda';
+}
 var NO_STOREFRONT = { sephora: 1 };
 /* REACONDICIONADOS (#443, /condition.js): the condition the store's own
    title states, and its grade in the store's words, or that it gives
@@ -1051,6 +1080,7 @@ function variantProduct(base, x){
   q.image = x.image || "";
   q.images = unpackImages(x.images, x.image);
   q.sizes = Array.isArray(x.sizes) ? x.sizes : [];
+  q.sizesOut = Array.isArray(x.sizesOut) ? x.sizesOut : [];
   q.sizesPending = x.sizesPending === true;
   q.sizesTier = x.sizesTier || "";
   q.sizesSource = x.sizesSource || "";
@@ -1233,6 +1263,7 @@ function render(p, swapping){
     + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = shownName + " — Aria Shop";
+  storePill(p, offSale);
   wireGallery(el("p-body").querySelector(".p-gallery"));
   wireDescMore();
   wireVariants(p);
@@ -1659,6 +1690,38 @@ function isAccessoryTitle(title){
   // "Faux Suede Handbag, Cognac": the colour after the first comma.
   return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
+/* THE STORE'S SOLD-OUT SIZES (#443, Danny's QA on #648: a shoe showing
+   one size). A store that lists its whole run with most of it sold out
+   (SNIPES' disabled size buttons) hands us those sizes as `sizesOut`.
+   The picker shows them in the run, disabled and marked agotada, so the
+   page says what the store says; they are never in `sizes`, so the cart,
+   checkout and the order endpoint can never take one. Strings only, one
+   copy each, none that is also in stock. */
+function soldOutSizes(list, inStock){
+  if (!Array.isArray(list) || !list.length) return [];
+  var have = {}, out = [];
+  (inStock || []).forEach(function(s){ have[String(s).trim().toUpperCase()] = 1; });
+  truthfulSizes(list.filter(function(v){ return typeof v === 'string' || typeof v === 'number'; })).forEach(function(s){
+    if (!have[s.toUpperCase()]) out.push(s);
+  });
+  return out;
+}
+/* "1 de 13 tallas disponible en la tienda; las demás están agotadas." */
+function soldOutNote(nIn, nOut){
+  var total = nIn + nOut;
+  return nIn + ' de ' + total + ' tallas ' + (nIn === 1 ? 'disponible' : 'disponibles') + ' en la tienda; ' + (nOut === 1 ? 'la otra está agotada.' : 'las demás están agotadas.');
+}
+/* The picker's options: the in-stock sizes, and the sold-out ones in
+   their place in the run, disabled. */
+function sizeOptionsHtml(sizes, out){
+  var gone = {};
+  out.forEach(function(s){ gone[s] = 1; });
+  return sortSizes(sizes.concat(out)).map(function(s){
+    return gone[s]
+      ? '<option value="" disabled data-agotada="1">' + esc(s) + ' (agotada)</option>'
+      : '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+  }).join('');
+}
 
 var toastTimer = null;
 function toast(msg){
@@ -1747,10 +1810,12 @@ function buildBuyBox(p){
   var sizeHtml = '';
   if (wantsSize){
     var measure = sizeIsMeasure(sizes);
+    var out = soldOutSizes(p.sizesOut, sizes);
     var optsHtml = '<option value="" disabled selected>' + (measure ? 'Selecciona un tamaño' : 'Selecciona una talla') + '</option>'
-      + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
+      + sizeOptionsHtml(sizes, out);
     sizeHtml = '<label class="size-label" for="size-select">' + (measure ? 'Tamaño' : 'Talla') + '</label>'
-      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>';
+      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>'
+      + (out.length ? '<p class="size-note" id="size-out-note">' + esc(soldOutNote(sizes.length, out.length)) + '</p>' : '');
   }
   box.innerHTML = sizeHtml
     + '<button id="add-cart-btn" class="btn btn-add" type="button">Agregar al carrito</button>'
