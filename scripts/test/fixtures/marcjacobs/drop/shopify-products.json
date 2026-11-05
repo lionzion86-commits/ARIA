@@ -1,0 +1,17 @@
+{
+ "_fixture": "SYNTHETIC TEST DATA in the Shopify /products.json shape. Made up; never shipped.",
+ "products": [
+  { "id": 1, "title": "The Fixture Snapshot", "handle": "the-fixture-snapshot", "vendor": "Marc Jacobs", "product_type": "Handbags",
+    "body_html": "<p>A synthetic crossbody used only by the ingest test.</p>",
+    "options": [{ "name": "Color", "values": ["Black"] }],
+    "variants": [{ "id": 11, "title": "Black", "option1": "Black", "sku": "FXT0003SNAP", "price": "350.00", "compare_at_price": null, "available": true }],
+    "images": [{ "src": "https://img.fixture.test/mj/snapshot-1.jpg" }] },
+  { "id": 2, "title": "The Fixture Ankle Boot", "handle": "the-fixture-ankle-boot", "vendor": "Marc Jacobs", "product_type": "Shoes",
+    "options": [{ "name": "Size", "values": ["36", "37", "38"] }],
+    "variants": [
+      { "id": 21, "option1": "36", "sku": "FXT0004BOOT-36", "price": "650.00", "compare_at_price": "800.00", "available": true },
+      { "id": 22, "option1": "37", "sku": "FXT0004BOOT-37", "price": "650.00", "compare_at_price": "800.00", "available": false },
+      { "id": 23, "option1": "38", "sku": "FXT0004BOOT-38", "price": "650.00", "compare_at_price": "800.00", "available": true }],
+    "images": [{ "src": "https://img.fixture.test/mj/ankle-boot-1.jpg" }] }
+ ]
+}

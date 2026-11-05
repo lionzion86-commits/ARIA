@@ -40,6 +40,8 @@
      tier1     the tier-1 assets still missing, for the data lane
    ============================================================ */
 
+import { MJ_BANNER } from "./marcjacobs.js";
+
 export const BANNER_REGISTRY = {
   /* DSW: no DSW logo file exists anywhere in the repo (STORES.dsw.logo
      is null; logos/, logos/brands/, assets/logos/ have none), so the
@@ -103,6 +105,9 @@ export const BANNER_REGISTRY = {
     model: "required",
     tier1: [],
   },
+  /* Marc Jacobs: its entry lives with the store (scripts/lib/marcjacobs.js).
+     Gated while /off-sale.js AWAITING_CATALOG lists it (build-banners.mjs). */
+  "store:marcjacobs": MJ_BANNER,
 };
 
 /* Tier-1 assets missing for pages not in the sample, by name, for the

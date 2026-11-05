@@ -61,6 +61,11 @@
     bhphoto: { feeUsd: 0, freeOverUsd: 0, source: 'Lucifer, #443 c.6524139671', note: 'gratis en la mayoría de productos' },
     boxlunch: { feeUsd: 7.99, freeOverUsd: 75, source: 'Lucifer, #443 c.6524803125' },
     carolinaherrera: { feeUsd: 10, freeOverUsd: 250, source: 'Lucifer, #443 c.6524139671', note: 'tarifa aproximada' },
+    /* MARC JACOBS (#443 c.6643310622 / c.6643334129, the addability note, verified):
+       marcjacobs.com ships US, free UPS Ground over $50. No fee under $50 is in the
+       note, so under it the store calculates it at its own checkout -- never a
+       number Aria cannot back. Courier: UPS Ground (the carrier matrix row). */
+    marcjacobs: { feeUsd: null, freeOverUsd: 50, source: 'addability note, #443 c.6643310622 (verified), c.6643334129', basis: 'UPS Ground; gratis desde $50' },
     costco: { feeUsd: 0, freeOverUsd: 0, source: 'Lucifer, #443 c.6524139671', note: 'incluido en el precio' },
     crocs: { feeUsd: 7.99, freeOverUsd: 49.99, source: 'Lucifer, #443 c.6524139671' },
     everlast: { feeUsd: 9.99, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },

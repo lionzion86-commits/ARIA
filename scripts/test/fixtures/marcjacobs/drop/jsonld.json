@@ -1,0 +1,9 @@
+{
+ "_fixture": "SYNTHETIC TEST DATA in the JSON-LD Product list shape. Made up; never shipped.",
+ "@graph": [
+  { "@type": "Product", "name": "The Fixture Medium Tote Bag", "url": "https://shop.fixture.test/mj/fixture-medium-tote",
+    "image": ["https://img.fixture.test/mj/medium-tote-1.jpg"], "sku": "FXT0005MTOT", "brand": { "@type": "Brand", "name": "Marc Jacobs" },
+    "category": "Bags",
+    "offers": { "@type": "Offer", "price": "285.00", "priceCurrency": "USD", "availability": "https://schema.org/InStock" } }
+ ]
+}

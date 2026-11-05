@@ -29,6 +29,7 @@ import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { BANNER_REGISTRY, KNOWN_DEFECTS } from "./lib/banner-registry.js";
+import { isAwaitingCatalog } from "./lib/off-sale.js";
 import { modelShot } from "./lib/model-shot.mjs";
 import { brandKeyOf, deriveBrandLabel } from "../netlify/functions/_brand-core.js";
 
@@ -119,6 +120,11 @@ export function tierOf(kind, { logo, backdrop, models, tiles, photo }) {
   return 0;
 }
 const statusOf = (kind, tier) => (tier === 0 ? "MISSING" : kind === "dept" ? (tier === 1 ? "REPRESENTED" : "NOT-YET-REPRESENTED") : tier <= 2 ? "REPRESENTED" : "NOT-YET-REPRESENTED");
+
+/* A store still AWAITING its catalogue (/off-sale.js, Marc Jacobs) has no
+   page yet: no banner file, and its kind's index never lists it. */
+export const isGated = (id) => { const [kind, key] = id.split(":"); return kind === "store" && isAwaitingCatalog(key); };
+export const liveEntries = () => Object.entries(BANNER_REGISTRY).filter(([id]) => !isGated(id));
 
 export function buildEntry(id, e) {
   const [kind, key] = id.split(":");
@@ -253,7 +259,7 @@ function markdown(rep) {
 
 export function buildAll({ date = new Date().toISOString().slice(0, 10), write = true } = {}) {
   const built = {};
-  for (const [id, e] of Object.entries(BANNER_REGISTRY)) built[id] = buildEntry(id, e);
+  for (const [id, e] of liveEntries()) built[id] = buildEntry(id, e);
   const pages = audit(built);
   const has1 = (r) => r.base.class === "HAS-relevant";
   const nowHas = (r) => r.now.tier > 0;

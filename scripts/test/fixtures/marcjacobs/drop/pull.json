@@ -1,0 +1,22 @@
+{
+ "_fixture": "SYNTHETIC TEST DATA for scripts/test/marcjacobs-store-tests.mjs. Not a pull, not products: every name, price, size, link and photo here is made up (.test domains) and is never shipped to the site.",
+ "products": [
+  { "title": "The Fixture Leather Medium Tote Bag", "url": "https://shop.fixture.test/mj/fixture-leather-medium-tote", "price": 495, "wasPrice": 550,
+    "images": ["https://img.fixture.test/mj/tote-1.jpg", "https://img.fixture.test/mj/tote-2.jpg"], "type": "Tote Bags", "sku": "FXT0001TOTE", "color": "Black" },
+  { "title": "The Fixture 400 Runner Sneaker", "url": "https://shop.fixture.test/mj/fixture-400-runner", "price": 275, "wasPrice": null,
+    "images": ["https://img.fixture.test/mj/runner-1.jpg"], "type": "Sneakers", "sizes": ["36", "37", "38"], "sizesOut": ["39", "40"], "sku": "FXT0002RUNR" },
+  { "title": "The Fixture Logo T-Shirt", "url": "https://shop.fixture.test/mj/fixture-logo-tee", "price": 125,
+    "images": ["https://img.fixture.test/mj/tee-1.jpg"], "type": "Ready-to-Wear" },
+  { "title": "The Fixture Lipstick Case Bag Charm", "url": "https://shop.fixture.test/mj/fixture-charm", "price": 90,
+    "images": ["https://img.fixture.test/mj/charm-1.jpg"], "type": "Accessories" },
+  { "title": "Fixture Daisy Eau de Parfum", "url": "https://shop.fixture.test/mj/fixture-daisy", "price": 110,
+    "images": ["https://img.fixture.test/mj/daisy-1.jpg"], "type": "Fragrance" },
+  { "title": "The Fixture Sold Out Tote Bag", "url": "https://shop.fixture.test/mj/fixture-sold-out", "price": 300, "inStock": false,
+    "images": ["https://img.fixture.test/mj/soldout-1.jpg"], "type": "Tote Bags" },
+  { "title": "The Fixture Gone Boot", "url": "https://shop.fixture.test/mj/fixture-gone-boot", "price": 600,
+    "images": ["https://img.fixture.test/mj/boot-1.jpg"], "type": "Boots", "sizes": [], "sizesOut": ["37", "38"] },
+  { "title": "The Fixture No Photo Bag", "url": "https://shop.fixture.test/mj/fixture-no-photo", "price": 200, "images": [], "type": "Handbags" },
+  { "title": "The Fixture Gift Card", "url": "https://shop.fixture.test/mj/fixture-gift-card", "price": 100,
+    "images": ["https://img.fixture.test/mj/card-1.jpg"], "type": "Gift Cards" }
+ ]
+}

@@ -63,6 +63,9 @@ import { celularesOrder } from "../netlify/functions/_department-core.js";
 import { DEPT_ORDER as TW_ORDER, DEPT_LABELS as TW_LABELS } from "./lib/tenniswarehouse.js";
 import { storeFamily, BOARD_FAMILIES, socksToBack } from "./lib/store-reroutes.js";
 import { STOREFRONTS, storefrontRails, perfumeRails, PERFUME_CHIP_ORDER } from "./lib/storefronts.js";
+import { MJ_CATALOG_FILE, MJ_LABEL, MJ_DEPT_ORDER, MJ_DEPTS } from "./lib/marcjacobs.js";
+import { syncStoreGate } from "./lib/store-gate.mjs";
+import { spawnSync } from "node:child_process";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -242,6 +245,18 @@ export const SLICED_STORES = {
     DEPT_LABELS: {
       zapatos: "Zapatos", ropa: "Ropa", accesorios: "Joyas y accesorios", fragancias: "Fragancias", maquillaje: "Maquillaje",
     },
+  },
+  /* MARC JACOBS (#443 c.6643334129): the house's direct store, fashion only
+     (scripts/lib/marcjacobs.js). Built the day its catalogue has products:
+     while marcjacobs-catalog.json is the empty envelope the store gate
+     (scripts/lib/store-gate.mjs, synced first thing below) keeps it off
+     sale, so it has no folder and no door anywhere. Ofertas only from the
+     pull's own struck-through prices. */
+  marcjacobs: {
+    file: MJ_CATALOG_FILE,
+    label: MJ_LABEL,
+    DEPT_ORDER: MJ_DEPT_ORDER,
+    DEPT_LABELS: MJ_DEPTS,
   },
 };
 
@@ -898,6 +913,17 @@ export function buildAll(root = ROOT, only = null) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  /* THE STORE GATE FIRST (#443, Marc Jacobs): a gated store whose catalogue
+     now has products leaves /off-sale.js's AWAITING_CATALOG (or returns to
+     it when emptied). The off-sale list this process already loaded is the
+     old one, so a changed gate re-runs the build on the new list; every
+     builder after this one reads it fresh. */
+  const gate = syncStoreGate(ROOT);
+  if (gate.changed) {
+    console.log(`store gate rewritten (awaiting: ${gate.awaiting.join(", ") || "none"}); rebuilding on the new list`);
+    const r = spawnSync(process.execPath, process.argv.slice(1), { stdio: "inherit" });
+    process.exit(r.status == null ? 1 : r.status);
+  }
   const t0 = Date.now();
   /* --only a,b,c rebuilds those stores and leaves every other folder and
      endpoint file as it is. */

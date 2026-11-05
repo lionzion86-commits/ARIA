@@ -47,7 +47,7 @@ await check("registry: a logo or backdrop is a real file in the repo, or null --
 });
 
 await check("built banners are current (node scripts/build-banners.mjs)", () => {
-  for (const [id, e] of Object.entries(BANNER_REGISTRY)) {
+  for (const [id, e] of B.liveEntries()) {
     const [kind, key] = id.split(":");
     const f = `assets/banners/${kind}/${key}.json`;
     assert.ok(existsSync(join(ROOT, f)), `${f} missing`);
@@ -64,7 +64,7 @@ await check("tiles: real https product photos already served on the page's cards
     if (s.from === "feed") for (const p of JSON.parse(read(s.file)).items) out.add(p.img);
     return out;
   };
-  for (const [id, e] of Object.entries(BANNER_REGISTRY)) {
+  for (const [id, e] of B.liveEntries()) {
     const b = B.buildEntry(id, e), cards = served(e), base = [...cards].map((u) => [u, B.tileSrc(u)]);
     assert.ok(b.tiles.length >= 3, `${id}: ${b.tiles.length} tiles`);
     for (const t of b.tiles) {
@@ -83,7 +83,7 @@ await check("tier: computed from what exists (logo + own backdrop = 1, logo + mo
   assert.equal(B.tierOf("brand", { logo: null, backdrop: null, models: 0, tiles: 0 }), 0);
   assert.equal(B.tierOf("dept", { models: 4, tiles: 4 }), 1);
   assert.equal(B.tierOf("dept", { models: 0, tiles: 0, photo: "c.jpg" }), 3);
-  for (const [id, e] of Object.entries(BANNER_REGISTRY)) {
+  for (const [id, e] of B.liveEntries()) {
     const b = B.buildEntry(id, e);
     if (!e.logo && b.kind !== "dept") assert.equal(b.tier, 3, `${id}: no logo file cannot be tier 1 or 2`);
     if (b.tier === 3) assert.equal(b.status, "NOT-YET-REPRESENTED", id);
@@ -102,7 +102,8 @@ await check("audit report: every store, department and brand page, each with a c
   assert.ok(existsSync(join(ROOT, REPORT)) && existsSync(join(ROOT, REPORT.replace(".json", ".md"))));
   const r = JSON.parse(read(REPORT));
   const sk = new Set(r.pages.stores.map((s) => s.key));
-  for (const k of Object.keys(STORES)) assert.ok(sk.has(k), `store ${k} not audited`);
+  /* A store AWAITING its catalogue has no page (tienda.html drops it), so nothing to audit. */
+  for (const k of Object.keys(STORES)) if (!B.isGated("store:" + k)) assert.ok(sk.has(k), `store ${k} not audited`);
   const DEPTS = Function('"use strict";return (' + /var DEPTS = (\{[\s\S]*?\n  \});/.exec(read("departamento.html"))[1] + ");")();
   const dk = new Set(r.pages.depts.map((d) => d.key));
   for (const k of Object.keys(DEPTS)) assert.ok(dk.has(k), `dept ${k} not audited`);
@@ -115,6 +116,14 @@ await check("audit report: every store, department and brand page, each with a c
   assert.ok(r.pages.brands.rows.length > 1000);
   for (const row of r.pages.brands.rows) assert.ok(CLASSES.includes(row[ci]) && [0, 1, 2, 3].includes(row[ti]), row[0]);
   for (const s of r.samples) assert.ok(s.tier >= 1 && s.status, s.key);
+});
+
+await check("gated: a store AWAITING its catalogue (Marc Jacobs) publishes no banner file and no index entry", () => {
+  for (const id of Object.keys(BANNER_REGISTRY).filter(B.isGated)) {
+    const [kind, key] = id.split(":");
+    assert.ok(!existsSync(join(ROOT, `assets/banners/${kind}/${key}.json`)), `${id}: a banner file while gated`);
+    assert.ok(!JSON.parse(read(`assets/banners/${kind}/index.json`)).includes(key), `${id}: listed while gated`);
+  }
 });
 
 await check("wiring: every destination page loads page-banner.js (defer); stores fall back to the phone hero then the store photo; Best Buy's photo exists", () => {

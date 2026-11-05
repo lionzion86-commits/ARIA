@@ -1,0 +1,9 @@
+{
+ "_fixture": "SYNTHETIC TEST DATA: retailer listings of the fixture models, in the search index's row shape, for the Comparador official-row test. Made up; never shipped.",
+ "rows": [
+  { "title": "Black 'The Fixture Leather Medium' Tote", "brand": "Marc Jacobs", "price": 520, "retailer": "ssense", "image": "https://img.fixture.test/ssense/tote.jpg" },
+  { "title": "The Fixture Leather Medium Tote Bag", "brand": "Marc Jacobs", "price": 510, "retailer": "farfetch", "image": "https://img.fixture.test/farfetch/tote.jpg" },
+  { "title": "Black 'The Fixture Snapshot' Bag", "brand": "Marc Jacobs", "price": 330, "retailer": "ssense", "image": "https://img.fixture.test/ssense/snapshot.jpg" },
+  { "title": "Pink 'The Fixture Snapshot Convertible' Bag", "brand": "Marc Jacobs", "price": 300, "retailer": "farfetch", "image": "https://img.fixture.test/farfetch/snapshot-convertible.jpg" }
+ ]
+}
