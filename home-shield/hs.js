@@ -67,7 +67,7 @@
       "how.3t": "Licensed local pros request your case. You pick.",
       "how.3b": "They see an anonymous summary only. You review their license and their message, and you choose. Only then do they get your contact.",
       "rights.title": "Your rights, in plain language",
-      "rights.sub": "Florida first. General information, not legal advice: your policy and a licensed professional have the final word.",
+      "rights.sub": "Florida first, in plain words. Upload your policy and Aria will tell you how each of these applies to you.",
       "rights.1t": "You can dispute a decision.",
       "rights.1b": "If you disagree with a denial or with the amount, you can tell your insurer in writing and send your evidence: photos, estimates, receipts.",
       "rights.2t": "You can ask for it in writing.",
@@ -79,7 +79,7 @@
       "rights.5t": "You may have more options.",
       "rights.5b": "Many policies have an appraisal clause for disagreements about the amount, and a claim can sometimes be reopened or supplemented when new damage appears.",
       "rights.6t": "Deadlines matter.",
-      "rights.6b": "Reporting a claim, supplementing it and filing a lawsuit all have time limits, and Florida has changed some of them in recent years. Verify yours in your policy and with a licensed professional.",
+      "rights.6b": "Reporting a claim, supplementing it and filing a lawsuit all have time limits, and Florida has changed some of them in recent years. Your policy states yours: upload it and Aria will find them.",
       "privacy.title": "Our privacy promise",
       "privacy.1t": "Your case stays anonymous.",
       "privacy.1b": "Pros see the issue, your ZIP area and an anonymous summary. Never your name, phone, email, address or policy number.",
@@ -93,7 +93,7 @@
       "faq.q1": "Is it really free?",
       "faq.a1": "Yes. Aria Home Shield is free for homeowners. If you hire a professional, their fees are between you and them, and they should explain them before you sign anything.",
       "faq.q2": "Who is Aria?",
-      "faq.a2": "Aria is an AI guide. She knows how claims, policies and repairs work and explains them in plain words. She is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.",
+      "faq.a2": "Aria is your expert guide, on your side. She knows claims, policies and repairs the way a lawyer, a public adjuster, a roofer and an agent do. She looks at your situation and your policy first, so you know exactly where you stand, and then connects you with the right licensed pro, through Aria Home Shield.",
       "faq.q3": "Will my phone start ringing?",
       "faq.a3": "No. Nobody gets your contact until you approve a specific pro, and only that pro can reach you.",
       "faq.q4": "What happens to my policy when I upload it?",
@@ -279,7 +279,7 @@
       "how.3t": "Profesionales locales con licencia piden tu caso. Tú eliges.",
       "how.3b": "Solo ven un resumen anónimo. Tú revisas su licencia y su mensaje, y tú decides. Solo entonces reciben tus datos de contacto.",
       "rights.title": "Tus derechos, en palabras sencillas",
-      "rights.sub": "Empezamos por Florida. Información general, no asesoría legal: tu póliza y un profesional con licencia tienen la última palabra.",
+      "rights.sub": "Empezamos por Florida, en palabras sencillas. Sube tu póliza y Aria te dice cómo se aplica cada punto a tu caso.",
       "rights.1t": "Puedes disputar una decisión.",
       "rights.1b": "Si no estás de acuerdo con una negación o con el monto, puedes decírselo a tu aseguradora por escrito y enviar tus pruebas: fotos, presupuestos, recibos.",
       "rights.2t": "Puedes pedirlo por escrito.",
@@ -291,7 +291,7 @@
       "rights.5t": "Puede que tengas más opciones.",
       "rights.5b": "Muchas pólizas tienen una cláusula de tasación para desacuerdos sobre el monto, y a veces un reclamo se puede reabrir o complementar cuando aparecen daños nuevos.",
       "rights.6t": "Los plazos importan.",
-      "rights.6b": "Reportar un reclamo, complementarlo y presentar una demanda tienen plazos, y Florida ha cambiado algunos en los últimos años. Verifica los tuyos en tu póliza y con un profesional con licencia.",
+      "rights.6b": "Reportar un reclamo, complementarlo y presentar una demanda tienen plazos, y Florida ha cambiado algunos en los últimos años. Tu póliza dice cuáles son los tuyos: súbela y Aria los encuentra.",
       "privacy.title": "Nuestra promesa de privacidad",
       "privacy.1t": "Tu caso es anónimo.",
       "privacy.1b": "Los profesionales ven el tipo de problema, tu zona por código postal y un resumen anónimo. Nunca tu nombre, teléfono, correo, dirección ni número de póliza.",
@@ -305,7 +305,7 @@
       "faq.q1": "¿De verdad es gratis?",
       "faq.a1": "Sí. Aria Home Shield es gratis para los dueños de casa. Si contratas a un profesional, sus honorarios son entre tú y él, y te los debe explicar antes de que firmes nada.",
       "faq.q2": "¿Quién es Aria?",
-      "faq.a2": "Aria es una guía de inteligencia artificial. Sabe cómo funcionan los reclamos, las pólizas y las reparaciones, y te lo explica en palabras sencillas. No es abogada, ajustadora pública, agente de seguros ni contratista con licencia; te conecta con profesionales con licencia.",
+      "faq.a2": "Aria es tu guía experta, de tu lado. Conoce los reclamos, las pólizas y las reparaciones como un abogado, un ajustador público, un techador y un agente. Primero revisa tu situación y tu póliza, para que sepas exactamente dónde estás parado, y luego te conecta con el profesional con licencia adecuado, a través de Aria Home Shield.",
       "faq.q3": "¿Me van a empezar a llamar?",
       "faq.a3": "No. Nadie recibe tus datos hasta que tú apruebes a un profesional específico, y solo ese profesional te puede contactar.",
       "faq.q4": "¿Qué pasa con mi póliza cuando la subo?",
@@ -563,36 +563,61 @@
     if (cb) cb();
   }
 
-  /** Speak text in Aria's voice. Resolves { ok, cancelled, error }. */
-  function speak(text, opts) {
+  /* LATENCY MARKS for the turn in flight (the test harness reads them). */
+  var lat = null;
+  window.HS_LAT = [];
+  function mark(k) { if (lat && !lat[k]) lat[k] = performance.now(); }
+
+  /** Open a speech queue: push() sentences as they exist, end() when the
+   * text is complete. Sentence n+1 is synthesized while n plays; one
+   * channel, so opening another queue (or stopSpeech) cancels this one. */
+  function speechQueue(opts) {
     opts = opts || {};
     stopSpeech();
     var id = speech.id;
-    var chunks = chunkText(text);
-    if (muted || !chunks.length || !audio) return Promise.resolve({ ok: true, skipped: true });
+    var q = { chunks: [], ended: false, i: 0, wake: null };
+    var off = muted || !audio;
     var ac = new AbortController();
-    speech.ac = ac; speech.owner = opts.owner || null; speech.onStop = opts.onStop || null; speech.active = true;
+    if (!off) { speech.ac = ac; speech.owner = opts.owner || null; speech.onStop = opts.onStop || null; speech.active = true; }
     var pending = [];
-    var fetchAt = function (i) { if (!pending[i] && i < chunks.length) { pending[i] = synth(chunks[i], ac.signal); pending[i].catch(function () {}); } return pending[i]; };
-    var i = 0;
-    var step = function () {
-      if (id !== speech.id) return Promise.resolve({ cancelled: true });
-      if (i >= chunks.length) return Promise.resolve({ ok: true });
-      return fetchAt(i).then(function (blob) {
-        if (id !== speech.id) return { cancelled: true };
-        fetchAt(i + 1);
-        if (opts.onStart && i === 0) opts.onStart();
-        setSpeaking(true);
-        return playBlob(blob, id).then(function (played) {
-          setSpeaking(false);
-          if (!played || id !== speech.id) return { cancelled: true };
-          i++;
-          if (i >= chunks.length) return { ok: true };
-          return wait(/[.!?…]["”’)]*$/.test(chunks[i - 1]) ? 320 : 180).then(step);
-        });
-      });
+    var fetchAt = function (i) {
+      if (!pending[i] && i < q.chunks.length) {
+        pending[i] = synth(q.chunks[i], ac.signal).then(function (b) { if (i === 0) mark("ttsFirstByte"); return b; });
+        pending[i].catch(function () {});
+      }
+      return pending[i];
     };
-    return step().then(function (r) {
+    var poke = function () { if (q.wake) { var w = q.wake; q.wake = null; w(); } };
+    q.push = function (text) {
+      text = String(text || "").trim();
+      if (off || !text || id !== speech.id) return;
+      q.chunks.push(text);
+      if (q.chunks.length - 1 <= q.i + 1) fetchAt(q.chunks.length - 1);
+      poke();
+    };
+    q.end = function () { q.ended = true; poke(); };
+    var loop = function () {
+      if (id !== speech.id) return Promise.resolve({ cancelled: true });
+      if (q.i < q.chunks.length) {
+        return fetchAt(q.i).then(function (blob) {
+          if (id !== speech.id) return { cancelled: true };
+          fetchAt(q.i + 1);
+          if (opts.onStart && q.i === 0) opts.onStart();
+          setSpeaking(true);
+          var onPlaying = function () { mark("firstAudio"); audio.removeEventListener("playing", onPlaying); };
+          audio.addEventListener("playing", onPlaying);
+          return playBlob(blob, id).then(function (played) {
+            setSpeaking(false);
+            if (!played || id !== speech.id) return { cancelled: true };
+            q.i++;
+            return wait(q.i < q.chunks.length ? (/[.!?…]["”’)]*$/.test(q.chunks[q.i - 1]) ? 260 : 160) : 0).then(loop);
+          });
+        });
+      }
+      if (q.ended) return Promise.resolve({ ok: true });
+      return new Promise(function (r) { q.wake = r; }).then(loop);
+    };
+    q.done = off ? Promise.resolve({ ok: true, skipped: true }) : loop().then(function (r) {
       if (id === speech.id) { speech.active = false; speech.owner = null; speech.onStop = null; }
       return r;
     }, function (err) {
@@ -600,6 +625,29 @@
       if (err && err.name === "AbortError") return { cancelled: true };
       return { error: err };
     });
+    return q;
+  }
+
+  /** Speak a whole text (Listen buttons, the greeting). */
+  function speak(text, opts) {
+    var q = speechQueue(opts);
+    chunkText(text).forEach(q.push);
+    q.end();
+    return q.done;
+  }
+
+  /* Sentence splitter for streamed text: whole sentences out as they close. */
+  function sentenceSplitter(onSentence) {
+    var buf = "";
+    return {
+      feed: function (t) {
+        buf += t;
+        var re = /[^.!?…]*[.!?…]+["”’)]*\s+/g, m, last = 0;
+        while ((m = re.exec(buf))) { var sen = m[0].trim(); if (sen) onSentence(sen); last = re.lastIndex; }
+        buf = buf.slice(last);
+      },
+      flush: function () { var r = buf.trim(); buf = ""; if (r) onSentence(r); }
+    };
   }
 
   /* ================================================================
@@ -703,7 +751,7 @@
   }
   function onListen(btn) {
     if (speech.owner === btn) { stopSpeech(); return; }
-    convo.stop();
+    convo.stop(); abortTurn();
     var text = sectionText(btn.getAttribute("data-listen"));
     setListenBtn(btn, "loading");
     var reset = function () { setListenBtn(btn, ""); };
@@ -765,7 +813,7 @@
     if (sheet.hidden) { lastFocus = doc.activeElement; sheet.hidden = false; doc.body.style.overflow = "hidden"; }
   }
   function closeSheet() {
-    convo.stop(); stopSpeech();
+    convo.stop(); abortTurn();
     if (!sheet) return;
     sheet.hidden = true; doc.body.style.overflow = "";
     if (lastFocus && lastFocus.focus) lastFocus.focus();
@@ -780,33 +828,103 @@
     });
   }
 
+  /* The turn in flight: one at a time; barge-in and close abort it. */
+  var turn = { ac: null };
+  function abortTurn() {
+    if (turn.ac) { try { turn.ac.abort(); } catch (e) { /* ignore */ } turn.ac = null; }
+    stopSpeech();
+  }
+  window.HS_ABORT_TURN = abortTurn;
+
+  function readSSE(res, onEvent) {
+    var reader = res.body.getReader(), dec = new TextDecoder(), buf = "";
+    var pump = function () {
+      return reader.read().then(function (r) {
+        if (r.done) return;
+        buf += dec.decode(r.value, { stream: true });
+        var parts = buf.split("\n\n");
+        buf = parts.pop();
+        parts.forEach(function (ev) {
+          var line = ev.split("\n").filter(function (l) { return l.indexOf("data:") === 0; }).map(function (l) { return l.slice(5).trim(); }).join("");
+          if (!line) return;
+          try { onEvent(JSON.parse(line)); } catch (e) { /* skip */ }
+        });
+        return pump();
+      });
+    };
+    return pump();
+  }
+
   function sendText(text, viaVoice) {
     text = String(text || "").trim();
-    if (!text || chat.busy) return Promise.resolve();
+    if (!text) return Promise.resolve();
+    if (chat.busy) abortTurn();
     showErr("");
     greetIfNeeded(false);
     addMsg("user", text);
     chat.messages.push({ role: "user", content: text });
     chat.busy = true;
     typing(true);
-    if (convo.active) convo.set("thinking");
-    else setStarState("thinking");
-    return post("hs-chat", { messages: chat.messages, lang: lang, caseDraft: chat.draft, voice: !!viaVoice || convo.active, policy: chat.policy || null })
-      .then(function (j) {
-        typing(false); chat.busy = false;
-        var reply = String(j.reply || "");
-        addMsg("assistant", reply);
-        chat.messages.push({ role: "assistant", content: reply });
-        if (j.caseDraft) { chat.draft = mergeDraft(chat.draft, j.caseDraft); }
-        if (j.ready && !chat.caseId) showCaseCard("case");
-        else if (chat.cardMode === "case" && !chat.edited) showCaseCard("case");
-        return sayReply(reply);
-      })
-      .catch(function (e) {
-        typing(false); chat.busy = false;
-        showErr(t("err.chat", { e: e.message }));
-        if (convo.active) convo.listen(); else setStarState("idle");
+    if (convo.active) convo.set("thinking"); else setStarState("thinking");
+    if (!lat) lat = { t0: performance.now() };
+    var ac = new AbortController();
+    turn.ac = ac;
+    var q = speechQueue({ owner: "chat" });
+    var bubble = null, shown = "", final = null, streamErr = null;
+    var split = sentenceSplitter(function (sen) {
+      if (!q.chunks.length) { mark("firstSentence"); if (convo.active) convo.set("speaking"); }
+      q.push(sen);
+    });
+    return fetch(FN + "hs-chat", {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" }, signal: ac.signal,
+      body: JSON.stringify({ messages: chat.messages, lang: lang, caseDraft: chat.draft, voice: !!viaVoice || convo.active, policy: chat.policy || null })
+    }).then(function (res) {
+      var ct = res.headers.get("content-type") || "";
+      if (!res.ok || ct.indexOf("text/event-stream") < 0) {
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          if (!res.ok) throw new Error((j && j.error) || "HTTP " + res.status);
+          final = j; // a buffered JSON answer still works
+        });
+      }
+      return readSSE(res, function (ev) {
+        if (ev.t) {
+          mark("firstToken");
+          if (!bubble) { typing(false); bubble = addMsg("assistant", ""); }
+          shown += ev.t; bubble.textContent = shown; scrollDown();
+          split.feed(ev.t);
+        } else if (ev.done) final = ev;
+        else if (ev.error) streamErr = new Error(ev.error);
       });
+    }).then(function () {
+      mark("streamEnd");
+      if (streamErr && !shown) throw streamErr;
+      typing(false); chat.busy = false; turn.ac = null;
+      var reply = String((final && final.reply) || shown || "");
+      if (!bubble) bubble = addMsg("assistant", reply); else bubble.textContent = reply;
+      if (!shown) chunkText(reply).forEach(function (c) { split.feed(c + " "); });
+      split.flush(); q.end();
+      chat.messages.push({ role: "assistant", content: reply });
+      if (final && final.caseDraft) chat.draft = mergeDraft(chat.draft, final.caseDraft);
+      if (final && final.ready && !chat.caseId) showCaseCard("case");
+      else if (chat.cardMode === "case" && !chat.edited) showCaseCard("case");
+      return q.done;
+    }).then(function (r) {
+      if (lat) { lat.done = performance.now(); window.HS_LAT.push(lat); lat = null; }
+      if (r && r.error) showErr(t("err.voice", { e: r.error.message }));
+      if (r && r.cancelled) return r;
+      if (convo.active) convo.listen(); else setStarState("idle");
+      return r;
+    }).catch(function (e) {
+      typing(false); chat.busy = false; lat = null;
+      if (turn.ac === ac) turn.ac = null;
+      if (e && e.name === "AbortError") {
+        if (shown) chat.messages.push({ role: "assistant", content: shown });
+        return { cancelled: true };
+      }
+      q.end();
+      showErr(t("err.chat", { e: e.message }));
+      if (convo.active) convo.listen(); else setStarState("idle");
+    });
   }
   function greetIfNeeded(speakIt) {
     if (!greet()) return Promise.resolve({ ok: true });
@@ -876,7 +994,7 @@
           c.restartRec();
         }
       } else if (c.state === "speaking") {
-        if (lv > barge) { c.loud += 50; if (c.loud >= BARGE_MS) { c.loud = 0; stopSpeech(); c.listen(true); } } else c.loud = 0;
+        if (lv > barge) { c.loud += 50; if (c.loud >= BARGE_MS) { c.loud = 0; abortTurn(); c.listen(true); } } else c.loud = 0;
       }
     }
     c.restartRec = function () {
@@ -899,6 +1017,7 @@
       if (!c.rec || c.state !== "listening") return;
       c.set("thinking");
       c.idleRounds = 0;
+      lat = { t0: performance.now() - Math.max(0, Date.now() - c.lastVoice), voice: true };
       var rec = c.rec;
       rec.onstop = function () {
         var type = (c.mime || rec.mimeType || "audio/webm").split(";")[0];
@@ -906,8 +1025,10 @@
         c.chunks = [];
         if (blob.size < 1200) return c.listen();
         blobToB64(blob).then(function (b64) {
+          mark("sttSent");
           return post("hs-stt", { audio: b64, mime: type, lang: lang });
         }).then(function (j) {
+          mark("sttDone");
           if (!c.active) return;
           var text = String((j && j.text) || "").trim();
           if (!text) return c.listen();

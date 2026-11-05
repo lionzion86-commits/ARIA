@@ -534,20 +534,34 @@ const withEnv = async (vars, fn) => {
 };
 const jsonRes = (status, obj) => ({ ok: status < 400, status, json: async () => obj, text: async () => JSON.stringify(obj), headers: new Map([["content-type", "application/json"]]) });
 
-await check("prompt: carries every disclaimer rule, verbatim", () => {
+await check("prompt: Aria is the expert, the pro comes THROUGH her; accuracy rules bind her claims", () => {
   const p = FE.prompt.buildHsSystemPrompt({ lang: "en" });
-  for (const r of FE.prompt.DISCLAIMER_RULES) assert.ok(p.includes(r), "missing rule: " + r);
-  assert.match(p, /not legal advice/);
-  assert.match(p, /not a licensed attorney, public adjuster, insurance agent or contractor/);
-  assert.match(p, /Never promise an outcome/);
-  assert.match(p, /Never encourage inflating a claim/);
-  assert.match(p, /Never tell the homeowner to sign anything/);
-  assert.match(p, /verify every deadline in their own policy/);
-  assert.match(p, /ONE question at a time/);
-  assert.match(p, /EMERGENCY FIRST/);
-  assert.match(p, /shut off the water/);
-  assert.match(p, /Reply in the language the homeowner writes in/);
-  assert.match(p, /NO personal information/);
+  for (const r of FE.prompt.ACCURACY_RULES) assert.ok(p.includes(r), "missing rule: " + r);
+  for (const m of FE.prompt.MOVES) assert.ok(p.includes(m), "missing move: " + m);
+  assert.match(p, /the professional comes THROUGH you, never instead of you/);
+  assert.match(p, /they know everything and you know nothing, and that is how people get taken/);
+  assert.match(p, /let me look at it — give me what you have/);
+  assert.match(p, /if you let me see your actual policy, I can tell you exactly where YOU stand/);
+  assert.match(p, /Every reply moves the intake ONE step forward: situation, then the ZIP code, then the policy, then contact/);
+  assert.match(p, /Never promise an outcome/); assert.match(p, /Never encourage inflating a claim/); assert.match(p, /Never tell the homeowner to sign anything/);
+  assert.match(p, /ONE question at a time/); assert.match(p, /EMERGENCY FIRST/); assert.match(p, /shut off the water/);
+  assert.match(p, /Reply in the language the homeowner writes in/); assert.match(p, /NO names, phone numbers/);
+});
+await check("prompt: the policy upload is invited early; it stops asking once the policy is in", () => {
+  const p = FE.prompt.buildHsSystemPrompt({ lang: "en" });
+  assert.match(p, /GET THE POLICY: the upload is your standing invitation\. Offer it early and naturally \(by your first or second reply\)/);
+  assert.match(p, /They have not uploaded their policy yet: invite it in this reply or the next/);
+  assert.ok(!/They have not uploaded/.test(FE.prompt.buildHsSystemPrompt({ policy: { strong: ["x"], excerpt: "SECTION I" } })));
+});
+await check("prompt: deflection is banned; no spoken disclaimer; nothing in it says 'go elsewhere'", () => {
+  const p = FE.prompt.buildHsSystemPrompt({ lang: "en", policy: { strong: ["x"], excerpt: "y" } });
+  const ban = p.split("\n").filter((l) => !l.startsWith("NEVER YOUR MAIN MOVE")).join("\n");
+  for (const b of FE.prompt.BANNED_PHRASES) assert.ok(!ban.toLowerCase().includes(b.toLowerCase()), "deflection outside the ban list: " + b);
+  assert.ok(!/should (confirm|decide|review)|consult (a|an) |not legal advice|not a licensed/i.test(ban), "deflection or disclaimer in the prompt");
+  for (const b of ["you should speak with a professional", "a licensed professional should confirm"]) assert.ok(FE.prompt.BANNED_PHRASES.includes(b));
+  // The greeting and intro carry no disclaimer.
+  for (const k of ["intro.line1", "intro.line2"]) for (const L of ["en", "es"]) assert.ok(!/not legal advice|not a licensed|no es abogada|asesor[ií]a legal|professional should|profesional .* debe/i.test(I18N[L][k]), k + " " + L);
+  assert.ok(!/not a licensed|should confirm/i.test(I18N.en["faq.a2"]));
 });
 await check("prompt: Spanish page asks for Spanish; voice turns stay short", () => {
   assert.match(FE.prompt.buildHsSystemPrompt({ lang: "es" }), /Spanish/);
@@ -593,39 +607,35 @@ await check("policy review: «How it compares» is built from the policy's own t
   assert.ok(!/premium of|\$\d+ ?(a|per) (year|month)|Citizens|State Farm|Universal|Heritage/i.test(en.join(" ")), "invented price or carrier");
   assert.equal(I18N.en["policy.compare"], "How it compares"); assert.equal(I18N.es["policy.compare"], "Cómo se compara");
 });
-await check("hs-chat: same key and model id as the shop's chat; JSON reply + scrubbed draft", async () => {
+const sseBody = (chunks) => new ReadableStream({ start(c) { const e = new TextEncoder(); for (const x of chunks) c.enqueue(e.encode(x)); c.close(); } });
+const openaiSSE = (text, cut = 7) => { const out = []; for (let i = 0; i < text.length; i += cut) out.push(`data: ${JSON.stringify({ choices: [{ delta: { content: text.slice(i, i + cut) } }] })}\n\n`); out.push("data: [DONE]\n\n"); return out; };
+const readEvents = async (res) => (await res.text()).split("\n\n").filter((l) => l.startsWith("data:")).map((l) => JSON.parse(l.slice(5)));
+const chatReq = (body) => new Request("http://x/.netlify/functions/hs-chat", { method: "POST", headers: { "content-type": "application/json", "x-nf-client-connection-ip": "10.9.9." + Math.floor(Math.random() * 250) }, body: JSON.stringify(body) });
+
+await check("hs-chat: streams the reply (same key and model id as the shop); the case draft arrives last, scrubbed, never in the text", async () => {
   let sent = null;
-  const fetchImpl = async (url, init) => {
-    sent = { url, body: JSON.parse(init.body), auth: init.headers.Authorization };
-    return jsonRes(200, { choices: [{ message: { content: JSON.stringify({ reply: "I'm sorry that happened. What is the ZIP code of the home?", caseDraft: { issue: "denied_claim", trades: ["public_adjuster", "attorney"], zip: "33101", urgency: "soon", summary: "Wind claim denied last month; call me at 305-555-1212.", insurer: "Acme Mutual", claimStatus: "denied" } }) } }] });
-  };
-  const r = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ lang: "en", messages: [{ role: "user", content: "My claim was denied" }] }) }, { fetchImpl }));
-  assert.equal(r.statusCode, 200, r.body);
-  const j = JSON.parse(r.body);
-  assert.equal(sent.url, FE.model.OPENAI_CHAT_URL);
-  assert.equal(sent.body.model, FE.model.OPENAI_MODEL);
-  assert.equal(sent.auth, "Bearer sk-test");
-  assert.deepEqual(sent.body.response_format, { type: "json_object" });
-  assert.equal(sent.body.messages[0].role, "system");
-  assert.match(j.reply, /ZIP/);
-  assert.equal(j.caseDraft.issue, "denied_claim");
-  assert.ok(!/555/.test(j.caseDraft.summary), j.caseDraft.summary);
-  assert.equal(j.ready, true);
+  const model = "I'm sorry that happened. I'm in your corner. What is the ZIP code of the home?\n<<<CASE>>>\n" + JSON.stringify({ issue: "denied_claim", trades: ["public_adjuster", "attorney"], zip: "33101", urgency: "soon", summary: "Wind claim denied last month; call me at 305-555-1212.", insurer: "Acme Mutual", claimStatus: "denied" });
+  const fetchImpl = async (url, init) => { sent = { url, body: JSON.parse(init.body), auth: init.headers.Authorization }; return { ok: true, status: 200, body: sseBody(openaiSSE(model)) }; };
+  const res = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.default(chatReq({ lang: "en", messages: [{ role: "user", content: "My claim was denied" }] }), { fetchImpl }));
+  assert.equal(res.status, 200); assert.match(res.headers.get("content-type"), /text\/event-stream/);
+  const ev = await readEvents(res);
+  assert.equal(sent.url, FE.model.OPENAI_CHAT_URL); assert.equal(sent.body.model, FE.model.OPENAI_MODEL); assert.equal(sent.body.stream, true); assert.equal(sent.auth, "Bearer sk-test");
+  const deltas = ev.filter((e) => e.t);
+  assert.ok(deltas.length > 3, "streamed in pieces");
+  const text = deltas.map((e) => e.t).join("");
+  assert.equal(text.trim(), "I'm sorry that happened. I'm in your corner. What is the ZIP code of the home?");
+  assert.ok(!/CASE|\{|issue/.test(text), "case draft leaked into the reply stream");
+  const done = ev.at(-1);
+  assert.equal(done.done, true); assert.equal(done.caseDraft.issue, "denied_claim"); assert.equal(done.ready, true);
+  assert.ok(!/555/.test(done.caseDraft.summary), done.caseDraft.summary);
 });
-await check("hs-chat: retries without JSON mode when the model refuses it; 503 without a key; 400 on a bad turn", async () => {
-  let calls = 0;
-  const fetchImpl = async (url, init) => {
-    calls++;
-    const b = JSON.parse(init.body);
-    if (b.response_format) return jsonRes(400, { error: { message: "response_format not supported" } });
-    return jsonRes(200, { choices: [{ message: { content: '{"reply":"Okay.","caseDraft":{}}' } }] });
-  };
-  const r = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] }) }, { fetchImpl }));
-  assert.equal(r.statusCode, 200); assert.equal(calls, 2);
-  const n = await withEnv({ OPENAI_API_KEY: undefined }, () => FE.chat.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] }) }, {}));
-  assert.equal(n.statusCode, 503);
-  const bad = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ messages: [{ role: "assistant", content: "hi" }] }) }, {}));
-  assert.equal(bad.statusCode, 400);
+await check("hs-chat: 503 without a key; 400 on a bad turn; upstream error before the stream is JSON", async () => {
+  const n = await withEnv({ OPENAI_API_KEY: undefined }, () => FE.chat.default(chatReq({ messages: [{ role: "user", content: "hi" }] }), {}));
+  assert.equal(n.status, 503);
+  const bad = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.default(chatReq({ messages: [{ role: "assistant", content: "hi" }] }), {}));
+  assert.equal(bad.status, 400);
+  const up = await withEnv({ OPENAI_API_KEY: "sk-test" }, () => FE.chat.default(chatReq({ messages: [{ role: "user", content: "hi" }] }), { fetchImpl: async () => jsonRes(500, { error: { message: "boom" } }) }));
+  assert.equal(up.status, 502); assert.match((await up.json()).error, /boom/);
 });
 
 await check("hs-tts: ONE voice (id, model, stability 0.5, similarity 0.75), key server-side", async () => {
@@ -688,7 +698,7 @@ await check("Mountain Test (static): no shop bundle, no catalogue, deferred scri
     assert.match(s, /<script defer src="\/home-shield\/hs\.js"><\/script>/);
   }
   assert.ok(!/\/build\/|catalog\.json|-catalog/.test(JS));
-  assert.ok(Buffer.byteLength(JS) < 90 * 1024, "hs.js " + Buffer.byteLength(JS));
+  assert.ok(Buffer.byteLength(JS) < 110 * 1024, "hs.js " + Buffer.byteLength(JS));
   assert.ok(gzipSync(JS).length < 32 * 1024, "hs.js gz " + gzipSync(JS).length);
   for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 20 * 1024, f);
 });
@@ -742,6 +752,8 @@ if (pw) {
   const log = [];
   let stub = {};
   const SPEECH = wav(0.35);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let ttsDelay = 0;
   const { createServer } = await import("node:http");
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   const srv = createServer(async (req, res) => {
@@ -754,10 +766,19 @@ if (pw) {
       log.push({ fn: fn[1], method: req.method, body, query: Object.fromEntries(u.searchParams) });
       if (stub[fn[1]]) {
         const r = await stub[fn[1]](body, u);
+        if (r && r.delay) await sleep(r.delay);
+        if (fn[1] === "hs-chat" && r && r.json && r.json.reply && !r.status) {
+          /* Stream it the way hs-chat does: word deltas, then the done event. */
+          res.writeHead(200, { "Content-Type": "text/event-stream" });
+          await sleep(r.firstToken || 0);
+          for (const w of r.json.reply.match(/\S+\s*/g)) { res.write(`data: ${JSON.stringify({ t: w })}\n\n`); await sleep(r.gap ?? 15); }
+          res.write(`data: ${JSON.stringify({ done: true, ...r.json })}\n\n`);
+          return res.end();
+        }
         if (r && r.audio) { res.writeHead(200, { "Content-Type": "audio/wav" }); return res.end(r.audio); }
         res.writeHead(r.status || 200, { "Content-Type": "application/json" }); return res.end(JSON.stringify(r.json || {}));
       }
-      if (fn[1] === "hs-tts") { res.writeHead(200, { "Content-Type": "audio/wav" }); return res.end(SPEECH); }
+      if (fn[1] === "hs-tts") { await sleep(ttsDelay); res.writeHead(200, { "Content-Type": "audio/wav" }); return res.end(SPEECH); }
       const h = real[fn[1]];
       if (!h) { res.writeHead(404, { "Content-Type": "application/json" }); return res.end('{"error":"no such function"}'); }
       const r = await h({ httpMethod: req.method, headers: { "x-nf-client-connection-ip": "127.0.0.1", "content-type": "application/json" }, body: raw, queryStringParameters: Object.fromEntries(u.searchParams) }, {});
@@ -913,6 +934,55 @@ if (pw) {
     await page.waitForTimeout(800);
     const said = ttsTexts().join(" ");
     assert.ok(said.includes("Estoy de tu lado") && said.includes("¿Está entrando agua"), said);
+    await c.close();
+  });
+
+  await check("browser 390: streaming: her first sentence plays while the rest still generates; latency measured per stage", async () => {
+    reset();
+    /* Stub timings: STT 300 ms, model first token 350 ms then a word every
+       120 ms (a 3-sentence reply takes ~3 s to finish), voice 200 ms. */
+    ttsDelay = 200;
+    stub["hs-stt"] = () => ({ delay: 300, json: { text: "My roof is leaking after the storm." } });
+    const reply = "I'm right here with you. Is water coming in right now, or has it stopped? If it is coming in, shut off the water main first and photograph everything before you move anything.";
+    stub["hs-chat"] = () => ({ firstToken: 350, gap: 120, json: { reply, caseDraft: { issue: "roof" }, ready: false } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await page.click(".hs-star-hero");
+    await page.waitForFunction(() => window.HS_LAT.length >= 1, null, { timeout: 20000 });
+    const L = await page.evaluate(() => window.HS_LAT[0]);
+    const rel = (k) => Math.round(L[k] - L.t0);
+    const row = { endpointing_silence: 900, stt: rel("sttDone"), firstToken: rel("firstToken"), firstSentence: rel("firstSentence"), ttsFirstByte: rel("ttsFirstByte"), firstAudio: rel("firstAudio"), streamEnd: rel("streamEnd") };
+    console.log("         latency (ms after end of speech, stubbed services): " + JSON.stringify(row));
+    assert.ok(L.voice, "voice turn");
+    for (const k of ["sttDone", "firstToken", "firstSentence", "ttsFirstByte", "firstAudio", "streamEnd"]) assert.ok(L[k], "missing mark " + k);
+    assert.ok(L.sttDone < L.firstToken && L.firstToken <= L.firstSentence && L.firstSentence < L.ttsFirstByte && L.ttsFirstByte <= L.firstAudio, JSON.stringify(row));
+    assert.ok(L.firstAudio < L.streamEnd, "her first sentence must play before the reply finishes generating " + JSON.stringify(row));
+    // Overhead of the page itself on top of the stubbed services must stay small.
+    const services = 900 + 300 + 350 + 200;
+    assert.ok(row.firstAudio - services < 900, "pipeline overhead " + (row.firstAudio - services) + " ms");
+    const said = ttsTexts();
+    assert.equal(said.at(-3), "I'm right here with you.", "the first sentence is synthesized on its own: " + JSON.stringify(said));
+    ttsDelay = 0;
+    await page.click("#hsMic");
+    await c.close();
+  });
+
+  await check("browser 390: barge-in mid-stream aborts the reply stream and her voice", async () => {
+    reset();
+    stub["hs-chat"] = () => ({ firstToken: 100, gap: 150, json: { reply: "One. Two is a longer sentence. Three is longer still and keeps going for a while. Four. Five.", caseDraft: {}, ready: false } });
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    await page.locator('[data-action="talk"]').first().click();
+    await page.evaluate(() => { const a = document.getElementById("hsAudio"); a.muted = false; });
+    await page.fill("#hsInput", "Hello"); await page.press("#hsInput", "Enter");
+    await page.waitForFunction(() => document.querySelectorAll("#hsMsgs .hs-msg-a").length >= 2, null, { timeout: 5000 });
+    await page.evaluate(() => window.HS_ABORT_TURN());
+    const before = await page.locator("#hsMsgs .hs-msg-a").last().innerText();
+    await page.waitForTimeout(900);
+    const after = await page.locator("#hsMsgs .hs-msg-a").last().innerText();
+    assert.equal(after, before, "the stream kept writing after the abort");
+    assert.ok(!/Five/.test(after));
+    assert.equal(await page.evaluate(() => window.HS_SPEECH.active), false);
     await c.close();
   });
 
