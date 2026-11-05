@@ -53,14 +53,43 @@ function loadFxRate(){
       try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ ...data, fetchedAt: Date.now() })); } catch { /* storage full/unavailable — non-fatal */ }
       fxRate = data.venta;
     } catch {
-      // No real rate available — fxRate stays null, and every price
-      // display below falls back to USD-only rather than showing a made-up
-      // conversion or blocking rendering.
+      /* SOLES, ALWAYS (#443 c.6629812301, Danny: "we only show soles"):
+         the shared rate (/import-tax.js AriaImportTax.fx) -- SUNAT's last
+         good rate, the last one this phone saw, then a retry. A card drawn
+         before it lands holds a soles placeholder (cardSolesHTML) that
+         fills in place; it never prints dollars. */
       fxRate = null;
+      const F = sharedFx();
+      if (F) {
+        try { const v = await F.get(); if (v > 0) fxRate = v; } catch { /* none yet */ }
+      }
     }
     return fxRate;
   })();
   return fxRatePromise;
+}
+function sharedFx(){
+  return (typeof window !== 'undefined' && window.AriaImportTax && window.AriaImportTax.fx) || null;
+}
+/* A rate that lands after the first paint (the shared retry) becomes the
+   bundle's rate too; the cards' soles slots fill themselves. */
+if (typeof window !== 'undefined') {
+  const hookFx = () => { const F = sharedFx(); if (F) F.on((v) => { if (v > 0) fxRate = v; }); };
+  if (sharedFx()) hookFx(); else if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', hookFx, { once: true });
+}
+/* THE CARD PRICE: SOLES ONLY (#443 c.6629812301; the #624 standard --
+   "we only show soles. Then we show the import underneath"). Every product
+   card the bundle draws (the rail, carousel, product, cross-sell and
+   assistant cards) leads with this and carries no dollar line; the IMP
+   line (cardImpLineHTML) sits directly under it. Without a rate it is a
+   «S/ …» placeholder that /import-tax.js fills when a rate lands. */
+function cardSolesHTML(usd, cls = '', style = ''){
+  const n = Number(usd);
+  if (!Number.isFinite(n)) return '';
+  const F = sharedFx();
+  if (F) return F.slot(n, { cls, style });
+  const text = fxRate ? fmtPEN(n) : 'S/ \u2026';
+  return `<span${cls ? ` class="${cls}"` : ''}${style ? ` style="${style}"` : ''}>${escapeHtml(text)}</span>`;
 }
 
 /* ==================================================================
@@ -4044,12 +4073,9 @@ function openMobileDeal(idx){
    (the 2026-09-23 reason for dollars first: the shopper can redo the
    arithmetic). No rate, no invented soles: the dollar stands alone. */
 function railLeadPrice(usd){
-  return fxRate ? fmtPEN(usd) : fmtPriceLabel(usd);
+  return cardSolesHTML(usd);
 }
-function railRefPriceHTML(usd, cls, color){
-  if (!Number.isFinite(usd) || !fxRate) return '';
-  return `<span class="ariaPricePen ${cls}" style="color:${color}">${escapeHtml(fmtUSD(usd).replace('$', 'US$ '))} · ${escapeHtml(fxRateLabel())}</span>`;
-}
+/* The card's dollar reference line (railRefPriceHTML) is retired (#443 c.6629812301): soles only. */
 /* THE IMPORT TAX ON THE CARD (Danny, #443 c.6487219343). An iPhone card
    read S/ 2,400 and checkout added S/ 493 the shopper never saw. Over the
    $200 franchise the card now carries "+ S/ <amount> IMP" under its price:
@@ -4124,7 +4150,6 @@ function railCardHTML(p, onclick, attr, opts){
           <span class="text-[15px] font-extrabold tabular" style="color:${ink}">${railLeadPrice(displayPriceUsd(p.price, p.dutiableUsd))}</span>
           ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:${dark ? '#AFBBD6' : '#9AA3B5'}">${railLeadPrice(displayPriceUsd(original))}</span>` : ''}
         </span>
-        ${railRefPriceHTML(displayPriceUsd(p.price, p.dutiableUsd), 'text-[11px] tabular mt-0.5', dim)}
         ${cardImpLineHTML(p, 'block text-[11px] font-bold tabular mt-0.5', dark ? '#F4C463' : '#8A6D1F')}
         ${impuestosBadgeHTML(p.price, p.dutiableUsd)}
         ${weightLabelHTML(p.title, 'text-[10.5px] tabular mt-0.5', dark ? '#8A94AD' : '#7A8296')}
@@ -15116,8 +15141,7 @@ function carouselCardHTML(item, retailer){
       <div class="p-4">
         ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
         <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(shownTitle(title))}</div>
-        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}${hasOriginal ? `<span class="text-[13px] tabular line-through font-normal ml-2" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}</div>
-        ${hasPrice ? solesUnderHTML(taxed, 'text-[11px] tabular mt-0.5') : ''}
+        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? cardSolesHTML(taxed) : 'Ver detalle'}${hasOriginal ? cardSolesHTML(displayPriceUsd(original), 'text-[13px] tabular line-through font-normal ml-2', 'color:#9AA3B5') : ''}</div>
         ${hasPrice ? cardImpLineHTML(it, 'block text-[11px] font-bold tabular mt-0.5', '#8A6D1F') : ''}
         ${hasPrice ? impuestosBadgeHTML(price, it.dutiableUsd) : ''}
         ${hasPrice ? weightLabelHTML(title, 'text-[11px] tabular mt-0.5') : ''}
@@ -28542,8 +28566,7 @@ async function renderCrossSellRail(){
               ${it.brand ? `<div class="text-[9px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(it.brand)}</div>` : ''}
               <div class="text-[11px] font-bold leading-tight line-clamp-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(shownTitle(it.title))}</div>
               ${weightLabelHTML(it.title, 'text-[10px] mt-1 font-semibold')}
-              <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price, it.dutiableUsd)}</div>
-              ${solesUnderHTML(displayPriceUsd(Number(it.price), it.dutiableUsd), 'text-[10px] tabular mt-0.5')}
+              <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${cardSolesHTML(displayPriceUsd(Number(it.price), it.dutiableUsd))}</div>
               ${cardImpLineHTML(it, 'block text-[10px] font-bold tabular mt-0.5', '#8A6D1F')}
               ${taxIncludedNoteHTML(it.price, it.dutiableUsd, 'text-[10px]')}
               ${impuestosBadgeHTML(it.price, it.dutiableUsd)}
@@ -29980,10 +30003,9 @@ function productCardHTML(p, opts){
                navy with the soles line small and grey beneath it, which
                is a hierarchy the card can carry without competing with
                the photograph. -->
-          <span class="${dark ? 'text-[16px] font-extrabold' : 'text-[14px] font-bold'} tabular leading-none" style="color:${dark ? '#fff' : 'var(--navy)'}">${hasPrice ? fmtDisplayPrice(price, p.dutiableUsd) : 'Precio no disponible'}</span>
-          ${hasOriginal ? `<span class="text-[12px] ${dark ? 'font-normal' : 'text-zinc-400'} line-through tabular" style="${dark ? 'color:#AFBBD6' : ''}">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
+          <span class="${dark ? 'text-[16px] font-extrabold' : 'text-[14px] font-bold'} tabular leading-none" style="color:${dark ? '#fff' : 'var(--navy)'}">${hasPrice ? cardSolesHTML(displayPriceUsd(price, p.dutiableUsd)) : 'Precio no disponible'}</span>
+          ${hasOriginal ? cardSolesHTML(displayPriceUsd(original), `text-[12px] ${dark ? 'font-normal' : 'text-zinc-400'} line-through tabular`, dark ? 'color:#AFBBD6' : '') : ''}
         </div>
-        ${hasPrice ? solesUnderHTML(displayPriceUsd(price, p.dutiableUsd), 'text-[11px] tabular mt-0.5') : ''}
         ${hasPrice ? cardImpLineHTML(p, 'block text-[11px] font-bold tabular mt-0.5', dark ? '#F4C463' : '#8A6D1F') : ''}
       </div>
       ${hasPrice ? taxIncludedNoteHTML(price, p.dutiableUsd, 'text-[11px] -mt-1 mb-1') : ''}
@@ -29993,7 +30015,7 @@ function productCardHTML(p, opts){
       ${weightUnderReview
         ? `<div class="text-[11.5px] mb-1 font-semibold" style="color:#8A6B1F">Flete por confirmar — lo cotizamos antes de que pagues</div>`
         : freight != null ? `<div class="text-[11.5px] mb-1" style="color:#7A8296">
-        + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
+        + ${cardSolesHTML(freight)} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
       ${sizeRunHTML(p, opts)}
@@ -31785,8 +31807,7 @@ function addAssistantProductCard(item, retailer){
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(shownTitle(item.title || item.name || ''))}</div>
       ${partNumber ? `<div class="text-[10.5px] text-zinc-500 truncate">N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span></div>` : ''}
-      <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price, item.dutiableUsd) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
-      ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}
+      <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? cardSolesHTML(displayPriceUsd(Number(item.price), item.dutiableUsd)) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
       ${item.price != null && Number.isFinite(Number(item.price)) ? cardImpLineHTML({ ...item, retailer }, 'block text-[10.5px] font-bold tabular', '#8A6D1F') : ''}
     </div>`;
   card.setAttribute('data-assistant-card', '');

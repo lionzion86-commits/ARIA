@@ -678,30 +678,31 @@ function fetchJson(url){
 /* ---------- soles, always (#416) ----------
    The site's own rate: the same endpoint and 24-hour cache key the
    home page, search and checkout use. Asked for alongside the first
-   slice, so it costs no extra round trip. Only if both fail does a
-   card show dollars, plainly labelled, rather than nothing. */
+   slice, so it costs no extra round trip. Without one a card holds soles
+   placeholders that fill when a rate lands -- never dollars. */
 var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 var fxVenta = null;     // PEN per USD (venta)
 var fxPromise = null;
 function pageRate(){
   if (fxVenta) return Promise.resolve(fxVenta);
+  /* The shared rate (/import-tax.js AriaImportTax.fx): the 24-hour cache,
+     the endpoint, SUNAT's last good rate, then a retry. */
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  if (F){
+    if (!fxPromise){
+      F.on(function(v){ fxVenta = v; });
+      fxPromise = F.get().then(function(v){ if (v > 0) fxVenta = v; return fxVenta; });
+    }
+    return fxPromise;
+  }
   try {
     var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
     if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){
       fxVenta = c.venta;
       return Promise.resolve(fxVenta);
     }
-  } catch (e) { /* private mode: ask the server */ }
-  if (fxPromise) return fxPromise;
-  fxPromise = fetchJson(SRC.fx).then(function(j){
-    var v = Number(j && (j.venta || j.Venta));
-    if (Number.isFinite(v) && v > 0){
-      fxVenta = v;
-      try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, j, { venta: v, fetchedAt: Date.now() }))); } catch (e) {}
-    }
-    return fxVenta;
-  }, function(){ fxPromise = null; return null; });
-  return fxPromise;
+  } catch (e) {}
+  return Promise.resolve(null);
 }
 function fmtPen(n){ return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtUsd(n){ return 'US$ ' + Number(n).toFixed(2); }
@@ -777,15 +778,16 @@ function skeletons(n){ var h = ''; for (var i = 0; i < n; i++) h += SK_CARD; ret
 
 function priceHTML(c){
   var usd = Number(c.usd), was = Number(c.wasUsd);
+  /* Soles only, the IMP line directly under them (#443 c.6629812301,
+     Danny: "we only show soles"). Without a rate, soles placeholders that
+     fill when one lands (/import-tax.js fx.slot) -- never dollars. */
   if (fxVenta){
     return '<div class="price-row"><span class="price">' + fmtPen(usd * fxVenta) + '</span>' +
-      (was > usd ? '<span class="price-old">' + fmtPen(was * fxVenta) + '</span>' : '') + '</div>' +
-      '<div class="price-usd">' + fmtUsd(usd) + '</div>';
+      (was > usd ? '<span class="price-old">' + fmtPen(was * fxVenta) + '</span>' : '') + '</div>';
   }
-  /* No rate from the server or the cache: dollars, labelled, never blank. */
-  return '<div class="price-row"><span class="price">' + fmtUsd(usd) + '</span>' +
-    (was > usd ? '<span class="price-old">' + fmtUsd(was) + '</span>' : '') + '</div>' +
-    '<div class="price-usd">&nbsp;</div>';
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  var slot = function(n, cls){ return F ? F.slot(n, { cls: cls }) : '<span class="' + cls + '">S/ \u2026</span>'; };
+  return '<div class="price-row">' + slot(usd, 'price') + (was > usd ? slot(was, 'price-old') : '') + '</div>';
 }
 /* The title a shopper reads: /display-name.js (one rule, #443
    c.6568696054) drops a "- N Colors" claim no picker backs. Links and
@@ -816,7 +818,7 @@ function cardHTML(c){
       '<span class="store-tag">' + esc(storeName(c.store)) + '</span>' +
       '<div class="card-brand">' + (c.brand ? esc(c.brand) : '&nbsp;') + '</div>' +
       '<h3 class="card-title">' + esc(shownTitle(title)) + '</h3>' +
-      '<div class="card-prices">' + priceHTML(c) + '</div>' +
+      '<div class="card-prices" data-usd="' + Number(c.usd) + '">' + priceHTML(c) + '</div>' +
       /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
          the arithmetic checkout charges, on the price the card shows;
          nothing under $200 of goods. */

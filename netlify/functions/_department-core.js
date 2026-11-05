@@ -1629,6 +1629,10 @@ export function audienceSwitch(list) {
   const opts = AUD.map(([k, label]) => ({ k, label, n: list.filter((p) => inAudience(p, k)).length })).filter((o) => o.n >= AUD_MIN);
   return opts.length >= 2 ? opts : null;
 }
+/* Every audience's count over a list (the switch's numbers under a selection). */
+export function audienceCounts(list) {
+  return AUD.map(([k]) => ({ k, n: list.filter((p) => inAudience(p, k)).length }));
+}
 /* The hero's chips: products, stores, on sale. */
 export function deptStats(list) {
   const stores = new Set();
@@ -1915,5 +1919,10 @@ export function answer(qs, roots) {
   /* tl: the type's Spanish name, for a landing on ?t= (the search router's
      type pages) -- the page shows it, never the slug. */
   const tl = t ? ((list.map(typeKeyOf).find((x) => x.k === t) || {}).label || "") : "";
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t && !b && plusLingerieView(d.key, list) ? { lr: 1 } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
+  /* THE SWITCH COUNTS UNDER THE OTHER SELECTIONS (#443 c.6629785432, the
+     Diseñador filter parity): with a brand (or type, door, store, words)
+     chosen, Todo / Mujer / Hombre / Niños count that selection -- the way
+     the brand pills already count under the audience. */
+  const audn = d.key !== "perfumes" && ((r && r !== "all") || q.trim() || b || a || t) ? audienceCounts(filterList(d.list, { r, q, b, a, t })) : null;
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t && !b && plusLingerieView(d.key, list) ? { lr: 1 } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), ...(audn ? { audn } : {}), stats: deptStats(list) }) };
 }
