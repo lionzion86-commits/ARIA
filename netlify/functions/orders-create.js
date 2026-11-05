@@ -70,6 +70,8 @@ async function serverFxVenta(origin) {
   try {
     const res = await fetch(`${origin}/.netlify/functions/exchange-rate`, { signal: AbortSignal.timeout(4000) });
     const data = await res.json();
+    /* A stored (stale) rate prices a card, never a charge: no venta today, no charge. */
+    if (data && data.stale) return null;
     return typeof data.venta === "number" && data.venta > 2 && data.venta < 6 ? data.venta : null;
   } catch { return null; }
 }

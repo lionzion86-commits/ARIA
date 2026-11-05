@@ -495,15 +495,14 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
   function usd(n){ return isFinite(n) ? 'US$ ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx;   /* undefined: asking; null: unavailable; number: S/ per US$ */
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }
-  /* SOLES FIRST (#416): the bold price is what a shopper in Peru pays;
-     dollars are the small grey reference. Until the rate is known the
-     row holds its place; with no rate at all, dollars, plainly. */
+  /* SOLES ONLY (#416; #443 c.6629812301, Danny: "we only show soles.
+     Then we show the import underneath"): the bold price is what a
+     shopper in Peru pays, the IMP line directly under it. Until a rate is
+     known the row holds its place -- never dollars. */
   function priceInner(now, was){
-    if (fx === undefined) return '<span class="now"><i class="bar"></i></span><span class="pen">&nbsp;</span>';
-    if (!fx) return '<span class="now">' + esc(usd(now)) + '</span>' + (isFinite(was) ? '<span class="was">' + esc(usd(was)) + '</span>' : '') + '<span class="pen">&nbsp;</span>';
+    if (!fx) return '<span class="now"><i class="bar"></i></span>';
     return '<span class="now">' + esc(pen(now)) + '</span>'
-      + (isFinite(was) ? '<span class="was">' + esc(pen(was)) + '</span>' : '')
-      + '<span class="pen">' + esc(usd(now)) + '</span>';
+      + (isFinite(was) ? '<span class="was">' + esc(pen(was)) + '</span>' : '');
   }
   /* Painted in place: a rate that lands late never redraws a carousel. */
   function paintPrices(root){
@@ -889,15 +888,17 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
      (aria_fx_rate_v1) the home page, search and checkout use. */
   var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   function loadFx(){
-    try {
-      var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
-      if (c && typeof c.venta === 'number' && Date.now() - (c.fetchedAt || 0) < FX_CACHE_TTL_MS){ fx = c.venta; return Promise.resolve(); }
-    } catch(e){}
+    /* The shared rate (/import-tax.js AriaImportTax.fx): the 24-hour
+       cache, the endpoint, SUNAT's last good rate, then a retry -- a rate
+       that lands late repaints the prices in place. */
+    var F = window.AriaImportTax && window.AriaImportTax.fx;
+    if (!F){ fx = null; return Promise.resolve(); }
+    var now = F.now();
+    F.on(function(v){ fx = v; paintPrices(document); });
+    if (now > 0){ fx = now; return Promise.resolve(); }
     var timer;
     var deadline = new Promise(function(res){ timer = setTimeout(res, 8000); });
-    var ask = fetch('/.netlify/functions/exchange-rate').then(function(r){ return r.json().then(function(d){ return r.ok ? d : null; }); }).then(function(d){
-      if (d && typeof d.venta === 'number' && d.venta > 0){ fx = d.venta; try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt:Date.now() }))); } catch(e){} }
-    }).catch(function(){});
+    var ask = F.get().then(function(v){ if (v > 0) fx = v; });
     return Promise.race([ask, deadline]).then(function(){ clearTimeout(timer); if (fx === undefined) fx = null; paintPrices(document); });
   }
   function getFeed(url){
