@@ -73,6 +73,7 @@ import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beaut
 import { CHARGE_PER_KG } from "../../weight-data.js";
 import { comparableWeight } from "./_weight-comparables.js";
 import { surfboardLineKg } from "./_surfboard-weight.js";
+import { gloveClassOfTitle, GLOVE_FLAT_KG, GLOVE_BASIS } from "../../scripts/lib/glove-weights.js";
 
 /* THE PRODUCTS NO RULE AND NO COMPARABLE CAN WEIGH (#443 weight
    ruling, 2026-10-26: "no 1 kg defaults anywhere; a null weight triggers
@@ -219,8 +220,26 @@ export function catalogWeightKg(item) {
  * Returns { weightKg, source, estimated, basis } where source is
  * "spec" | "catalog" | "beauty" | "title" | "category" | "fallback".
  */
-export function resolveItemWeight(item) {
+export function resolveItemWeight(item, opts = {}) {
   const title = String(item?.title ?? item?.name ?? "");
+  /* COMBAT GLOVES, FLAT BY THE PAIR (#443 c.6648881889, corrected by
+     c.6648728121 -- Danny's flat billing rule, which supersedes the
+     per-ounce math): a boxing glove pair is billed at 1.00 kg, an MMA
+     pair at 0.50 kg, ahead of every other source -- a store figure, a
+     "16 oz" in the title or the category row. The title decides
+     (scripts/lib/glove-weights.js): a cart line carries nothing else,
+     and the card's copy of the rule reads the same title. Billed, not
+     band-checked: the rule is the number. opts.gloveFlat === false
+     answers as before the rule (the sweep's report uses it for the
+     "before" figure). */
+  if (opts.gloveFlat !== false) {
+    const glove = gloveClassOfTitle(title);
+    if (glove.cls) {
+      return { weightKg: GLOVE_FLAT_KG[glove.cls], source: GLOVE_BASIS, estimated: true,
+        basis: glove.cls === "mma" ? "peso fijo por par de guantes de MMA" : "peso fijo por par de guantes de box",
+        needsReview: false, gloveClass: glove.cls };
+    }
+  }
   /* The line's price rides along (#449): LEGO without a piece count is
      weighed by price, and an unplaceable product at $75+ is quoted
      conservatively rather than at the 0.6 kg generic. */

@@ -53,6 +53,7 @@ import {
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 import { supplementWeightKg } from "./supplement-weight.js";
+import { gloveClassOfTitle, GLOVE_FLAT_KG, GLOVE_BASIS } from "./glove-weights.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -296,6 +297,14 @@ export function estimateWeightKg(title, hints = {}) {
  * freight we quoted.
  */
 export function estimateWeightDetail(title, hints = {}) {
+  /* A combat glove pair is billed flat (#443 c.6648728121): 1.00 kg a
+     boxing pair, 0.50 kg an MMA pair, ahead of the title's ounces. Same
+     rule as the resolver and the card (scripts/lib/glove-weights.js). */
+  const glove = gloveClassOfTitle(title);
+  if (glove.cls) {
+    return { kg: GLOVE_FLAT_KG[glove.cls], source: GLOVE_BASIS, estimated: true, flagged: false, needsReview: false,
+      reviewKind: null, gloveClass: glove.cls, reason: `peso fijo por par de guantes (${glove.cls}) — ${GLOVE_FLAT_KG[glove.cls]} kg` };
+  }
   /* BEAUTY FIRST, ahead of the title parse (2026-09-20). A cosmetic's
      title states the VOLUME in the bottle — "Eau de Toilette 3.4 oz" —
      and reading that as a shipped weight ignores the glass, the cap and

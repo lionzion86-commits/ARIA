@@ -327,6 +327,13 @@ function pyIndentRaw(v, n, ascii, depth = 0) {
   const es = Object.entries(v).filter(([, x]) => x !== undefined);
   return es.length ? "{" + pad + es.map(([k, x]) => pyStr(k, ascii) + ": " + pyIndentRaw(x, n, ascii, depth + 1)).join("," + pad) + end + "}" : "{}";
 }
+function pyCompactRaw(v, ascii) {
+  if (v instanceof RawNumber) return v.text;
+  if (typeof v === "string") return pyStr(v, ascii);
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map((x) => pyCompactRaw(x, ascii)).join(",") + "]";
+  return "{" + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => pyStr(k, ascii) + ":" + pyCompactRaw(x, ascii)).join(",") + "}";
+}
 /** The serializer that reproduces `text` from its own parse, or null. Its
     `parse` is the parse the writer expects (numbers kept as written). */
 export function serializerFor(text) {
@@ -339,6 +346,13 @@ export function serializerFor(text) {
   /* Python json.dump(indent=n), with or without ensure_ascii. */
   for (const n of [1, 2, 4]) for (const ascii of [true, false]) {
     const f = (o) => pyIndentRaw(o, n, ascii);
+    if (f(raw) + trail === text) { const w = (o) => f(o) + trail; w.parse = parseKeepingNumbers; return w; }
+  }
+  /* Python json.dumps(separators=(",", ":")), with or without ensure_ascii
+     (venum-catalog.json, fuji-catalog.json): one line, no spaces, Python's
+     own number text. */
+  for (const ascii of [true, false]) {
+    const f = (o) => pyCompactRaw(o, ascii);
     if (f(raw) + trail === text) { const w = (o) => f(o) + trail; w.parse = parseKeepingNumbers; return w; }
   }
   return null;
