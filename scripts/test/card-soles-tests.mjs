@@ -1,27 +1,31 @@
 #!/usr/bin/env node
 /* ==================================================================
-   THE CARD IS IN SOLES, AND SO IS ITS IMP LINE (#443 c.6629785432,
-   c.6629812301). Danny: "we only show soles. Then we show the import
-   underneath." His Diseñador screenshots read «US$ 119.41» and
-   «+ US$ 156.84 IMP»: every card page fell back to dollars whenever the
-   exchange-rate endpoint gave no rate, and a failed answer was cached
-   for a day.
+   THE CARD STACK: SOLES FIRST, THE US$ LINE UNDER, THE IMP LINE IN
+   SOLES (#443 c.6629785432; restored by the P0 c.6648727667 / Lucifer
+   c.6648738235). Danny's approved card: «S/ 455.26», then «US$ 131.35 ·
+   TC hoy 3.47», then «+ S/ ___ IMP» where the #624 rule calls for it.
+
+   #658 made every card soles-only and drew a waiting placeholder until
+   the shared rate (/import-tax.js AriaImportTax.fx) answered; a phone
+   holding the /import-tax.js from before it (unversioned, cached an
+   hour) never got one, and the cards showed grey bars for good (the
+   Lentes department's Knockaround and Costa Del Mar rails, every Aria
+   Auto card). The P0 puts the pre-#658 card back: each page asks its own
+   rate, paints at once (dollars until a rate is known), and fills the
+   soles in place when one lands -- late, or from the shared module's
+   retries.
 
    1. THE RATE. netlify/functions/exchange-rate.js: SUNAT -> its last good
       answer from the "fx" store (stale: true, ten-minute cache) -> an
       error that is never cached. orders-create never charges on a stale
       rate; checkout never caches one as today's.
-   2. STATIC. Every card price formatter on the site draws soles only:
-      no dollar formatter, no dollar reference line; the pages ask the
-      shared rate (/import-tax.js AriaImportTax.fx).
-   3. THE SURFACES AT 390px, three ways: the rate fresh; the endpoint
-      down with a days-old rate on the phone; the endpoint down on a
-      phone that never had one, then back. Diseñador, Mujer, a store
-      (SSENSE), a multi-brand store with brand rails (Macy's), a brand
-      (Marc Jacobs), search, the homepage rails, Lencería, Ofertas,
-      Diseñadores Latinos and a product page's rails. No card shows a
-      dollar figure; every IMP line reads «+ S/ … IMP»; a placeholder
-      fills in place once a rate lands.
+   2. STATIC. Every card price formatter carries the US$ reference and
+      never returns a waiting bar; the pages ask the rate themselves and
+      load /import-tax.js by its own hash.
+   3. THE SURFACES AT 390px: the rate fresh; the endpoint down with a
+      days-old rate on the phone; no rate at all (dollars, at once), then
+      the rate back (soles fill in place). Plus the P0 surfaces with a
+      phone holding the pre-#658 /import-tax.js, the rate present and late.
 
      node scripts/test/card-soles-tests.mjs
      SHOT_DIR=/some/dir node scripts/test/card-soles-tests.mjs   (also saves card-soles-*.png)
@@ -30,6 +34,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -115,36 +120,30 @@ const DOLLAR_RX = /\bfmtUSD\(|\bfmtUsd\(|['"]US\$|'US' \+|\bfmtPriceLabel\(|\bfm
 const FORMATTERS = [
   ["departamento.html", "priceInner"], ["motos.html", "priceInner"], ["aria-auto.html", "priceInner"], ["marca.html", "priceInner"],
   ["disenadores.html", "priceInner"], ["tienda.html", "slPriceInner"], ["search.html", "priceHTML"], ["search.html", "amountHTML"],
-  ["ofertas.html", "priceHTML"], ["producto.html", "relCardHTML"], ["assets/js/vehicle-fit.js", "priceHTML"], ["ropa-interior.html", "priceInner"], ["cuenta.html", "cardPrice"],
+  ["ofertas.html", "priceInner"], ["producto.html", "relCardHTML"], ["assets/js/vehicle-fit.js", "priceHTML"], ["ropa-interior.html", "priceInner"], ["cuenta.html", "cardPrice"],
   [bundleRel, "railCardHTML"], [bundleRel, "railLeadPrice"], [bundleRel, "carouselCardHTML"], [bundleRel, "productCardHTML"], [bundleRel, "renderCrossSellRail"],
 ];
-await check("static: every card price formatter draws soles only -- no dollar formatter, no dollar reference line", () => {
+const WAIT_RX = /<i><\/i><\/div>'|<i class="bar"><\/i><\/span>'|S\/ \\u2026|S\/ …|\.slot\(/;
+await check("static: every card price formatter carries the US$ reference line and never returns a waiting bar", () => {
   const bad = [];
   for (const [rel, name] of FORMATTERS) {
     const body = fnBody(readFileSync(join(ROOT, rel), "utf8").replace(/\r\n/g, "\n"), name);
-    const m = DOLLAR_RX.exec(body);
-    if (m) bad.push(`${rel}:${name} uses ${m[0]}`);
+    if (!DOLLAR_RX.test(body)) bad.push(`${rel}:${name} has no US$ line`);
+    const w = WAIT_RX.exec(body);
+    if (w) bad.push(`${rel}:${name} waits on ${w[0]}`);
   }
-  for (const rel of ["auto.html", "aria-auto.html"]) {
-    const src = readFileSync(join(ROOT, rel), "utf8");
-    if (/class="pprice"><b>' \+ fmtPEN\(usd \* rateNow\(\)\) \+ '<\/b><small>/.test(src)) bad.push(rel + ": the parts card carries a dollar line");
-  }
-  const b = readFileSync(join(ROOT, bundleRel), "utf8");
-  if (/solesUnderHTML\(displayPriceUsd\(Number\(item\.price\)/.test(b)) bad.push("the assistant card carries a dollar-first price");
   assert.deepEqual(bad, []);
 });
-await check("static: the pages ask the one shared rate (/import-tax.js AriaImportTax.fx), loaded before they draw", () => {
-  for (const p of ["departamento.html", "tienda.html", "search.html", "marca.html", "ofertas.html", "ropa-interior.html", "producto.html", "disenadores.html", "motos.html", "aria-auto.html"]) {
+await check("static: the pages ask the rate themselves (never only through AriaImportTax.fx) and load /import-tax.js", () => {
+  for (const p of ["departamento.html", "tienda.html", "search.html", "marca.html", "ofertas.html", "ropa-interior.html", "producto.html", "disenadores.html", "motos.html", "aria-auto.html", "cuenta.html"]) {
     const src = readFileSync(join(ROOT, p), "utf8");
-    assert.match(src, /AriaImportTax\.fx/, p + " does not use the shared rate");
-    assert.ok(src.search(/<script src="\/import-tax\.js"[^>]*><\/script>/) > 0, p + " does not load /import-tax.js");
+    assert.match(src, /\/\.netlify\/functions\/exchange-rate|FX_URLS?\b/, p + " never asks the rate itself");
+    assert.ok(!/if \(!F\)\{? ?(?:fxRate = undefined; )?return;/.test(src), p + " gives up when the shared module has no .fx");
+    assert.ok(src.search(/<script src="\/import-tax\.js(?:\?v=[0-9a-f]{16})?"[^>]*><\/script>/) > 0, p + " does not load /import-tax.js");
   }
-  const b = readFileSync(join(ROOT, bundleRel), "utf8");
-  assert.match(b, /function cardSolesHTML\(/);
-  assert.match(b, /window\.AriaImportTax\.fx/);
   for (const k of ["get", "now", "on", "soles", "slot"]) assert.equal(typeof T.fx[k], "function", "AriaImportTax.fx." + k);
-  assert.equal(T.fx.soles(10), "", "no rate in node: no figure, never dollars");
-  assert.match(T.fx.slot(10), /^<span data-soles-usd="10">S\/ …<\/span>$/);
+  assert.equal(T.fx.soles(10), "", "no rate in node: no soles figure");
+  assert.equal(T.lineHTML({ usd: 900, retailer: "ssense", title: "x" }).replace(/<[^>]+>/g, "").replace(/^\+ /, "").startsWith("US$ "), true, "no rate: the IMP line reads dollars, never a placeholder");
 });
 
 /* ------------------------------------------------------------------
@@ -189,6 +188,18 @@ await check("parity (static): the brand keeps the audience in the address; Explo
 const handlers = {};
 const fnFetch = async () => ({ ok: false, status: 503, json: async () => ({}), text: async () => "" });
 let FX_UP = true;
+/* P0 (#443 c.6648727667): what the phone's cache holds for /import-tax.js.
+   "current": the file itself. "cached-old": the unversioned URL answers
+   with a copy from before AriaImportTax.fx (what a browser kept for an
+   hour under _headers' "/*.js max-age=3600" after #658 deployed); only
+   the URL that carries this file's own hash reaches today's file.
+   "absent": the script never loads. FX_DELAY_MS: the rate lands late. */
+let IT_MODE = "current";
+let FX_DELAY_MS = 0;
+const IT_SRC = readFileSync(join(ROOT, "import-tax.js"), "utf8");
+const IT_V = createHash("sha256").update(readFileSync(join(ROOT, "import-tax.js"))).digest("hex").slice(0, 16);
+const IT_OLD = IT_SRC.replace(/,\s*\/\*[^]*?\*\/\s*fx: Object\.freeze\(\{[^}]*\}\)/, "");
+assert.ok(IT_OLD !== IT_SRC && !/fx: Object\.freeze/.test(IT_OLD), "could not build the pre-fx /import-tax.js");
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp" };
 const srv = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
@@ -196,6 +207,7 @@ const srv = http.createServer(async (req, res) => {
   if (fn) {
     const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
     if (fn[1] === "exchange-rate") {
+      if (FX_DELAY_MS) await new Promise((r) => setTimeout(r, FX_DELAY_MS));
       /* The real handler: SUNAT answering, or down with nothing stored. */
       const r = await FX.handler({ httpMethod: "GET", queryStringParameters: {} }, {
         fetchImpl: FX_UP ? async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ compra: VENTA - 0.02, venta: VENTA, origen: "SUNAT" }) }) : sunat429,
@@ -215,6 +227,11 @@ const srv = http.createServer(async (req, res) => {
       res.writeHead(r.statusCode, r.headers || { "Content-Type": "application/json" });
       return res.end(r.body || "");
     } catch (e) { return send(500, { error: String(e) }); }
+  }
+  if (u.pathname === "/import-tax.js" && IT_MODE !== "current") {
+    if (IT_MODE === "absent") { res.writeHead(404); return res.end(""); }
+    res.writeHead(200, { "Content-Type": "text/javascript" });
+    return res.end(u.searchParams.get("v") === IT_V ? IT_SRC : IT_OLD);
   }
   const f = join(ROOT, decodeURIComponent(u.pathname === "/" ? "/index.html" : u.pathname));
   if (!f.startsWith(ROOT) || !existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); return res.end(""); }
@@ -261,6 +278,7 @@ const readCards = (page) => page.evaluate((sel) => {
     const text = shown.innerText.replace(/\s+/g, " ");
     out.push({
       text: text.slice(0, 140),
+      solesFirst: text.search(/S\/\s?\d/) >= 0 && (text.search(/US\$/) < 0 || text.search(/S\/\s?\d/) < text.search(/US\$/)),
       dollars: /US\$|(?<![A-Za-z/])\$\s?\d/.test(text),
       soles: /S\/\s?\d/.test(text),
       waiting: /S\/\s?…/.test(text) || !!el.querySelector(".pen i, .now i.bar, .pen-row i"),
@@ -269,16 +287,25 @@ const readCards = (page) => page.evaluate((sel) => {
   });
   return out;
 }, CARDS);
-function verdict(cards, where, { allowWaiting }) {
+/* The card stack: with a rate, soles first and the US$ line under them;
+   without one, the dollars at once -- never a bar or «S/ …» that waits. */
+function verdict(cards, where, { rate }) {
   const bad = [];
   let priced = 0, lines = 0;
   for (const c of cards) {
-    if (c.dollars) bad.push(`${where}: a dollar figure on the card -- ${c.text}`);
-    if (c.soles) priced++;
-    else if (!(allowWaiting && c.waiting) && !/Precio no disponible|Ver detalle/.test(c.text)) bad.push(`${where}: no soles price -- ${c.text}`);
+    if (c.waiting) bad.push(`${where}: a waiting placeholder on the card -- ${c.text}`);
+    if (/Precio no disponible|Ver detalle/.test(c.text)) continue;
+    if (rate === "either" && !c.soles) {
+      /* A days-old rate with the endpoint down: soles from it, or the dollars -- never a wait. */
+      if (!c.dollars) bad.push(`${where}: no price -- ${c.text}`);
+    } else if (rate) {
+      if (c.soles) priced++; else bad.push(`${where}: no soles price -- ${c.text}`);
+      if (!c.dollars) bad.push(`${where}: no US$ reference line -- ${c.text}`);
+      else if (c.soles && !c.solesFirst) bad.push(`${where}: dollars before soles -- ${c.text}`);
+    } else if (!c.dollars) bad.push(`${where}: no price at all without a rate -- ${c.text}`);
     for (const t of c.imp) {
       lines++;
-      if (allowWaiting ? !/^\+ S\/ (?:[\d,]+\.\d{2}|…) IMP$/.test(t) : !/^\+ S\/ [\d,]+\.\d{2} IMP$/.test(t)) bad.push(`${where}: IMP line reads ${JSON.stringify(t)}`);
+      if (rate === true ? !/^\+ S\/ [\d,]+\.\d{2} IMP$/.test(t) : !/^\+ (?:S\/ [\d,]+\.\d{2}|US\$ ?[\d,]+\.\d{2}) IMP$/.test(t)) bad.push(`${where}: IMP line reads ${JSON.stringify(t)}`);
     }
   }
   assert.deepEqual(bad.slice(0, 10), [], `${bad.length} problems`);
@@ -348,7 +375,7 @@ try {
   });
   for (const S of SURFACES) {
     for (const mode of ["fresh", "stale"]) {
-      await check(`390px, ${S.label}, ${mode === "fresh" ? "today's rate" : "endpoint down, a 3-day-old rate on the phone"}: every card in soles, every IMP line in soles, no dollar figure`, async () => {
+      await check(`390px, ${S.label}, ${mode === "fresh" ? "today's rate" : "endpoint down, a 3-day-old rate on the phone"}: ${mode === "fresh" ? "soles first, the US$ line under, every IMP line in soles" : "soles from that rate or the dollars, never a waiting bar"}`, async () => {
         FX_UP = mode === "fresh";
         const { c, page, errors } = await phone(mode);
         try {
@@ -356,7 +383,7 @@ try {
           await settle(page, S.ready);
           const cards = await readCards(page);
           assert.ok(cards.length >= S.min, `only ${cards.length} cards`);
-          const n = verdict(cards, S.label, { allowWaiting: false });
+          const n = verdict(cards, S.label, { rate: mode === "fresh" ? true : "either" });
           assert.ok(n.lines >= S.minImp, `only ${n.lines} IMP lines`);
           const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
           assert.ok(wide <= 1, `the page scrolls sideways by ${wide}px`);
@@ -368,10 +395,11 @@ try {
       });
     }
   }
-  /* A phone that never had a rate, the endpoint down: placeholders, never
-     dollars; then the endpoint comes back and the same cards fill in soles. */
+  /* A phone that never had a rate, the endpoint down: the dollars at once,
+     never a waiting bar; then the endpoint comes back and the same cards
+     fill in soles in place. */
   for (const S of SURFACES.filter((s) => ["disenador", "tienda-ssense", "inicio", "marca-marc-jacobs", "ofertas"].includes(s.name))) {
-    await check(`390px, ${S.label}, no rate at all: soles placeholders and «+ S/ … IMP», never dollars; filled in soles once the rate is back`, async () => {
+    await check(`390px, ${S.label}, no rate at all: the dollars at once, no waiting bar; filled in soles in place once the rate is back`, async () => {
       FX_UP = false;
       const { c, page, errors } = await phone("cold");
       try {
@@ -379,24 +407,130 @@ try {
         await settle(page, S.ready);
         const before = await readCards(page);
         assert.ok(before.length >= S.min, `only ${before.length} cards`);
-        verdict(before, S.label + " (no rate)", { allowWaiting: true });
+        verdict(before, S.label + " (no rate)", { rate: false });
         assert.ok(before.every((x) => !x.soles), "a soles figure without a rate");
         if (SHOT && S.name === "disenador") await page.screenshot({ path: join(SHOT, `card-soles-${S.name}-no-rate.png`) });
         FX_UP = true;
-        await page.waitForFunction(() => !document.body.innerText.includes("S/ …") && !document.querySelector("a.card .pen i, .sl a.card .pen:empty"), null, { timeout: 45000 });
+        await page.waitForFunction((sel) => { const cs = [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.closest(".sk")); return cs.length && cs.filter((e) => /S\/\s?\d/.test(e.innerText)).length >= cs.length * 0.9; }, CARDS, { timeout: 90000 });
         const after = await readCards(page);
-        const n = verdict(after, S.label + " (rate back)", { allowWaiting: false });
+        const n = verdict(after, S.label + " (rate back)", { rate: true });
         assert.ok(n.priced >= S.min, `only ${n.priced} cards filled in soles`);
         assert.deepEqual(errors, []);
       } finally { await c.close(); }
     });
   }
+  /* ----------------------------------------------------------------
+     P0 (#443 c.6648727667, Danny on the live site after #658): grey
+     placeholder bars where the price goes on the Lentes department's
+     Knockaround and Costa Del Mar rails (Island Water Sports' Paso
+     Robles first) and on every Aria Auto card. The pages read the rate
+     only through AriaImportTax.fx; a phone still holding the
+     /import-tax.js from before #658 (cached an hour, unversioned URL)
+     has no .fx, and those pages then never asked for a rate at all. Now
+     the pages ask the rate themselves again (pre-#658), paint at once and
+     fill in place, and load /import-tax.js?v=<its hash>. Each surface: the
+     rate on the phone, and the rate landing late; every card in soles at
+     the data's own price with the «US$» line under it, the IMP line in
+     soles directly under the price wherever the #624 rule calls for it.
+     ---------------------------------------------------------------- */
+  const fmtSol = (n) => "S/ " + (Math.round(n * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  /* Every visible card: its price row, the data's own US$ (data-usd), its
+     IMP line, and whether the line sits right under the price. */
+  const readFaces = (page, scope) => page.evaluate((scope) => {
+    const out = [];
+    const roots = scope ? [...document.querySelectorAll(scope)] : [document];
+    roots.forEach((root) => root.querySelectorAll("a.card").forEach((a) => {
+      if (a.closest(".sk") || a.classList.contains("sk") || !a.getClientRects().length) return;
+      const pr = a.querySelector("[data-usd], .pprice");
+      const imp = a.querySelector("[data-card-imp]");
+      const r = (/[?&]tienda=([^&]+)/.exec(a.getAttribute("href") || "") || [])[1] || "";
+      out.push({
+        title: ((a.querySelector(".card-title, h3") || {}).textContent || "").trim().slice(0, 60),
+        rail: scope ? ((root.querySelector("h2, .rail-title") || {}).textContent || "").trim().replace(/\s*[\d.,]+$/, "") : "",
+        usd: pr ? (pr.hasAttribute("data-usd") ? Number(pr.getAttribute("data-usd")) : Number(((/US\$\s?([\d,]+\.\d{2})/.exec(pr.textContent) || [])[1] || "").replace(/,/g, ""))) : NaN,
+        pen: pr ? ((pr.querySelector(".pen, b") || pr).textContent || "").replace(/\s+/g, " ").trim() : "",
+        bar: !!(pr && pr.querySelector("i")),
+        usdLine: (() => { const k = a.cloneNode(true); k.querySelectorAll("[data-card-imp], h3, .card-title").forEach((x) => x.remove()); const t = k.innerText; return /US\$\s?[\d,]+\.\d{2}/.test(t) && t.search(/S\/\s?\d/) >= 0 && t.search(/S\/\s?\d/) < t.search(/US\$/); })(),
+        imp: imp ? imp.textContent.trim() : null,
+        impUsd: imp ? Number(imp.getAttribute("data-imp-usd")) : 0,
+        under: !!(imp && pr && (imp.previousElementSibling === pr || imp.previousElementSibling === pr.parentNode || pr.contains(imp.previousElementSibling))),
+        owes: !!(pr && window.AriaImportTax && window.AriaImportTax.cardImpUsd({ usd: Number(pr.getAttribute("data-usd")), retailer: r }, 0) > 0),
+      });
+    }));
+    return out;
+  }, scope || null);
+  function judgeFaces(cards, where, rate) {
+    const bad = [];
+    for (const c of cards) {
+      const want = fmtSol(c.usd * rate).replace(/\s/g, " ");
+      const got = c.pen.replace(/ /g, " ");
+      if (c.bar || !got.replace(/,/g, "").startsWith(want.replace(/,/g, ""))) bad.push(`${where}: ${c.title} reads ${JSON.stringify(c.pen)}${c.bar ? " (grey bar)" : ""}, want ${want}`);
+      if (!c.usdLine) bad.push(`${where}: ${c.title} has no «US$» reference line under its soles`);
+      if (c.owes && !c.imp) bad.push(`${where}: ${c.title} (US$ ${c.usd}) is over the line and carries no IMP line`);
+      if (!c.owes && c.imp) bad.push(`${where}: ${c.title} (US$ ${c.usd}) is under the line and carries ${c.imp}`);
+      if (c.imp && c.imp !== "+ " + fmtSol(c.impUsd * rate) + " IMP") bad.push(`${where}: ${c.title} IMP line reads ${JSON.stringify(c.imp)}`);
+      if (c.imp && !c.under) bad.push(`${where}: ${c.title} IMP line is not directly under the price`);
+    }
+    assert.deepEqual(bad.slice(0, 8), [], `${bad.length} problems`);
+  }
+  const P0 = [
+    { name: "lentes-knockaround-costa", label: "Lentes: the Knockaround and Costa Del Mar rails", url: "departamento.html?dept=sunglasses",
+      ready: ".rail a.card", scope: ".rail-sec", rails: ["Knockaround", "Costa Del Mar"], first: "Knockaround Paso Robles Polarized Sunglasses" },
+    { name: "aria-auto", label: "Aria Auto's car cards (/auto, auto.ariashop.pe)", url: "aria-auto.html", ready: "a.card [data-usd]", min: 12, minImp: 1 },
+    { name: "aria-auto-vehiculo", label: "Aria Auto's vehicle view (2011 BMW 3 Series brake pads)", url: "aria-auto.html?vy=2011&vmk=bmw&vmd=3-series&t=pastillas-de-freno#buscar", ready: "a.card [data-usd]", min: 4, minImp: 0 },
+    { name: "ssense-joyas", label: "SSENSE Vivienne Westwood necklaces", url: "tienda.html?tienda=ssense&q=" + encodeURIComponent("vivienne westwood necklace"), ready: ".sl a.card", min: 12, minImp: 12 },
+  ];
+  for (const [itMode, rateMode, only] of [["cached-old", "present"], ["cached-old", "late"], ["absent", "late", ["lentes-knockaround-costa", "aria-auto"]]]) {
+    for (const S of P0.filter((x) => !only || only.includes(x.name))) {
+      const why = itMode === "cached-old" ? "a phone holding the /import-tax.js from before #658" : "/import-tax.js never loads";
+      await check(`390px P0, ${S.label}, ${why}, the rate ${rateMode === "present" ? "on the phone" : "landing 5 s late"}: every price filled in soles, the US$ line and the IMP line under it`, async () => {
+        IT_MODE = itMode; FX_UP = true; FX_DELAY_MS = rateMode === "late" ? 5000 : 0;
+        const { c, page, errors } = await phone(rateMode === "present" ? "fresh" : "cold");
+        try {
+          await page.goto(`${BASE}/${S.url}`, { waitUntil: "domcontentloaded" });
+          await page.waitForSelector(S.ready, { timeout: 90000 });
+          /* Bring the lower rails in (the brand rails draw as they near the screen). */
+          await page.evaluate(async () => { for (let y = 0; y < 6000; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } window.scrollTo(0, 0); });
+          if (S.rails) await page.waitForFunction((t) => [...document.querySelectorAll(".rail-sec h2")].some((h) => h.textContent.trim().startsWith(t)), S.rails[1], { timeout: 60000 });
+          /* A late rate has landed by now; nothing may still wait for it. */
+          await page.waitForTimeout(rateMode === "late" ? 8000 : 2000);
+          let cards = await readFaces(page, S.scope);
+          if (S.rails) {
+            const seen = new Set();
+            cards = cards.filter((x) => S.rails.includes(x.rail) && !seen.has(x.rail + "|" + x.title) && seen.add(x.rail + "|" + x.title));
+            for (const t of S.rails) assert.ok(cards.filter((x) => x.rail === t).length >= 6, `the ${t} rail holds ${cards.filter((x) => x.rail === t).length} cards`);
+            assert.ok(cards.some((x) => x.title === S.first), S.first + " is not on the Knockaround rail");
+          } else assert.ok(cards.length >= S.min, `only ${cards.length} cards`);
+          judgeFaces(cards, S.label, VENTA);
+          const imps = cards.filter((x) => x.imp).length;
+          /* With /import-tax.js gone there is no IMP line to draw (it is that module's). */
+          if (itMode !== "absent") assert.ok(imps >= (S.minImp || 0), `only ${imps} IMP lines`);
+          assert.deepEqual(errors, []);
+          console.log(`         ${S.label} (${itMode}, rate ${rateMode}): ${cards.length} cards in soles, ${imps} IMP lines`);
+          if (SHOT && itMode === "cached-old") {
+            if (S.rails) await page.evaluate((t) => { const h = [...document.querySelectorAll(".rail-sec h2")].find((x) => x.textContent.trim() === t); if (h) h.closest(".rail-sec").scrollIntoView(); }, S.rails[0]);
+            else await page.evaluate(() => { const a = document.querySelector("a.card [data-usd]"); if (a) a.closest("a.card").scrollIntoView({ block: "start" }); window.scrollBy(0, -80); });
+            await page.waitForTimeout(600);
+            await page.screenshot({ path: join(SHOT, `card-soles-p0-${S.name}-${rateMode}.png`) });
+          }
+        } finally { await c.close(); IT_MODE = "current"; FX_DELAY_MS = 0; }
+      });
+    }
+  }
+  await check("static P0: every page loads /import-tax.js by its own hash, so no phone can pair today's page with an older copy", () => {
+    const bad = [];
+    for (const p of readdirSync(ROOT).filter((x) => x.endsWith(".html"))) {
+      const src = readFileSync(join(ROOT, p), "utf8");
+      for (const m of src.matchAll(/<script src="\/import-tax\.js([^"]*)"/g)) if (m[1] !== "?v=" + IT_V) bad.push(`${p}: /import-tax.js${m[1]}`);
+    }
+    assert.deepEqual(bad, [], "re-stamp the tags with ?v=" + IT_V);
+  });
 } finally {
   await browser.close();
   srv.close();
 }
 
-const MIN_CHECKS = 1 + 6 + 2 + 2 + 2 + 1 + SURFACES.length * 2 + 5;
+const MIN_CHECKS = 1 + 6 + 2 + 2 + 2 + 1 + SURFACES.length * 2 + 5 + 4 + 4 + 2 + 1;
 if (passed + failures.length < MIN_CHECKS) { console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`); process.exit(1); }
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }

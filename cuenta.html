@@ -172,7 +172,7 @@ input[type=email],input[type=password],input[type=text]{width:100%;border:1px so
 footer{background:var(--bg2);border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:24px 16px;text-align:center}
 footer a{color:var(--ink)}
 </style>
-<script src="/import-tax.js"></script>
+<script src="/import-tax.js?v=27e656ae98fa697f"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -426,9 +426,7 @@ function renderInvite(){
    «Ver más» opens that product's store inside Aria
    (tienda.html?tienda=<key>), never a retailer's site. */
 function onSale(store){ try { return !(window.AriaOffSale && window.AriaOffSale.isOffSaleRetailer(store)); } catch (e) { return true; } }
-/* Soles only (#443 c.6629812301); without a rate, a soles placeholder
-   that /import-tax.js fills when one lands -- never dollars. */
-function cardPrice(usd){ return fx ? pen(usd * fx) : (window.AriaImportTax ? AriaImportTax.fx.slot(usd) : 'S/ \u2026'); }
+function cardPrice(usd){ return fx ? pen(usd * fx) : 'US$ ' + Number(usd).toFixed(2); }
 function pickHTML(c){
   var href = '/tienda.html?tienda=' + encodeURIComponent(String(c.store || '').toLowerCase());
   return '<a class="pick" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +

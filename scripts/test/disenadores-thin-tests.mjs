@@ -87,8 +87,7 @@ check("placeholder room in the HTML, shape-held 3:4 cards, photos and rooms on a
 check("soles first with the shared rate; decoded text; yellow only on the badge; no link out; no emojis", () => {
   assert.match(PAGE, /FX_CACHE_KEY = 'aria_fx_rate_v1'/);
   const pi = PAGE.slice(PAGE.indexOf("function priceInner("), PAGE.indexOf("function paintPrices("));
-  /* Soles only, no dollar line under them (#443 c.6629812301: "we only show soles"). */
-  assert.ok(pi.lastIndexOf('class="pen"') > 0 && pi.indexOf('class="usd"') < 0 && !/fmtUSD\(/.test(pi), "a dollar figure on the card");
+  assert.ok(pi.lastIndexOf('class="pen"') < pi.lastIndexOf('class="usd"'));
   assert.match(PAGE, /function esc\(s\)\{ return escRaw\(decodeEntitiesText\(s\)\); \}/);
   assert.match(PAGE, /function escapeHtml\(s\)\{ return esc\(s\); \}/);
   const yellow = PAGE.split("\n").filter((l) => /var\(--sale\)/.test(l));

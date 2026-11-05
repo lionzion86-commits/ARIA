@@ -125,7 +125,7 @@ footer a{color:#fff;}
 .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
-<script src="/import-tax.js"></script>
+<script src="/import-tax.js?v=27e656ae98fa697f"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -253,7 +253,7 @@ html body #status .ok{color:#0F6B34}
   <div id="status" role="status">Cargando productos…</div>
 
   <!-- Card-shaped placeholders from the first paint, before any script. -->
-  <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div></div></section></div>
+  <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section></div>
 </main>
 
 
@@ -514,21 +514,38 @@ function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 
 /* ---------- soles, always (#416) ----------
    The site's own rate: the same endpoint and 24-hour cache key the
-   home page, search and checkout use (/import-tax.js). Until it is
-   known the price row holds its place -- never a dollar figure. */
+   home page, search and checkout use. Until it is known the price row
+   holds its place; if it cannot be had at all, dollars, plainly
+   labelled, rather than nothing. */
 var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 var FX_RATE;             // undefined: asking; null: unavailable; number: S/ per US$
 function loadFx(){
-  /* SOLES, ALWAYS (#443 c.6629812301, Danny: "we only show soles"): the
-     shared rate (/import-tax.js AriaImportTax.fx -- the 24-hour cache, the
-     endpoint, SUNAT's last good rate, then a retry). Until a rate is
-     known the price row keeps its placeholder; never dollars. */
-  var F = window.AriaImportTax && window.AriaImportTax.fx;
-  if (!F) return;
-  var now = F.now();
-  if (now > 0) FX_RATE = now;
-  F.on(function(v){ FX_RATE = v; paintPrices(document); });
-  if (!(now > 0)) F.get().then(function(v){ if (v > 0 && FX_RATE !== v){ FX_RATE = v; paintPrices(document); } });
+  /* A rate that only arrives later (the shared module's retries, #443 c.6648727667) fills the soles in place. */
+  var FXL = window.AriaImportTax && window.AriaImportTax.fx;
+  if (FXL && FXL.on){ FXL.on(function(v){ if (v > 0){ FX_RATE = v; paintPrices(document); } }); FXL.get().then(function(v){ if (v > 0 && !(FX_RATE > 0)){ FX_RATE = v; paintPrices(document); } }); }
+  try{
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ FX_RATE = c.venta; return; }
+  }catch(e){}
+  var done = false;
+  function fin(rate){
+    /* A rate that lands after the 8 s timeout still fills the soles (P0, #443 c.6648727667). */
+    if (done && !(rate > 0)) return; done = true;
+    FX_RATE = rate > 0 ? rate : (FX_RATE > 0 ? FX_RATE : null);
+    paintPrices(document);
+  }
+  var to = setTimeout(function(){ fin(0); }, 8000);
+  try{
+    fetch(BASE + "/.netlify/functions/exchange-rate")
+      .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+      .then(function(x){
+        clearTimeout(to);
+        var v = x.ok && x.d && typeof x.d.venta === "number" && x.d.venta > 0 ? x.d.venta : 0;
+        if (v){ try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); }catch(e){} }
+        fin(v);
+      })
+      .catch(function(){ clearTimeout(to); fin(0); });
+  }catch(e){ clearTimeout(to); fin(0); }
 }
 
 /* ---------- product-type classification (word-boundary, not substring) ---------- */
@@ -599,9 +616,10 @@ var FIRST_RAILS = 3;
 
 /* ---------- rendering ---------- */
 function priceInner(f, was){
-  /* Soles only, the IMP line directly under them (#443 c.6629812301). */
-  if (!FX_RATE) return '<div class="pen"><i></i></div>';
-  return '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + (was > f ? '<span class="was">' + esc(fmtPen(was * FX_RATE)) + '</span>' : '') + '</div>';
+  /* P0 (#443 c.6648727667): the card paints at once -- dollars until a rate is known, soles the moment it lands; never a waiting bar. */
+  if (!FX_RATE) return '<div class="pen">' + esc(fmtUsd(f)) + '</div><div class="usd">&nbsp;</div>';
+  var h = '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + (was > f ? '<span class="was">' + esc(fmtPen(was * FX_RATE)) + '</span>' : '') + '</div>';
+  return h + '<div class="usd">' + esc(fmtUsd(f)) + '</div>';
 }
 /* Prices are painted in place, so a rate that lands after the cards
    never redraws a carousel (scroll position and photos stay). */
@@ -674,7 +692,7 @@ function cardHTML(c){
 }
 var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
   '<div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div>' +
-  '<div class="price"><div class="pen"><i></i></div></div></div></div>';
+  '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
 function skeletons(n){ var h = ""; for (var i = 0; i < n; i++) h += SKELETON; return h; }
 
 /* The stores with a storefront of their own (assets/tienda/<key>/index.json;

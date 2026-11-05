@@ -158,12 +158,9 @@ await check("shape-held cards, card-shaped placeholders before any script, photo
 
 await check("soles first, with the site's shared rate; yellow only on the sale badge; no emojis", () => {
   assert.match(PAGE, /FX_CACHE_KEY = 'aria_fx_rate_v1'/);
-  /* The rate is the shared one (/import-tax.js AriaImportTax.fx: the cache, then the endpoint; #443 c.6629812301). */
-  assert.match(PAGE, /AriaImportTax\.fx/);
-  assert.match(readFileSync(ROOT + "import-tax.js", "utf8"), /\/\.netlify\/functions\/exchange-rate/);
+  assert.match(PAGE, /\/\.netlify\/functions\/exchange-rate/);
   const pi = PAGE.slice(PAGE.indexOf("function priceInner("), PAGE.indexOf("function paintPrices("));
-  /* Soles only, no dollar line (#443 c.6629812301: "we only show soles"). */
-  assert.ok(pi.indexOf('class="pen"') > 0 && pi.indexOf('class="usd"') < 0 && !/fmtUSD\(/.test(pi), "a dollar figure on the card");
+  assert.ok(pi.indexOf('class="pen"') < pi.indexOf('class="usd"'), "dollars lead");
   assert.match(PAGE, /\.price \.pen\{font-size:16px;font-weight:800/);
   const yellow = PAGE.split("\n").filter((l) => /var\(--yellow\)/.test(l) && !/--yellow:/.test(l));
   assert.ok(yellow.every((l) => /\.badge|btn-gold/.test(l)), "yellow outside the sale badge: " + yellow.join(" | "));
