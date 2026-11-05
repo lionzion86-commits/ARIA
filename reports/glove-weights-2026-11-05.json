@@ -4876,6 +4876,178 @@
   ],
   "unverifiedHalfKgStamp": [
    {
+    "store": "everlast",
+    "title": "Titan Pro Instep Shin Guards",
+    "id": "https://www.everlast.com/products/titan-pro-striking-shin-guards",
+    "type": "PROTECTIVE_GEAR",
+    "file": "everlast-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Elite Shin Guards - White Camo",
+    "id": "https://www.venum.com/products/venum-elite-shin-guards-white-camo",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Kontact Shin Guards - Black/Black",
+    "id": "https://www.venum.com/products/venum-kontact-shin-guards-black-black-2",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Shin Guards Kontact - Black/White",
+    "id": "https://www.venum.com/products/venum-shin-guards-kontact-black-white",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Kontact Shin Guards Without Foot - Black/Black",
+    "id": "https://www.venum.com/products/venum-kontact-shin-guards-without-foot-black-black",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Matrix' Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-matrix-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP5 Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp5-muay-thai-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP3 Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp3-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'The Flame' Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-the-flame-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Original' Shin Guards - Gold",
+    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-gold",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Original' Shin Guards - Silver",
+    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-silver",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP6 MMA Style Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp6-mma-style-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Stadium' Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-stadium-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   }
+  ],
+  "unverifiedHalfKgRecords": 52,
+  "publishedHalfKg": [
+   {
     "store": "prosoccer",
     "title": "Nike Mercurial Lite Shinguards",
     "id": "https://prosoccer.com/products/nike-mercurial-lite-shinguards-6",
@@ -4883,6 +5055,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4895,6 +5068,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4907,6 +5081,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4919,6 +5094,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4931,6 +5107,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4943,6 +5120,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4955,6 +5133,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4967,6 +5146,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4979,6 +5159,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -4991,6 +5172,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5003,6 +5185,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5015,6 +5198,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5027,6 +5211,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5039,12 +5224,12 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 0.5,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
    }
   ],
-  "unverifiedHalfKgRecords": 14,
   "otherShinGuards": [
    {
     "store": "prosoccer",
@@ -5054,6 +5239,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 2,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5066,6 +5252,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 2.49,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5078,6 +5265,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 2.49,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5090,6 +5278,7 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 2.49,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
@@ -5102,165 +5291,10 @@
     "file": "soccer-catalog.json",
     "served": true,
     "kg": 2.49,
+    "kgField": "weightKg",
     "weightEstimated": false,
     "sizes": [],
     "records": 1
-   },
-   {
-    "store": "everlast",
-    "title": "Titan Pro Instep Shin Guards",
-    "id": "https://www.everlast.com/products/titan-pro-striking-shin-guards",
-    "type": "PROTECTIVE_GEAR",
-    "file": "everlast-catalog.json",
-    "served": true,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "YOKKAO 'Matrix' Muay Thai Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/yokkao-matrix-shin-pads",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "Fairtex SP5 Muay Thai Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/fairtex-sp5-muay-thai-shin-pads",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "Fairtex SP3 Muay Thai Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/fairtex-sp3-shin-guards",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "YOKKAO 'The Flame' Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/yokkao-the-flame-shin-guards",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "YOKKAO 'Original' Shin Guards - Gold",
-    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-gold",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "YOKKAO 'Original' Shin Guards - Silver",
-    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-silver",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "Fairtex SP6 MMA Style Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/fairtex-sp6-mma-style-shin-pads",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "mmawarehouse",
-    "title": "YOKKAO 'Stadium' Shin Guards",
-    "id": "https://www.mmawarehouse.com/products/yokkao-stadium-shin-guards",
-    "type": "SHIN_PADS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "venum",
-    "title": "Venum Elite Shin Guards - White Camo",
-    "id": "https://www.venum.com/products/venum-elite-shin-guards-white-camo",
-    "type": "SHIN_GUARDS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "venum",
-    "title": "Venum Kontact Shin Guards - Black/Black",
-    "id": "https://www.venum.com/products/venum-kontact-shin-guards-black-black-2",
-    "type": "SHIN_GUARDS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "venum",
-    "title": "Venum Shin Guards Kontact - Black/White",
-    "id": "https://www.venum.com/products/venum-shin-guards-kontact-black-white",
-    "type": "SHIN_GUARDS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
-   },
-   {
-    "store": "venum",
-    "title": "Venum Kontact Shin Guards Without Foot - Black/Black",
-    "id": "https://www.venum.com/products/venum-kontact-shin-guards-without-foot-black-black",
-    "type": "SHIN_GUARDS",
-    "file": "mma-catalog.json",
-    "served": false,
-    "kg": null,
-    "weightEstimated": true,
-    "sizes": [],
-    "records": 4
    }
   ]
  }

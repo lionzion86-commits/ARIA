@@ -153,7 +153,10 @@ export function sweep(root = ROOT, { write = false } = {}) {
         }
         if ((SHIN_RX.test(title) || SHIN_TYPE_RX.test(String(rec.type || ""))) && shins.has(key)) shins.get(key).records++;
         else if (SHIN_RX.test(title) || SHIN_TYPE_RX.test(String(rec.type || ""))) {
-          shins.set(key, { store, title, id: idOf(rec), type: rec.type ?? null, file: f, served: served.has(f), kg: Number.isFinite(numOf(rec.weightKg)) ? numOf(rec.weightKg) : null,
+          const wk = numOf(rec.weightKg), sk = numOf(rec.specWeightKg);
+          shins.set(key, { store, title, id: idOf(rec), type: rec.type ?? null, file: f, served: served.has(f),
+            kg: Number.isFinite(wk) ? wk : Number.isFinite(sk) && sk > 0 ? sk : null,
+            kgField: Number.isFinite(wk) ? "weightKg" : Number.isFinite(sk) && sk > 0 ? "specWeightKg" : null,
             weightEstimated: rec.weightEstimated ?? null, sizes: (rec.availableSizes || rec.sizes || []).slice(0, 12), records: 1 });
         }
         continue;
@@ -247,8 +250,11 @@ export function sweep(root = ROOT, { write = false } = {}) {
     shinGuards: {
       rule: "#443 c.6649706410: only the 2 records the audit proved are single-guard weights (Gorilla Wear, 0.33 kg) are doubled to 0.66 kg; the records on the unverified 0.50 stamp are not doubled, they are flagged below.",
       doubled: shinDoubled,
-      unverifiedHalfKgStamp: [...shins.values()].filter((x) => x.kg === SHIN_UNVERIFIED_KG),
-      unverifiedHalfKgRecords: [...shins.values()].filter((x) => x.kg === SHIN_UNVERIFIED_KG).reduce((n, x) => n + x.records, 0),
+      /* The unverified 0.50 stamp: an estimated 0.50 (not a figure the store published). FLAGGED, not doubled. */
+      unverifiedHalfKgStamp: [...shins.values()].filter((x) => x.kg === SHIN_UNVERIFIED_KG && x.weightEstimated !== false),
+      unverifiedHalfKgRecords: [...shins.values()].filter((x) => x.kg === SHIN_UNVERIFIED_KG && x.weightEstimated !== false).reduce((n, x) => n + x.records, 0),
+      /* 0.50 published by the store (weightEstimated false): not the audit's stamp; listed, unchanged. */
+      publishedHalfKg: [...shins.values()].filter((x) => x.kg === SHIN_UNVERIFIED_KG && x.weightEstimated === false),
       otherShinGuards: [...shins.values()].filter((x) => x.kg !== SHIN_UNVERIFIED_KG).sort((a, b) => (a.kg ?? 99) - (b.kg ?? 99) || a.store.localeCompare(b.store)),
     },
   };

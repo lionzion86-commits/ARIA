@@ -132,6 +132,9 @@ await check("shin guards (#443 c.6649706410): only Gorilla Wear's two single-gua
   for (const x of corpus.filter((x) => shin.test(x.title) && x.store !== "gorillawear")) assert.ok(!["pairDoubled", GLOVE_BASIS].includes(x.rec.weightBasis), x.title);
   const r = JSON.parse(readFileSync(join(ROOT, REPORT), "utf8"));
   assert.ok(r.shinGuards.unverifiedHalfKgStamp.every((x) => x.kg === 0.5));
+  /* The audit's 52: every estimated 0.50 shin-guard record, the served files and their mma-catalog.json copies. */
+  assert.equal(r.shinGuards.unverifiedHalfKgRecords, 52);
+  for (const x of corpus.filter((x) => shin.test(x.title) && x.rec.specWeightKg === 0.5)) assert.equal(x.rec.weightBasis, undefined, x.title);
 });
 
 /* ---------------- the card (the app bundle's copy) ---------------- */
