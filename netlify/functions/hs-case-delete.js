@@ -19,6 +19,7 @@ export async function deleteCase(S, c) {
     await S.offers.delete(oid);
   }
   for (const k of await listKeys(S.messages, `${c.id}/`)) await S.messages.delete(k);
+  for (const k of await listKeys(S.events, `homeowner/${c.id}/`)) await S.events.delete(k);
   for (const k of await listKeys(S.events, "case/")) if (k.endsWith(`-${c.id}`)) await S.events.delete(k);
   for (const k of await listKeys(S.events, "pro/")) {
     try { const e = await S.events.get(k, { type: "json" }); if (e && e.caseId === c.id) await S.events.delete(k); } catch { /* gone */ }
