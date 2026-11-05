@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aria Home Shield</title>
+<meta name="description" content="Free for homeowners. Talk to Aria about a denied or underpaid claim, roof damage, a leak, an inspection or your policy. You choose which licensed pro contacts you.">
+<meta name="theme-color" content="#0b0a08">
+<link rel="icon" href="/home-shield/img/aria-open-480.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/home-shield/hs.css">
+<script>
+/* Language before first paint: ?lang= wins, then the remembered choice. */
+(function(){var l="en";try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{var s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s}}catch(e){}
+var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},1500)}})();
+</script>
+<script defer src="/home-shield/hs.js"></script>
+<script type="application/json" id="hs-assets">/*HS-ASSETS:START*/{"photos":{},"badge":null}/*HS-ASSETS:END*/</script>
+</head>
+<body data-page="home">
+<a class="hs-skip" href="#main" data-i18n="a11y.skip">Skip to content</a>
+<header class="hs-top">
+  <a class="hs-brand" href="/home-shield/" aria-label="Aria Home Shield">
+    <svg class="hs-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.6v6.1c0 4.6 3.3 8.6 8 9.8 4.7-1.2 8-5.2 8-9.8V5.6L12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Aria <em>Home Shield</em></span>
+  </a>
+  <nav class="hs-topnav">
+    <a class="hs-mycase" id="hsMyCase" href="#" hidden data-i18n="nav.mycase">My case</a>
+    <a class="hs-prolink" href="/home-shield/pro/" data-i18n="nav.pros">For pros</a>
+    <button class="hs-lang" id="hsLang" type="button" lang="es" data-i18n="lang.toggle" data-i18n-aria="lang.aria" aria-label="Ver en español">Español</button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hs-hero" id="hero">
+  <div class="hs-hero-copy">
+    <p class="hs-eyebrow" data-i18n="hero.eyebrow">Free for Florida homeowners</p>
+    <h1 class="hs-h1" data-i18n="hero.title">Your home. Your claim. Someone finally on your side.</h1>
+    <p class="hs-lede" data-i18n="hero.sub">Aria knows insurance the way a lawyer, a public adjuster, a roofer and an agent do, all at once. She explains your options in plain words, builds your case, and connects you only with the licensed local pros you choose.</p>
+    <div class="hs-ctas">
+      <button class="hs-btn hs-btn-gold" type="button" data-action="talk" data-i18n="hero.cta">Talk to Aria — free</button>
+      <button class="hs-btn hs-btn-ghost" type="button" data-action="upload" data-i18n="hero.cta2">Upload my policy for a free review</button>
+    </div>
+    <ul class="hs-trust">
+      <li data-i18n="hero.trust1">Free for homeowners</li>
+      <li data-i18n="hero.trust2">You choose who contacts you</li>
+      <li data-i18n="hero.trust3">Never sold or shared without your approval</li>
+    </ul>
+  </div>
+  <div class="hs-stage" id="intro">
+    <button class="hs-star hs-star-hero" type="button" data-action="star" data-i18n-aria="star.aria" aria-label="Tap Aria to talk with her">
+      <span class="hs-star-glow" aria-hidden="true"></span>
+      <span class="hs-star-face" data-frame="open" aria-hidden="true">
+        <img class="f-open" src="/home-shield/img/aria-open-480.webp" width="480" height="480" alt="" fetchpriority="high">
+        <img class="f-blink" data-src="/home-shield/img/aria-blink-480.webp" width="480" height="480" alt="">
+        <img class="f-talk1" data-src="/home-shield/img/aria-talk1-480.webp" width="480" height="480" alt="">
+        <img class="f-talk2" data-src="/home-shield/img/aria-talk2-480.webp" width="480" height="480" alt="">
+        <span class="hs-badge" data-badge hidden></span>
+      </span>
+    </button>
+    <p class="hs-star-state" data-star-state data-i18n="state.idle">Tap Aria to talk</p>
+    <blockquote class="hs-intro hs-say-root">
+      <p class="hs-say" data-i18n="intro.line1">Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your roofer, all into one.</p>
+      <p class="hs-say" data-i18n="intro.line2">Upload your policy — I can dissect it: strong points, weak points, a better option if one exists, and my best recommendation.</p>
+      <button class="hs-listen" type="button" data-listen="#intro"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+    </blockquote>
+  </div>
+  <figure class="hs-photo hs-photo-hero" data-photo="hero" hidden></figure>
+</section>
+
+<section class="hs-sec" id="doors" aria-labelledby="doorsTitle">
+  <div class="hs-sec-head">
+    <h2 id="doorsTitle" class="hs-h2 hs-say" data-i18n="doors.title">Where would you like to start?</h2>
+    <p class="hs-sub hs-say" data-i18n="doors.sub">Pick a door. Aria takes it from there, one question at a time.</p>
+    <button class="hs-listen" type="button" data-listen="#doors"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
+  <div class="hs-doors">
+    <article class="hs-door hs-door-1" id="door1">
+      <figure class="hs-photo" data-photo="door1" hidden></figure>
+      <div class="hs-door-body">
+        <p class="hs-tag" data-i18n="door1.tag">Start here</p>
+        <h3 class="hs-h3 hs-say"><span class="hs-door-n">1</span><span data-i18n="door1.title">Review my policy</span></h3>
+        <p class="hs-say" data-i18n="door1.body">No damage needed. Upload your policy and Aria tells you what's strong, what's weak, where it can improve, and how it compares to local options.</p>
+        <div class="hs-door-actions">
+          <button class="hs-btn hs-btn-gold" type="button" data-action="upload" data-i18n="door1.cta">Upload my policy</button>
+          <button class="hs-listen" type="button" data-listen="#door1"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+        </div>
+      </div>
+    </article>
+    <article class="hs-door" id="door2">
+      <figure class="hs-photo" data-photo="door2" hidden></figure>
+      <div class="hs-door-body">
+        <h3 class="hs-h3 hs-say"><span class="hs-door-n">2</span><span data-i18n="door2.title">Claim denied</span></h3>
+        <p class="hs-say" data-i18n="door2.body">Denied or underpaid? Learn what you can do: get the decision in writing, dispute it, reopen or supplement the claim, appraisal or mediation, and who can fight it with you.</p>
+        <div class="hs-door-actions">
+          <button class="hs-btn hs-btn-line" type="button" data-action="talk" data-starter="starter.denied" data-i18n="door2.cta">Talk about my claim</button>
+          <button class="hs-listen" type="button" data-listen="#door2"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+        </div>
+      </div>
+    </article>
+    <article class="hs-door" id="door3">
+      <figure class="hs-photo" data-photo="door3" hidden></figure>
+      <div class="hs-door-body">
+        <h3 class="hs-h3 hs-say"><span class="hs-door-n">3</span><span data-i18n="door3.title">Home damage</span></h3>
+        <p class="hs-say" data-i18n="door3.body">Roof damage, a leak or water damage, or you need an inspection. If water is coming in right now, Aria starts with what to do this minute.</p>
+        <div class="hs-chips">
+          <button class="hs-chip" type="button" data-action="talk" data-starter="starter.roof" data-i18n="chip.roof">Roof damage</button>
+          <button class="hs-chip" type="button" data-action="talk" data-starter="starter.leak" data-i18n="chip.leak">Leak or water damage</button>
+          <button class="hs-chip" type="button" data-action="talk" data-starter="starter.inspect" data-i18n="chip.inspect">Inspection</button>
+        </div>
+        <div class="hs-door-actions">
+          <button class="hs-listen" type="button" data-listen="#door3"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+        </div>
+      </div>
+    </article>
+    <article class="hs-door hs-door-pro" id="doorPro">
+      <figure class="hs-photo" data-photo="pros" hidden></figure>
+      <div class="hs-door-body">
+        <h3 class="hs-h3 hs-say" data-i18n="pros.title">Pro enrollment</h3>
+        <p class="hs-say" data-i18n="pros.body">Licensed public adjusters, attorneys, roofers, insurance agents and inspectors in Florida: join the open platform. You see an anonymous case, homeowners see your license, and they choose.</p>
+        <div class="hs-door-actions">
+          <a class="hs-btn hs-btn-line" href="/home-shield/pro/" data-i18n="pros.cta">Enroll as a pro</a>
+          <button class="hs-listen" type="button" data-listen="#doorPro"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="hs-team" id="team">
+    <div class="hs-team-head">
+      <h3 class="hs-h3 hs-say" data-i18n="team.title">Who Aria can connect you with</h3>
+      <button class="hs-listen" type="button" data-listen="#team"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+    </div>
+    <ul class="hs-team-list">
+      <li class="hs-say"><strong data-i18n="trade.public_adjuster">Public adjuster</strong> <span data-i18n="team.pa">Licensed to work your claim for you, not for the insurer.</span></li>
+      <li class="hs-say"><strong data-i18n="trade.attorney">Attorney</strong> <span data-i18n="team.attorney">For coverage disputes, denials and lawsuits.</span></li>
+      <li class="hs-say"><strong data-i18n="trade.roofer">Roofer</strong> <span data-i18n="team.roofer">Inspections, estimates, repairs and temporary protection.</span></li>
+      <li class="hs-say"><strong data-i18n="trade.insurance_agent">Insurance agent</strong> <span data-i18n="team.agent">To shop for a stronger policy.</span></li>
+      <li class="hs-say"><strong data-i18n="trade.inspector">Inspector</strong> <span data-i18n="team.inspector">Independent inspections and reports.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="hs-sec hs-sec-alt" id="how" aria-labelledby="howTitle">
+  <div class="hs-sec-head">
+    <h2 id="howTitle" class="hs-h2 hs-say" data-i18n="how.title">How it works</h2>
+    <button class="hs-listen" type="button" data-listen="#how"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
+  <figure class="hs-photo" data-photo="how" hidden></figure>
+  <ol class="hs-steps">
+    <li><span class="hs-step-n" aria-hidden="true">1</span><h3 class="hs-h3 hs-say" data-i18n="how.1t">Tell Aria what happened.</h3><p class="hs-say" data-i18n="how.1b">Talk or type. She asks one question at a time, and if water is coming in, she starts with what to do right now.</p></li>
+    <li><span class="hs-step-n" aria-hidden="true">2</span><h3 class="hs-h3 hs-say" data-i18n="how.2t">She builds your case and tells you who you need.</h3><p class="hs-say" data-i18n="how.2b">A clear, private summary of your situation, your options in plain words, and the kind of licensed pro that fits.</p></li>
+    <li><span class="hs-step-n" aria-hidden="true">3</span><h3 class="hs-h3 hs-say" data-i18n="how.3t">Licensed local pros request your case. You pick.</h3><p class="hs-say" data-i18n="how.3b">They see an anonymous summary only. You review their license and their message, and you choose. Only then do they get your contact.</p></li>
+  </ol>
+</section>
+
+<section class="hs-sec hs-sec-ivory" id="rights" aria-labelledby="rightsTitle">
+  <div class="hs-sec-head">
+    <h2 id="rightsTitle" class="hs-h2 hs-say" data-i18n="rights.title">Your rights, in plain language</h2>
+    <p class="hs-sub hs-say" data-i18n="rights.sub">Florida first. General information, not legal advice: your policy and a licensed professional have the final word.</p>
+    <button class="hs-listen" type="button" data-listen="#rights"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
+  <div class="hs-rights">
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.1t">You can dispute a decision.</h3><p class="hs-say" data-i18n="rights.1b">If you disagree with a denial or with the amount, you can tell your insurer in writing and send your evidence: photos, estimates, receipts.</p></div>
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.2t">You can ask for it in writing.</h3><p class="hs-say" data-i18n="rights.2b">Ask the insurer to explain the denial or the payment in writing, including the policy language it relied on. You can also ask for a complete copy of your policy.</p></div>
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.3t">You can get a public adjuster.</h3><p class="hs-say" data-i18n="rights.3b">A licensed public adjuster works for you, not for the insurer. You can check a license with the Florida Department of Financial Services before you sign anything.</p></div>
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.4t">You can ask about mediation.</h3><p class="hs-say" data-i18n="rights.4b">The Florida Department of Financial Services runs a mediation program for many residential property claims. Ask whether yours qualifies.</p></div>
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.5t">You may have more options.</h3><p class="hs-say" data-i18n="rights.5b">Many policies have an appraisal clause for disagreements about the amount, and a claim can sometimes be reopened or supplemented when new damage appears.</p></div>
+    <div><h3 class="hs-h3 hs-say" data-i18n="rights.6t">Deadlines matter.</h3><p class="hs-say" data-i18n="rights.6b">Reporting a claim, supplementing it and filing a lawsuit all have time limits, and Florida has changed some of them in recent years. Verify yours in your policy and with a licensed professional.</p></div>
+  </div>
+</section>
+
+<section class="hs-sec" id="privacy" aria-labelledby="privacyTitle">
+  <div class="hs-sec-head">
+    <h2 id="privacyTitle" class="hs-h2 hs-say" data-i18n="privacy.title">Our privacy promise</h2>
+    <button class="hs-listen" type="button" data-listen="#privacy"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
+  <figure class="hs-photo" data-photo="privacy" hidden></figure>
+  <ul class="hs-promise">
+    <li><h3 class="hs-h3 hs-say" data-i18n="privacy.1t">Your case stays anonymous.</h3><p class="hs-say" data-i18n="privacy.1b">Pros see the issue, your ZIP area and an anonymous summary. Never your name, phone, email, address or policy number.</p></li>
+    <li><h3 class="hs-h3 hs-say" data-i18n="privacy.2t">You approve every connection.</h3><p class="hs-say" data-i18n="privacy.2b">Your contact goes only to the pro you pick, and only after you pick them.</p></li>
+    <li><h3 class="hs-h3 hs-say" data-i18n="privacy.3t">Never sold. No spam calls.</h3><p class="hs-say" data-i18n="privacy.3b">We never sell your information. Nobody calls you unless you chose them.</p></li>
+    <li><h3 class="hs-h3 hs-say" data-i18n="privacy.4t">Your documents are private.</h3><p class="hs-say" data-i18n="privacy.4b">Your policy is stored privately, and you can delete your case and documents at any time.</p></li>
+  </ul>
+</section>
+
+<section class="hs-sec hs-sec-alt" id="faq" aria-labelledby="faqTitle">
+  <div class="hs-sec-head">
+    <h2 id="faqTitle" class="hs-h2 hs-say" data-i18n="faq.title">Questions</h2>
+    <button class="hs-listen" type="button" data-listen="#faq"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
+  <div class="hs-faq">
+    <details><summary class="hs-say" data-i18n="faq.q1">Is it really free?</summary><p class="hs-say" data-i18n="faq.a1">Yes. Aria Home Shield is free for homeowners. If you hire a professional, their fees are between you and them, and they should explain them before you sign anything.</p></details>
+    <details><summary class="hs-say" data-i18n="faq.q2">Who is Aria?</summary><p class="hs-say" data-i18n="faq.a2">Aria is an AI guide. She knows how claims, policies and repairs work and explains them in plain words. She is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.</p></details>
+    <details><summary class="hs-say" data-i18n="faq.q3">Will my phone start ringing?</summary><p class="hs-say" data-i18n="faq.a3">No. Nobody gets your contact until you approve a specific pro, and only that pro can reach you.</p></details>
+    <details><summary class="hs-say" data-i18n="faq.q4">What happens to my policy when I upload it?</summary><p class="hs-say" data-i18n="faq.a4">It is stored privately and used to review it for you. A pro sees it only if you connect with them. You can delete it at any time from your case page.</p></details>
+    <details><summary class="hs-say" data-i18n="faq.q5">Do I need damage to start?</summary><p class="hs-say" data-i18n="faq.a5">No. Many people start with a policy review, before hurricane season, to find out whether their coverage is weak.</p></details>
+    <details><summary class="hs-say" data-i18n="faq.q6">Where do you work?</summary><p class="hs-say" data-i18n="faq.a6">We are starting in Florida. Anywhere in the US, Aria can explain your options, and we connect you as licensed pros join in your area.</p></details>
+  </div>
+</section>
+</main>
+
+<footer class="hs-foot">
+  <p class="hs-disclaimer" data-i18n="footer.disclaimer">Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.</p>
+  <p data-i18n="footer.emergency">If anyone is in danger, call 911.</p>
+  <p class="hs-foot-links"><span>Aria Home Shield</span> <a href="/home-shield/pro/" data-i18n="nav.pros">For pros</a></p>
+</footer>
+
+<div class="hs-sheet" id="hsSheet" role="dialog" aria-modal="true" aria-labelledby="hsSheetTitle" hidden>
+  <div class="hs-sheet-in">
+    <header class="hs-sheet-head">
+      <button class="hs-star hs-star-mini" type="button" data-action="star" data-i18n-aria="star.aria" aria-label="Tap Aria to talk with her">
+        <span class="hs-star-glow" aria-hidden="true"></span>
+        <span class="hs-star-face" data-frame="open" aria-hidden="true">
+          <img class="f-open" src="/home-shield/img/aria-open-480.webp" width="480" height="480" alt="">
+          <img class="f-blink" data-src="/home-shield/img/aria-blink-480.webp" width="480" height="480" alt="">
+          <img class="f-talk1" data-src="/home-shield/img/aria-talk1-480.webp" width="480" height="480" alt="">
+          <img class="f-talk2" data-src="/home-shield/img/aria-talk2-480.webp" width="480" height="480" alt="">
+          <span class="hs-badge" data-badge hidden></span>
+        </span>
+      </button>
+      <div class="hs-sheet-who">
+        <h2 id="hsSheetTitle">Aria</h2>
+        <p data-star-state data-i18n="state.idle">Tap Aria to talk</p>
+      </div>
+      <button class="hs-icon-btn" id="hsMute" type="button" data-i18n-aria="chat.mute" aria-label="Mute Aria" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="hs-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="hs-x" d="m16 9.5 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="hs-icon-btn" id="hsClose" type="button" data-i18n-aria="chat.close" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="hs-msgs" id="hsMsgs" aria-live="polite"></div>
+    <p class="hs-err" id="hsErr" role="alert" hidden></p>
+    <form class="hs-compose" id="hsCompose" autocomplete="off">
+      <button class="hs-icon-btn" type="button" data-action="upload" data-i18n-aria="chat.upload" aria-label="Upload my policy">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20V3.5Z M14 3.5V8h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12.5 17.5v-6m-2.5 2.5 2.5-2.5 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <label class="hs-vh" for="hsInput" data-i18n="chat.placeholder">Type your message</label>
+      <input id="hsInput" name="q" type="text" maxlength="1500" enterkeyhint="send" data-i18n-ph="chat.placeholder" placeholder="Type your message">
+      <button class="hs-send" type="submit" data-i18n-aria="chat.send" aria-label="Send">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="hs-mic" id="hsMic" type="button" data-i18n-aria="chat.mic" aria-label="Talk to Aria" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </form>
+    <p class="hs-chat-note" data-i18n="chat.disclaimer">General information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.</p>
+  </div>
+</div>
+<input type="file" id="hsFile" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif" hidden>
+<audio id="hsAudio" preload="none"></audio>
+</body>
+</html>
