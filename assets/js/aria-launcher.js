@@ -35,7 +35,13 @@
     a.id = "ariaLauncher";
     a.href = "/?aria=1";
     a.setAttribute("aria-label", "Asistente de compras Aria");
-    a.innerHTML =
+    /* THE PLUSH STAR (#443 c.6647694000). assets/js/aria-star.js loads just
+       before this file; once the star's frames are imported it draws her
+       here, the whole character (the same cached frames as every other slot) and the orb picture
+       is never requested. Until then this is the orb, unchanged. */
+    var star = window.AriaStar;
+    if (star && star.active) { a.className = "aria-star-corner"; a.appendChild(star.make("launcher")); }
+    else a.innerHTML =
       '<picture><source srcset="/assets/aria-orb-pixar-192.webp" type="image/webp">' +
       '<img src="/assets/aria-orb-pixar-64.png" width="64" height="64" alt="Aria" decoding="async"></picture>';
     document.body.appendChild(a);

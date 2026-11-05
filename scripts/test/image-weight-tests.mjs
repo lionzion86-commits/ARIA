@@ -51,6 +51,7 @@ import { deflateSync } from "node:zlib";
 import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const STAR_IMPORTED = existsSync(ROOT + "assets/aria/star/manifest.json");
 let passed = 0;
 const failures = [];
 async function check(name, fn) {
@@ -184,8 +185,13 @@ await check("every mark the app draws carries its master and the undo", () => {
   const plaques = [...html.matchAll(/<img src="logos\/h240\/[^"]+"[^>]*>/g)].map((m) => m[0]);
   assert(plaques.length >= 30, `only ${plaques.length} rail plaques draw the derivative`);
   for (const p of plaques) assert(/data-logo-orig="logos\/[^"]+\.png"/.test(p) && p.includes("this.src=o;return;"), "a rail plaque has no way back to its master: " + p.slice(0, 120));
-  assert(/id="ariaOrbImg" src="assets\/aria-orb-pixar-320\.webp" onerror="[^"]*aria-orb-pixar-320\.png/.test(html), "the orb lost its PNG fallback");
-  assert(/id="ariaOrbBlink" data-src="assets\/aria-orb-pixar-blink-320\.webp" onerror="[^"]*blink-320\.png/.test(html), "the blink frame lost its PNG fallback");
+  /* Once the plush star is imported (#443 c.6647694000) the launcher draws
+     her two WebP frames, checked by scripts/test/aria-star-tests.mjs and
+     import-aria-star.mjs --check; until then, the orb keeps its fallback. */
+  if (!STAR_IMPORTED) {
+    assert(/id="ariaOrbImg" src="assets\/aria-orb-pixar-320\.webp" onerror="[^"]*aria-orb-pixar-320\.png/.test(html), "the orb lost its PNG fallback");
+    assert(/id="ariaOrbBlink" data-src="assets\/aria-orb-pixar-blink-320\.webp" onerror="[^"]*blink-320\.png/.test(html), "the blink frame lost its PNG fallback");
+  } else assert(/id="ariaOrbImg" src="assets\/aria\/star\/star-open-\d+\.[0-9a-f]{8}\.webp"/.test(html), "the launcher is not wired to the star");
   for (const p of ["tienda", "producto", "search", "ofertas", "departamento", "marca"]) {
     assert(/function imgOrigRetry\(el\)\{[\s\S]{0,200}el\.src = el\.dataset\.imgOrig/.test(readFileSync(ROOT + p + ".html", "utf8")), `${p}.html lost imgOrigRetry`);
   }
@@ -367,7 +373,7 @@ await check("a derivative mark that fails comes back as its master, never a text
   assert(r.derivatives === 0, `${r.derivatives} marks still show a failed derivative`);
   const extra = r.pills.filter((t) => !basePills.has(t));
   assert(!extra.length, `text pills where a master exists: ${extra.join(", ")}`);
-  assert(/aria-orb-pixar-320\.png$/.test(r.orb || ""), `the orb is ${r.orb}`);
+  if (!STAR_IMPORTED) assert(/aria-orb-pixar-320\.png$/.test(r.orb || ""), `the orb is ${r.orb}`);
 });
 
 await browser.close();
