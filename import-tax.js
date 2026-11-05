@@ -36,8 +36,8 @@
    request per 50 lines).
 
    WHAT THE LINE NEVER SHOWS: the dutiable value or the rate. Only the
-   amount, in soles ("+ S/ 120.50 IMP"); never dollars (#443 c.6629812301):
-   until a rate is known it reads "+ S/ … IMP" and fills when one lands.
+   amount, soles first ("+ S/ 120.50 IMP"); until a rate is known it reads
+   dollars ("+ US$ 35.44 IMP") and turns to soles when one lands.
 
    SHAPE. A plain script (no import/export), like /not-sold.js: pages load
    it with <script src="/import-tax.js"> before they draw a card; ES
@@ -218,8 +218,11 @@
     if (!(r > 0) || !isFinite(n)) return '';
     return 'S/ ' + r2(n * r).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  /* Without a rate the line reads dollars and turns to soles the moment a
+     rate lands (paintAll on fx.on) -- the card paints at once, never a
+     placeholder that waits (P0, #443 c.6648727667, the pre-#658 fallback). */
   function money(usd, fx) {
-    return fmtSoles(usd, fx) || 'S/ \u2026';
+    return fmtSoles(usd, fx) || ('US$ ' + Number(usd).toFixed(2));
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });

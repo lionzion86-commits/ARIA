@@ -202,7 +202,7 @@ footer a{color:#fff;}
 .rail .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
-<script src="/import-tax.js"></script>
+<script src="/import-tax.js?v=27e656ae98fa697f"></script>
 <script src="/ref.js" defer></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -550,13 +550,20 @@ var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 var PAGE_FX = null;
 async function pageRate(){
   if (PAGE_FX) return PAGE_FX;
-  /* The shared rate (/import-tax.js AriaImportTax.fx): the 24-hour cache,
-     the endpoint, SUNAT's last good rate -- the same one every page reads. */
-  var F = window.AriaImportTax && window.AriaImportTax.fx;
-  if (F){ var v = await F.get(); if (v > 0) PAGE_FX = v; return PAGE_FX; }
   try{
     var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
     if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return (PAGE_FX = c.venta);
+  }catch(e){}
+  try{
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 6000) : null;
+    var res = await fetch(BASE + "/.netlify/functions/exchange-rate", ctl ? { signal: ctl.signal } : {});
+    if (timer) clearTimeout(timer);
+    var d = await res.json();
+    if (res.ok && typeof d.venta === "number" && d.venta > 0){
+      try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+      PAGE_FX = d.venta;
+    }
   }catch(e){}
   return PAGE_FX;
 }
@@ -703,15 +710,11 @@ function productHref(title, store){
 var CMP_FX = null;
 function penOf(usd){ return CMP_FX ? Math.round(Number(usd) * CMP_FX * 100) / 100 : null; }
 function moneyUsd(n){ var v = Math.round(Number(n) * 100) / 100; return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2)); }
-/* Soles only (#443 c.6629812301, Danny: "we only show soles"). Without
-   a rate, a soles placeholder that fills when one lands -- never dollars. */
 function amountHTML(usd, pen, strong){
-  var p = pen == null ? solesSlot(usd) : esc(fmtPen(pen));
-  return strong ? '<b data-usd="' + Number(usd) + '">' + p + "</b>" : p;
-}
-function solesSlot(usd){
-  var F = typeof window !== "undefined" && window.AriaImportTax && window.AriaImportTax.fx;
-  return F ? F.slot(usd) : "S/ \u2026";
+  var u = esc(fmtUsd(usd));
+  if (pen == null) return strong ? "<b>" + u + "</b>" : u;
+  var p = esc(fmtPen(pen));
+  return (strong ? "<b>" + p + "</b>" : p) + "<small>" + u + "</small>";
 }
 function lineHTML(cls, label, value){
   return '<div class="cmp-ln' + (cls ? " " + cls : "") + '"><dt>' + label + "</dt><dd>" + value + "</dd></div>";
@@ -1049,14 +1052,14 @@ function showingStatus(){
 
 function priceHTML(p){
   try{
-    /* Soles only, the IMP line directly under them (#443 c.6629812301,
-       Danny: "we only show soles. Then we show the import underneath").
-       A card reaches this without soles only when the server and the
-       page's rate both failed (see withSoles): then a soles placeholder
-       that fills when a rate lands -- never dollars. */
-    if (!p.pen) return '<div class="pen">' + solesSlot(p.usd) + '</div>';
-    return '<div class="pen">' + esc(fmtPen(p.pen)) +
+    /* Soles lead, always. A card reaches this without soles only when
+       the server and the page's own rate both failed (see withSoles):
+       then dollars, plainly labelled, rather than nothing. */
+    if (!p.pen) return '<div class="pen">' + esc(fmtUsd(p.usd)) + '</div><div class="usd">&nbsp;</div>';
+    var h = '<div class="pen">' + esc(fmtPen(p.pen)) +
       (p.wasPen > p.pen ? '<span class="was">' + esc(fmtPen(p.wasPen)) + "</span>" : "") + "</div>";
+    h += '<div class="usd">' + esc(fmtUsd(p.usd)) + "</div>";
+    return h;
   }catch(e){ return ""; }
 }
 function offBadge(p){
@@ -1087,7 +1090,7 @@ function cardHTML(p){
       '<div class="name">' + esc(shownTitle(title)) + "</div>" +
       '<div class="retailer">' + (p.storeLabel || p.store ? "Vendido por " + esc(p.storeLabel || p.store) : "&nbsp;") + "</div>" +
       (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
-      '<div class="price" data-usd="' + Number(p.usd) + '">' + priceHTML(p) + "</div>" +
+      '<div class="price">' + priceHTML(p) + "</div>" +
       /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
          the arithmetic checkout charges; nothing under $200 of goods. */
       impLineHTML(p, "div") +

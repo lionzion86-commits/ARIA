@@ -329,7 +329,7 @@ await check("search.html draws the block: soles first, badges, each row to its o
        shipping -- no freight line, no door total. */
     const iProd = row.indexOf(">Producto<"), iShip = row.indexOf(">Envío de la tienda<");
     assert.ok(iProd > 0 && iProd < iShip, s.store + ": the lines out of order");
-    assert.ok(row.indexOf("S/ " + Number(s.pen).toFixed(2), iProd) > iProd && !/US\$/.test(row.slice(iProd, iShip)), s.store + ": not soles only (#443 c.6629812301)");
+    assert.ok(row.indexOf("S/ " + Number(s.pen).toFixed(2), iProd) > iProd && row.indexOf("S/ ") < row.indexOf("US$ "), s.store + ": soles not first");
     assert.ok(!/Flete|Total/.test(row), s.store + ": a freight line or a door total on a browse surface");
     if (s.ship.state === "calc") assert.match(row, /lo calcula la tienda al pagar/);
     if (s.logo) assert.ok(row.includes('src="/' + s.logo + '"'), s.store + ": no logo");
