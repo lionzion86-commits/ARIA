@@ -366,3 +366,51 @@
 # parts on the server; the phone gets one page of cards and the counts.
 [functions."vehicle-fit"]
   included_files = ["assets/sections/departamento/_fn/auto_parts.json", "assets/sections/departamento/_fn/auto_parts.fitment.json"]
+
+# ARIA HOME SHIELD (#443, Danny 2026-11-05): the homeowner page, the
+# homeowner's case page, the pro dashboard and its admin. Pretty routes;
+# the hs-* functions are called at /.netlify/functions/hs-*. Pro and admin
+# pages are noindex. Uploaded documents never have a public URL: they
+# live in the private hs-docs Blobs store and leave it only through
+# hs-doc-get after a token or connected-pro check.
+[[redirects]]
+  from = "/home-shield"
+  to = "/home-shield/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/home-shield/caso"
+  to = "/home-shield/caso.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/home-shield/pro"
+  to = "/home-shield/pro/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/home-shield/admin"
+  to = "/home-shield/admin.html"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/home-shield/pro/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/home-shield/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+
+[[headers]]
+  for = "/home-shield/caso.html"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
