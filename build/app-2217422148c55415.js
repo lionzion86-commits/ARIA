@@ -30238,6 +30238,10 @@ function setOrbState(state){
   orbState = state;
   el.classList.toggle('is-thinking', state === 'thinking');
   el.classList.toggle('is-speaking', state === 'speaking');
+  /* THE STAR LISTENS (#443 c.6647694000, c.6648427324). assets/js/aria-star.js
+     turns this into her poses: speaking (the mouth, only while her audio
+     plays), thinking, listening. */
+  try { document.dispatchEvent(new CustomEvent('aria:state', { detail: { state: state } })); } catch (e) {}
 }
 
 /* ============================================================
@@ -30273,6 +30277,9 @@ function setOrbState(state){
      (2026-10-19, #417): on a slow phone it competed with the app itself
      for the first screen. The first blink waits for it. */
   function start(){
+    /* The plush star (#443 c.6647694000) brings its own blink, on its own
+       timer (assets/js/aria-star.js). Two timers on one frame would flicker. */
+    if (window.AriaStar && window.AriaStar.active) return;
     var go = function(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); };
     if (!blinkImg.getAttribute('src') && blinkImg.dataset.src){
       blinkImg.onload = go;
@@ -31862,6 +31869,7 @@ function showAssistantTyping(label){
   wrap.appendChild(el);
   el.querySelector('#assistantTypingLabel').textContent = label || 'Aria está escribiendo…';
   wrap.scrollTop = wrap.scrollHeight;
+  try { document.dispatchEvent(new CustomEvent('aria:typing', { detail: { on: true } })); } catch (e) {}
 }
 function setAssistantTypingLabel(label){
   const el = document.getElementById('assistantTypingLabel');
@@ -31870,7 +31878,10 @@ function setAssistantTypingLabel(label){
   if (wrap) wrap.scrollTop = wrap.scrollHeight;
 }
 function hideAssistantTyping(){
-  document.getElementById('assistantTyping')?.remove();
+  const el = document.getElementById('assistantTyping');
+  if (!el) return;
+  el.remove();
+  try { document.dispatchEvent(new CustomEvent('aria:typing', { detail: { on: false } })); } catch (e) {}
 }
 
 function sendAssistantText(){
@@ -33259,6 +33270,8 @@ function rememberShownProduct(item, retailer, card){
   ariaShown.push({ item, retailer, card, batch: ariaShownBatch });
   if (ariaShown.length > ARIA_SHOWN_MAX) ariaShown = ariaShown.slice(-ARIA_SHOWN_MAX);
   ariaCardsSinceReply.push(card);
+  /* Products landed: the star's happy beat (#443 c.6648427324). */
+  try { document.dispatchEvent(new CustomEvent('aria:results')); } catch (e) {}
 }
 /* F13: the cards shown for a reply go directly under it, and the view
    holds the reply's first line and the cards. Reading order is hers

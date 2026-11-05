@@ -345,6 +345,16 @@
   status = 404
   force = true
 
+# assets/aria-star/ (#443 c.6647694000): Lucifer's 1600px star masters
+# (~250-270 KB each), kept in the repo as the source the import resizes
+# from. No page references them -- every slot draws the small frames in
+# assets/aria/star/ -- and forced 404 here so a master is never served.
+[[redirects]]
+  from = "/assets/aria-star/*"
+  to = "/404"
+  status = 404
+  force = true
+
 [[redirects]]
   from = "/hidden-docs/*"
   to = "/404"

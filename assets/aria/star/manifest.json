@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "note": "Aria's plush star (#443 c.6647694000). Resized from Lucifer's delivered frames by scripts/import-aria-star.mjs; nothing drawn.",
+  "source": {
+    "open": {
+      "name": "aria-star-open.webp",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 259284
+    },
+    "blink": {
+      "name": "aria-star-blink.webp",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 269872
+    },
+    "talk1": {
+      "name": "aria-star-talk1.webp",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 249532
+    },
+    "talk2": {
+      "name": "aria-star-talk2.webp",
+      "width": 1600,
+      "height": 1600,
+      "bytes": 259580
+    }
+  },
+  "backend": "pil",
+  "base": "/assets/aria/star/",
+  "frames": {
+    "open": "star-open-240.eb7338f1.webp",
+    "blink": "star-blink-240.6bc48708.webp",
+    "talk1": "star-talk1-240.fd38a1e9.webp",
+    "talk2": "star-talk2-240.26be56f3.webp"
+  },
+  "favicon": {
+    "ico": "favicon.ico",
+    "png32": "favicon-32.png",
+    "png16": "favicon-16.png"
+  },
+  "slots": {
+    "launcher": {
+      "css": 80,
+      "frames": {
+        "open": "star-open-240.eb7338f1.webp",
+        "blink": "star-blink-240.6bc48708.webp",
+        "talk1": "star-talk1-240.fd38a1e9.webp",
+        "talk2": "star-talk2-240.26be56f3.webp"
+      }
+    },
+    "presence": {
+      "css": 64,
+      "frames": {
+        "open": "star-open-240.eb7338f1.webp",
+        "blink": "star-blink-240.6bc48708.webp",
+        "talk1": "star-talk1-240.fd38a1e9.webp",
+        "talk2": "star-talk2-240.26be56f3.webp"
+      }
+    },
+    "avatar": {
+      "css": 24,
+      "frames": {
+        "open": "star-open-240.eb7338f1.webp",
+        "blink": "star-blink-240.6bc48708.webp",
+        "talk1": "star-talk1-240.fd38a1e9.webp",
+        "talk2": "star-talk2-240.26be56f3.webp"
+      }
+    },
+    "loader": {
+      "css": 20,
+      "frames": {
+        "open": "star-open-240.eb7338f1.webp",
+        "blink": "star-blink-240.6bc48708.webp",
+        "talk1": "star-talk1-240.fd38a1e9.webp",
+        "talk2": "star-talk2-240.26be56f3.webp"
+      }
+    }
+  },
+  "limits": {
+    "maxFrameBytes": 40960,
+    "maxChatPx": 320
+  },
+  "files": [
+    {
+      "role": "screen",
+      "frame": "open",
+      "file": "star-open-240.eb7338f1.webp",
+      "width": 240,
+      "height": 240,
+      "bytes": 7382,
+      "quality": 90
+    },
+    {
+      "role": "screen",
+      "frame": "blink",
+      "file": "star-blink-240.6bc48708.webp",
+      "width": 240,
+      "height": 240,
+      "bytes": 7670,
+      "quality": 90
+    },
+    {
+      "role": "screen",
+      "frame": "talk1",
+      "file": "star-talk1-240.fd38a1e9.webp",
+      "width": 240,
+      "height": 240,
+      "bytes": 7788,
+      "quality": 90
+    },
+    {
+      "role": "screen",
+      "frame": "talk2",
+      "file": "star-talk2-240.26be56f3.webp",
+      "width": 240,
+      "height": 240,
+      "bytes": 7870,
+      "quality": 90
+    },
+    {
+      "role": "favicon",
+      "frame": "open",
+      "file": "favicon-16.png",
+      "width": 16,
+      "height": 16,
+      "bytes": 699
+    },
+    {
+      "role": "favicon",
+      "frame": "open",
+      "file": "favicon-32.png",
+      "width": 32,
+      "height": 32,
+      "bytes": 2152
+    },
+    {
+      "role": "favicon",
+      "frame": "open",
+      "file": "favicon-48.png",
+      "width": 48,
+      "height": 48,
+      "bytes": 4302
+    },
+    {
+      "role": "favicon",
+      "frame": "open",
+      "file": "favicon.ico",
+      "sizes": [
+        16,
+        32,
+        48
+      ],
+      "bytes": 7207
+    }
+  ],
+  "warnings": [
+    "a source frame has no alpha channel: the star will sit on its own background, not on the page"
+  ]
+}

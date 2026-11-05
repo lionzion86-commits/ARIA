@@ -174,10 +174,11 @@ await check("answers are edge-cached per (q, page, lane, off); the warm ping is 
 const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
-  /* ref.js, Aria's orb launcher (#386), the card UI scripts (card-grow,
-     card-photos: no data) and the one title rule (display-name.js, #443
-     c.6568696054: no data) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|display-name|assets\/js\/(aria-launcher|pixels|card-grow|card-photos))\.js$/.test(u));
+  /* ref.js, Aria's orb launcher (#386) and her plush star (aria-star.js,
+     #443 c.6647694000: no data, its manifest is inside it), the card UI
+     scripts (card-grow, card-photos: no data) and the one title rule
+     (display-name.js, #443 c.6568696054: no data) are the only scripts. */
+  const heavy = fetched.filter((u) => !/^\/?(ref|display-name|assets\/js\/(aria-launcher|aria-star|pixels|card-grow|card-photos))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
