@@ -19,13 +19,17 @@
    the items it sizes lose the flag and leave the list on the next build.
    ============================================================ */
 import { SIZES_PENDING } from "./sizes-pending-data.js";
+/* ...and every shoe whose store never gave us its sizes (#443
+   c.6635781472): scripts/build-pdp-slices.mjs writes this list beside
+   the product records it flags. */
+import { SHOES_SIZES_PENDING } from "./sizes-pending-shoes-data.js";
 
 export const SIZES_PENDING_NOTE = "Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.";
 
 export const sizesPendingKey = (retailer, title) =>
   String(retailer || "").toLowerCase().trim() + "::" + String(title || "").toLowerCase().replace(/\s+/g, " ").trim();
 
-const SET = new Set(SIZES_PENDING);
+const SET = new Set([...SIZES_PENDING, ...SHOES_SIZES_PENDING]);
 
 export function isSizesPending(retailer, title) {
   return SET.has(sizesPendingKey(retailer, title));

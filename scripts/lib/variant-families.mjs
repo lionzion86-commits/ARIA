@@ -39,6 +39,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { variantIdOf, groupIdOf, colourSuffix, midColour } from "./variants.mjs";
+import { isShoeForDept } from "./footwear.js";
 
 export const FAMILIES_DIR = "scripts/data/variant-families";
 
@@ -703,7 +704,15 @@ export function applyFamilies(listings, families, all = null) {
         images: Array.isArray(m.images) && m.images.length ? m.images.slice(0, 12) : gallery && gallery.length ? gallery : [image], dept: anchor.dept || "",
         __family: fam.source || fam.key };
       if (m.wasPrice > price) x.wasPrice = m.wasPrice;
-      if (Array.isArray(m.sizes) && m.sizes.length) x.sizes = m.sizes.slice();
+      if (Array.isArray(m.sizes) && m.sizes.length) {
+        x.sizes = m.sizes.slice();
+        /* A shoe's colour carries the rest of its run, sold out at the
+           store (parseShopifyFamilies soldOutOf): shown agotada, never sold. */
+        if (Array.isArray(m.sizesOut) && m.sizesOut.length && isShoeForDept(anchor, anchor.retailer)) {
+          const out = m.sizesOut.filter((z) => typeof z === "string" && !x.sizes.includes(z));
+          if (out.length) x.sizesOut = out;
+        }
+      }
       /* A product sold by size never sells without one: no size list of
          its own, sizes por confirmar. */
       else if (m.sizesPending || (Array.isArray(anchor.sizes) && anchor.sizes.length) || anchor.sizesPending) x.sizesPending = true;
@@ -918,11 +927,18 @@ function shopifyUrl(p, base) {
   if (p.handle && base) return String(base).replace(/\/+$/, "") + "/products/" + p.handle;
   return "";
 }
+/* The rest of a colour's run, sold out at the store (#443 c.6633182280):
+   its sizes whose every variant says available:false. They ride as the
+   member's `sizesOut` -- shown agotada on a shoe's page, never sold. */
+function soldOutOf(m, vs, sizeOf) {
+  const out = [...new Set(vs.filter((v) => v.available === false).map(sizeOf).filter(Boolean))].filter((s) => !m.sizes.includes(s));
+  if (out.length && m.sizes.length) m.sizesOut = out;
+}
 function shopifyImage(x) { return httpUrl(typeof x === "string" ? x : x && (x.src || x.url)); }
 export function parseShopifyFamilies(products, opts = {}) {
   const retailer = String(opts.retailer || "").toLowerCase();
-  const stats = { products: 0, inRecord: 0, siblingFamilies: 0, single: 0, members: 0, awaitingDetail: 0 };
-  const families = [], singles = [];
+  const stats = { products: 0, inRecord: 0, siblingFamilies: 0, single: 0, members: 0, awaitingDetail: 0, sizeRuns: 0 };
+  const families = [], singles = [], sizeRuns = [];
   for (const p of products || []) {
     if (!p || typeof p !== "object") continue;
     stats.products++;
@@ -936,6 +952,7 @@ export function parseShopifyFamilies(products, opts = {}) {
     const brand = String(p.vendor || p.brand || "").trim();
     const optOf = (v, i) => (i < 0 ? "" : String(v["option" + (i + 1)] ?? (Array.isArray(v.options) ? v.options[i] : "") ?? "").trim());
     const colours = [...new Set(variants.map((v) => optOf(v, ci)).filter(Boolean))];
+    sizeRuns.push(...shopifySizeRuns(p, variants, ci, si, colours, optOf));
     let m0images = null;
     if (ci >= 0 && colours.length > 1) {
       const members = [];
@@ -965,7 +982,7 @@ export function parseShopifyFamilies(products, opts = {}) {
         if (image) { m.image = image; m.images = m0images && m0images.length ? m0images.slice(0, 12) : [image]; }
         m0images = null;
         m.available = live.length > 0;
-        if (si >= 0) m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))];
+        if (si >= 0) { m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))]; soldOutOf(m, vs, (v) => optOf(v, si)); }
         if (!(m.price > 0 && m.image)) stats.awaitingDetail++;
         members.push(m);
       });
@@ -989,7 +1006,7 @@ export function parseShopifyFamilies(products, opts = {}) {
     if (p.handle) m.handle = String(p.handle);
     if (prices.length) m.price = Math.min(...prices);
     if (imgs.length) { m.image = imgs[0]; m.images = imgs; }
-    if (si >= 0) m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))];
+    if (si >= 0) { m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))]; soldOutOf(m, variants, (v) => optOf(v, si)); }
     singles.push({ key: low(brand) + "|" + low(model), m });
   }
   const byModel = new Map();
@@ -1000,7 +1017,81 @@ export function parseShopifyFamilies(products, opts = {}) {
     stats.siblingFamilies++; stats.members += ms.length;
     stats.awaitingDetail += ms.filter((m) => !(m.price > 0 && m.image)).length;
   }
-  return { families, stats };
+  stats.sizeRuns = sizeRuns.length;
+  return { families, stats, sizeRuns };
+}
+/* THE STORE'S OWN SIZE RUN, FOR EVERY PRODUCT (#443 c.6644778221, the
+   per-store size accounting). The colourway pass above keeps a product
+   only when it has two colours or a sibling colourway: a boot sold in one
+   colour was dropped whole, and with it the size run its own feed lists
+   (Silvia Tcherassi "Mele Heels": Size 36-41 in options and variants;
+   Farm Rio, Johanna Ortiz, PatBO, ViX, Montce the same) -- so the shoe
+   showed «Tallas por confirmar» although the pull had its sizes. A
+   colour family's catalogue listing never took its colour's run either.
+   Every product with a size axis now hands its run over by handle: one
+   run, or one per colour (with that colour's variant ids, so a listing
+   ".../products/x?variant=<id>" takes its own colour's run and a
+   multi-colour listing with no variant id takes none). In stock: the
+   sizes whose variant says available; the sold-out rest rides as
+   sizesOut (agotada, never sold). A run with no size in stock is not
+   handed over: it is not a run anyone can buy, and an empty list must
+   never sell plainly. The store's own values only, never inferred. */
+function shopifySizeRuns(p, variants, ci, si, colours, optOf) {
+  const h = String(p.handle || "").trim().toLowerCase();
+  if (si < 0 || !h || !variants.length) return [];
+  const runOf = (vs) => {
+    const sizes = [...new Set(vs.filter((v) => v.available !== false).map((v) => optOf(v, si)).filter(Boolean))];
+    if (!sizes.length) return null;
+    const out = [...new Set(vs.filter((v) => v.available === false).map((v) => optOf(v, si)).filter(Boolean))].filter((z) => !sizes.includes(z));
+    const run = { h, sizes };
+    if (out.length) run.sizesOut = out;
+    return run;
+  };
+  if (ci >= 0 && colours.length > 1) {
+    return colours.map((c) => {
+      const vs = variants.filter((v) => optOf(v, ci) === c);
+      const run = runOf(vs);
+      if (!run) return null;
+      run.c = c;
+      run.ids = vs.map((v) => String(v.id || "")).filter(Boolean);
+      return run;
+    }).filter(Boolean);
+  }
+  const run = runOf(variants);
+  return run ? [run] : [];
+}
+/* The runs a catalogue listing can take (scripts/build-pdp-slices.mjs):
+   by store and handle, as ingest-variant-pulls.mjs keeps them. */
+export function loadSizeRuns(root) {
+  const dir = join(root, FAMILIES_DIR);
+  const out = new Map();
+  if (!existsSync(dir)) return out;
+  for (const f of readdirSync(dir).filter((x) => /\.json$/.test(x)).sort()) {
+    const j = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    if (!j || !Array.isArray(j.sizeRuns)) continue;
+    const store = f.replace(/\.json$/, "").toLowerCase();
+    for (const r of j.sizeRuns) {
+      const k = store + "|" + r.h;
+      if (!out.has(k)) out.set(k, []);
+      out.get(k).push({ ...r, source: FAMILIES_DIR + "/" + f });
+    }
+  }
+  return out;
+}
+/* The one run a listing takes: its store's product by handle; for a
+   product sold in several colours, only the colour its own ?variant=
+   names. Nothing else matches -- no title, no sibling, no guess. */
+export function sizeRunFor(runs, retailer, url) {
+  const u = String(url || "");
+  const h = /\/products\/([^\/?#]+)/i.exec(u);
+  if (!h || !runs) return null;
+  const list = runs.get(String(retailer || "").toLowerCase() + "|" + decodeURIComponent(h[1]).toLowerCase());
+  if (!list || !list.length) return null;
+  const plain = list.filter((r) => !r.c);
+  if (plain.length === 1 && list.length === 1) return plain[0];
+  const vid = (/[?&]variant=(\d+)/.exec(u) || [])[1];
+  if (!vid) return null;
+  return list.find((r) => Array.isArray(r.ids) && r.ids.includes(vid)) || null;
 }
 /* The title rule's own colour split (variants.mjs colourSuffix). */
 const colourSuffixOf = (t) => colourSuffix(t);

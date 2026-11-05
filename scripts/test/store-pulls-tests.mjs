@@ -16,10 +16,11 @@ import http from "node:http";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaHerrera, chDept, applySnipesPass } from "../lib/store-pull-normalize.js";
+import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaHerrera, chDept, applySnipesPass, applyStoreRuns, shopifySizeRun, shopifyRunIndex, setSizeRun } from "../lib/store-pull-normalize.js";
 import { isSizesPending, sizesPendingLines, sizesPendingKey } from "../lib/sizes-pending.js";
 import { SIZES_PENDING } from "../lib/sizes-pending-data.js";
 import { RETAILERS } from "../lib/retailers.js";
+import { parseShopifyFamilies, sizeRunFor } from "../lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const read = (f) => readFileSync(join(ROOT, f), "utf8");
@@ -116,6 +117,124 @@ await check("the SNIPES pass: in-stock sizes are sold, the rest of the store's r
   assert.equal(report.left["every size out of stock"], 1);
 });
 
+/* EVERY SHOE STORE'S WHOLE RUN (#443 c.6633182280). A Shopify store's
+   own products.json lists every variant with its `available` flag: our
+   sizes sell only where the store has stock, the store's sold-out sizes
+   ride as `sizesOut`, nothing widened, nothing made up. */
+await check("the store-run rule on a Shopify feed: in-stock sizes sold, the store's sold-out sizes shown apart, nothing invented", () => {
+  const v = (size, available, colour = "Black") => ({ option1: size, option2: colour, available });
+  const feed = [
+    { handle: "clog", options: [{ name: "Size" }, { name: "Color" }], variants: [v("W5", false), v("W6", false), v("W7", true), v("W7", false, "Red"), v("W8", false, "Red"), v("W8", false), v("W9", true, "Red")] },
+    { handle: "slide", options: [{ name: "Size" }], variants: [{ option1: "M8", available: false }] },
+    { handle: "full", options: [{ name: "Talla" }], variants: [{ option1: "38", available: true }, { option1: "39", available: true }] },
+    { handle: "nosize", options: [{ name: "Color" }], variants: [{ option1: "Black", available: true }] },
+    { handle: "plain", options: [{ name: "Size" }], variants: [{ option1: "S", available: true }] },
+  ];
+  assert.deepEqual(shopifySizeRun(feed[0]), { run: ["W5", "W6", "W7", "W8", "W9"], inStock: ["W7", "W9"], soldOut: ["W5", "W6", "W8"] }, "a size in stock in any colour is in stock");
+  assert.equal(shopifySizeRun(feed[3]), null, "a product with no size option has no run");
+  const u = (h) => "https://www.store.test/products/" + h + "?variant=1";
+  const items = [
+    { name: "Clog", url: u("clog"), sizes: ["W5", "W6", "W7", "W8"], availableSizes: ["W5", "W6", "W7", "W8"] },
+    { name: "Slide", url: u("slide"), sizes: ["M8"] },
+    { name: "Full", url: u("full"), sizes: ["38", "39"] },
+    { name: "Plain", url: u("plain") },
+    { name: "Gone", url: u("gone"), sizes: ["10"] },
+  ];
+  const { report, allSoldOut } = applyStoreRuns(items, shopifyRunIndex(feed));
+  const [clog, slide, full, plain, gone] = items;
+  assert.deepEqual(clog.sizes, ["W7"], "only the in-stock size is sold; W9 (in stock, never ours) is not added");
+  assert.deepEqual(clog.availableSizes, ["W7"]);
+  assert.deepEqual(clog.sizesOut, ["W5", "W6", "W8"], "the store's sold-out sizes, in its order");
+  assert.deepEqual(slide.sizes, ["M8"], "every size sold out at the store: left as it was");
+  assert.equal(slide.sizesOut, undefined);
+  assert.deepEqual(allSoldOut.map((i) => i.name), ["Slide"]);
+  assert.deepEqual(full.sizes, ["38", "39"]);
+  assert.equal(full.sizesOut, undefined, "a run all in stock has nothing sold out");
+  assert.equal(plain.sizes, undefined, "no size list: none made up");
+  assert.deepEqual(gone.sizes, ["10"], "not in the store's feed: unchanged");
+  assert.equal(report.noRun, 1);
+  assert.equal(report.soldOutRun, 1);
+  /* Run twice, same result. */
+  applyStoreRuns(items, shopifyRunIndex(feed));
+  assert.deepEqual([clog.sizes, clog.sizesOut], [["W7"], ["W5", "W6", "W8"]]);
+  /* The rule SNIPES shares: never a size both sold and sold out. */
+  const it = {};
+  assert.equal(setSizeRun(it, ["9"], ["8", "9", "10", "", 3]), 2);
+  assert.deepEqual([it.sizes, it.sizesOut], [["9"], ["8", "10"]]);
+});
+
+await check("a shoe's colours carry their own sold-out sizes from the store's feed (variant families), never a size in stock", () => {
+  const img = (n) => "https://cdn.shopify.com/s/files/1/0000/0001/files/" + n + ".jpg";
+  const { families } = parseShopifyFamilies([{ id: 1, handle: "clog", title: "Boston Clog", vendor: "Birkenstock", options: [{ name: "Size" }, { name: "Color" }],
+    images: [img("a")], variants: [
+      { id: 11, option1: "W6", option2: "Black", available: true, price: "60", featured_image: { src: img("a") } },
+      { id: 12, option1: "W7", option2: "Black", available: false, price: "60" },
+      { id: 13, option1: "W6", option2: "Red", available: false, price: "60", featured_image: { src: img("b") } },
+      { id: 14, option1: "W7", option2: "Red", available: false, price: "60" },
+    ] }], { retailer: "islandwatersports", baseUrl: "https://www.islandwatersports.com" });
+  const [black, red] = families[0].members;
+  assert.deepEqual([black.sizes, black.sizesOut], [["W6"], ["W7"]]);
+  assert.deepEqual(red.sizes, []);
+  assert.equal(red.sizesOut, undefined, "a colour with nothing in stock carries no run to sell around");
+});
+
+/* #443 c.6644778221 (the per-store size accounting): a boot sold in one
+   colour was dropped whole by the colourway pass, and its own feed's size
+   run with it -- «Tallas por confirmar» on a shoe whose sizes we held. */
+await check("a one-colour shoe in the store's feed hands its own size run over by handle; a multi-colour one only by its ?variant=", () => {
+  const { sizeRuns } = parseShopifyFamilies([
+    { id: 1, handle: "mele-heels-terracota", title: "Mele Heels", vendor: "Silvia Tcherassi", options: [{ name: "Size" }, { name: "Color" }],
+      variants: [{ id: 101, option1: "36", option2: "Terracota", available: true }, { id: 102, option1: "36.5", option2: "Terracota", available: false },
+        { id: 103, option1: "37", option2: "Terracota", available: true }] },
+    { id: 2, handle: "boot", title: "Boot", options: [{ name: "Color" }, { name: "Size" }],
+      variants: [{ id: 201, option1: "Black", option2: "6", available: true }, { id: 202, option1: "Brown", option2: "7", available: true }, { id: 203, option1: "Brown", option2: "8", available: false }] },
+    { id: 3, handle: "gone", title: "Gone Sandal", options: [{ name: "Size" }], variants: [{ id: 301, option1: "6", available: false }] },
+    { id: 4, handle: "flip", title: "Flip", options: [{ name: "Title" }], variants: [{ id: 401, option1: "Default Title", available: true }] },
+  ], { retailer: "silviatcherassi" });
+  const runs = new Map();
+  for (const r of sizeRuns) { const k = "silviatcherassi|" + r.h; if (!runs.has(k)) runs.set(k, []); runs.get(k).push(r); }
+  const mele = sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/mele-heels-terracota");
+  assert.deepEqual([mele.sizes, mele.sizesOut], [["36", "37"], ["36.5"]]);
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot"), null, "a multi-colour product without ?variant= takes no colour's run");
+  assert.deepEqual(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot?variant=203").sizes, ["7"]);
+  assert.deepEqual(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot?variant=203").sizesOut, ["8"]);
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/gone"), null, "every size sold out: no run that could sell sizeless");
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/flip"), null, "no size axis: no run");
+  assert.equal(sizeRunFor(runs, "farmrio", "https://silviatcherassi.com/products/mele-heels-terracota"), null, "another store's handle is never this store's run");
+});
+await check("the committed product records: every Shopify shoe store's shoe that its own feed sizes is sized, and only with the feed's in-stock sizes", async () => {
+  const { liftPage, buildRecords } = await import("../build-pdp-slices.mjs");
+  const { loadSizeRuns } = await import("../lib/variant-families.mjs");
+  const runs = loadSizeRuns(ROOT);
+  const P = liftPage(ROOT);
+  const { byKey, shoes } = buildRecords(P, ROOT);
+  let fed = 0;
+  for (const cands of byKey.values()) for (const { rec } of cands) {
+    if (!String(rec.sizesSource || "").startsWith("scripts/data/variant-families/")) continue;
+    const run = sizeRunFor(runs, rec.retailer, rec.url);
+    assert.ok(run, rec.name + ": a feed run with no feed product behind it");
+    assert.equal(JSON.stringify(rec.sizes), JSON.stringify(P.truthfulSizes(run.sizes)), rec.name + ": sizes other than the feed's in-stock run");
+    assert.ok(!rec.sizesPending, rec.name + ": sized and still «Tallas por confirmar»");
+    fed++;
+  }
+  assert.ok(fed >= 77, "the feed runs went missing (" + fed + ")");
+  const sts = (n) => [...shoes.values()].find((s) => s.retailer === "silviatcherassi" && s.name === n);
+  assert.ok(sts("Mele Heels") && sts("Mele Heels").sized, "Silvia Tcherassi Mele Heels is «Tallas por confirmar» again");
+});
+await check("the app's product view takes the card's own listing among a title's records (its photo), so a colour shows its own run", async () => {
+  const { liftDeclarations } = await import("../lib/page-lift.mjs");
+  const bundle = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(read("index.html"))[1];
+  const { ownSizeRecord } = liftDeclarations(read("build/" + bundle), ["ownSizeRecord"]);
+  const cands = [
+    { retailer: "johannaortiz", image: "https://cdn.shopify.com/a/camel.jpg?v=1", sizes: ["37", "38"] },
+    { retailer: "johannaortiz", image: "https://cdn.shopify.com/a/black.jpg?v=2", sizes: ["36", "41"] },
+    { retailer: "farmrio", image: "https://cdn.shopify.com/a/black.jpg?v=2", sizes: ["5"] },
+  ];
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "https://cdn.shopify.com/a/black.jpg?v=9").sizes, ["36", "41"]);
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "https://img.test/other.jpg").sizes, ["37", "38"], "no photo match: the first, as before");
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "").sizes, ["37", "38"]);
+  assert.equal(ownSizeRecord(cands, "zumiez", "https://cdn.shopify.com/a/black.jpg"), undefined, "another store's record is never this one's");
+});
 const cat = (k) => Object.values(JSON.parse(read(k + "-catalog.json")).retailers[k].departments).flatMap((d) => d.items);
 await check("the committed SNIPES catalogue: the Air DT Max '96 sells its one in-stock size and shows the other 12 sold out (the store's own run)", () => {
   const items = cat("snipes");
@@ -132,6 +251,37 @@ await check("the committed SNIPES catalogue: the Air DT Max '96 sells its one in
     assert.ok(it.sizesOut.every((x) => typeof x === "string" && x.trim() && !it.sizes.includes(x)), it.name + ": a size both in stock and sold out");
   }
   assert.ok(items.filter((i) => i.sizesOut).length > 2000, "the sold-out runs went missing");
+});
+/* The Shopify shoe stores' committed catalogues against their own
+   2026-11-01 feeds: every size we sell is in stock there, every size
+   shown agotada is one the store marks available:false. */
+const SHOPIFY_RUNS = ["ccs", "islandwatersports", "mainland", "surfstation", "valsurf"];
+const feedOf = (k) => JSON.parse(read("data/colorways-2026-11-01/dataset-" + k + ".json"));
+await check("every Shopify shoe store: sizes sold are in stock at the store, sizes shown agotada are its own sold-out sizes (products.json 2026-11-01)", () => {
+  let out = 0;
+  for (const k of SHOPIFY_RUNS) {
+    const runOf = shopifyRunIndex(feedOf(k));
+    let n = 0;
+    for (const it of cat(k)) {
+      if (!it.sizesOut) continue;
+      n++;
+      const r = runOf(it);
+      assert.ok(r, k + " " + it.name + ": sold-out sizes with no store data behind them");
+      assert.ok(Array.isArray(it.sizes) && it.sizes.length, k + " " + it.name + ": sold-out sizes and none in stock");
+      assert.ok(it.sizes.every((s) => r.inStock.includes(s)), k + " " + it.name + ": a size sold that the store has sold out");
+      assert.ok(it.sizesOut.every((s) => r.soldOut.includes(s) && !it.sizes.includes(s)), k + " " + it.name + ": a size shown agotada that the store does not mark sold out");
+    }
+    assert.ok(n > 0, k + ": no sold-out run carried");
+    out += n;
+  }
+  assert.ok(out > 1200, "the stores' sold-out runs went missing: " + out);
+  /* Island Water Sports' Birkenstock Boston Active EVA Womens Clog: six
+     sizes in the store's run, only Women's 9 in stock. */
+  const b = cat("islandwatersports").find((i) => i.name === "Birkenstock Boston Active EVA Womens Clog");
+  assert.deepEqual(b.sizes, ["Women's 9"]);
+  assert.deepEqual([...b.sizesOut].sort(), ["Women's 10", "Women's 5", "Women's 6", "Women's 7", "Women's 8"]);
+  const rep = JSON.parse(read("reports/store-runs-2026-11-01.json"));
+  assert.deepEqual(Object.keys(rep.stores).sort(), [...SHOPIFY_RUNS, "quietstorm"].sort());
 });
 await check("the committed catalogues: real photos, prices, estimated weights, Spanish only, sizes never invented", () => {
   for (const k of ["snipes", "carolinaherrera"]) {
@@ -285,6 +435,76 @@ await check("the product page: a SNIPES shoe with one size in stock lists the st
   assert.equal(cart.length, 1);
   assert.equal(cart[0].selectedSize || cart[0].size, "M9/W10.5");
   if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-sold-out-run.png", fullPage: false });
+  await ctx.close();
+});
+
+const BIRK = "Birkenstock Boston Active EVA Womens Clog";
+const SOLD_OUT_NOTE = "1 de 6 tallas disponible en la tienda; las demás están agotadas.";
+await check("the product page: an Island Water Sports shoe with one size in stock lists the store's whole run, sells only that size", async () => {
+  const b = cat("islandwatersports").find((i) => i.name === BIRK);
+  const { pg, ctx } = await pdp(b);
+  await pg.waitForSelector("#size-select");
+  const s = await pg.evaluate(() => ({
+    all: [...document.querySelectorAll("#size-select option")].slice(1).map((o) => ({ t: o.textContent, v: o.value, off: o.disabled })),
+    note: (document.querySelector("#size-out-note") || {}).textContent || "" }));
+  assert.equal(s.all.length, 6, "the store's 6 sizes");
+  assert.deepEqual(s.all.filter((o) => !o.off).map((o) => o.v), ["Women's 9"]);
+  assert.ok(s.all.filter((o) => o.off).every((o) => o.v === "" && / \(agotada\)$/.test(o.t)), "a sold-out size is selectable");
+  assert.equal(s.note, SOLD_OUT_NOTE);
+  if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + "-pdp-iws-run.png", fullPage: false });
+  await ctx.close();
+});
+
+/* THE APP'S OWN PRODUCT VIEW (index.html, build/app-<sha16>.js). Card
+   taps on index.html go to producto.html (its showProduct override);
+   the bundle's own view is still a door and says the same thing: the
+   whole run, the sold-out sizes disabled and marked agotada, the same
+   note -- and a sold-out size can never reach the cart. The bundle's
+   showProduct is caught before index.html replaces it. */
+await check("the app's product view: the store's whole run, sold-out sizes agotada and unselectable, only the in-stock size reaches the cart", async () => {
+  const b = cat("islandwatersports").find((i) => i.name === BIRK);
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const pg = await ctx.newPage();
+  await pg.addInitScript(() => { document.addEventListener("DOMContentLoaded", () => { window.__appShowProduct = window.showProduct; }); });
+  await pg.route((url) => url.host !== new URL(BASE).host, (r) => r.request().resourceType() === "image" ? r.fulfill({ status: 200, contentType: "image/jpeg", body: readFileSync(join(ROOT, "assets/sections/tiendas-mall-row.jpg")) }) : r.abort());
+  await pg.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await pg.waitForFunction(() => typeof window.__appShowProduct === "function" && typeof addToCartFromProduct === "function", null, { timeout: 30000 });
+  await pg.evaluate((b) => window.__appShowProduct(b.retailer, b.name, 120, 0.6, b.image, b.sizes.slice()), b);
+  await pg.waitForSelector("#productSizeSelect option[data-agotada]", { state: "attached", timeout: 60000 });
+  const read1 = () => pg.evaluate(() => ({
+    all: [...document.querySelectorAll("#productSizeSelect option")].slice(1).map((o) => ({ t: o.textContent, v: o.value, off: o.disabled })),
+    note: document.getElementById("productSizeNote").textContent, list: pendingProduct.sizeList }));
+  const s = await read1();
+  assert.equal(s.all.length, 6, "the store's 6 sizes: " + JSON.stringify(s.all));
+  assert.deepEqual(s.all.filter((o) => !o.off).map((o) => o.v), ["Women's 9"]);
+  assert.ok(s.all.filter((o) => o.off).every((o) => o.v === "" && / \(agotada\)$/.test(o.t)), "a sold-out size has a value or no agotada mark");
+  assert.deepEqual(s.list, ["Women's 9"], "the list the cart checks holds a sold-out size");
+  assert.equal(s.note, SOLD_OUT_NOTE);
+  /* A shopper cannot pick a disabled option; even forced, it carries no size. */
+  await assert.rejects(pg.selectOption("#productSizeSelect", { label: "WOMEN'S 5 (agotada)" }, { timeout: 2000 }));
+  const forced = await pg.evaluate(async () => {
+    const sel = document.getElementById("productSizeSelect");
+    sel.selectedIndex = [...sel.options].findIndex((o) => o.dataset.agotada);
+    const v = sel.value;
+    await addToCartFromProduct();
+    return { v, cart: JSON.parse(localStorage.getItem("aria_cart_v1") || "[]") };
+  });
+  assert.equal(forced.v, "");
+  assert.equal(forced.cart.length, 0, "a sold-out size reached the cart");
+  if (process.env.SHOT) {
+    await pg.evaluate(() => document.getElementById("productSizeSelect").scrollIntoView({ block: "center" }));
+    await pg.screenshot({ path: process.env.SHOT + "-app-view-run.png" });
+    await pg.evaluate(() => { const sel = document.getElementById("productSizeSelect"); sel.size = sel.options.length; sel.style.height = "auto"; sel.scrollIntoView({ block: "start" }); window.scrollBy(0, -120); });
+    await pg.screenshot({ path: process.env.SHOT + "-app-view-run-open.png" });
+    await pg.evaluate(() => { const sel = document.getElementById("productSizeSelect"); sel.size = 0; sel.style.height = ""; });
+  }
+  await pg.selectOption("#productSizeSelect", "Women's 9");
+  await pg.evaluate(() => addToCartFromProduct());
+  const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
+  assert.equal(cart.length, 1);
+  assert.equal(cart[0].selectedSize, "Women's 9");
+  assert.deepEqual(cart[0].sizeOptions, ["Women's 9"], "the cart line offers a sold-out size");
+  assert.ok(!JSON.stringify(cart[0]).includes("Women's 5"), "a sold-out size rides the cart line");
   await ctx.close();
 });
 

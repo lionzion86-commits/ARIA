@@ -93,8 +93,16 @@ await check("no invented size list exists anywhere a shopper can reach", () => {
 await check("the RECORD decides (#411 P0): a size list means no cart without a size; no list sells plainly", () => {
   /* Every door: the funnel, the product view, the cross-sell rail, the chat, producto.html. */
   const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "");
-  assert.doesNotMatch(code(bundle), /apparelNeedsSize|setProductSizesUnconfirmed|Tallas por confirmar/, "the bundle still gates on title words");
-  assert.doesNotMatch(code(pdp), /apparelNeedsSize|Tallas por confirmar/, "producto.html still gates on title words");
+  assert.doesNotMatch(code(bundle), /apparelNeedsSize|setProductSizesUnconfirmed/, "the bundle still gates on title words");
+  assert.doesNotMatch(code(pdp), /apparelNeedsSize/, "producto.html still gates on title words");
+  /* «Tallas por confirmar» is the RECORD's word too, never a title's: a
+     record marked sizesPending with no size list of its own (the pulls'
+     items, and every shoe whose store never gave us sizes: #443
+     c.6635781472). One place in each, behind that flag. */
+  assert.equal(code(bundle).split("Tallas por confirmar").length - 1, 1, "the bundle says «Tallas por confirmar» outside its sizes-pending gate");
+  assert.match(bundle, /function markSizesPending\(p\)\{\r?\n  if \(!p \|\| \(Array\.isArray\(p\.sizes\) && p\.sizes\.length\)/, "the bundle's «Tallas por confirmar» is not the record's sizes-pending state");
+  assert.equal(code(pdp).split("Tallas por confirmar").length - 1, 1, "producto.html says «Tallas por confirmar» outside its sizes-pending gate");
+  assert.match(pdp, /if \(p\.sizesPending && !truthfulSizes\(p\.sizes\)\.length\)\{\n    box\.innerHTML = '<button id="add-cart-btn"[^\n]*>Tallas por confirmar<\/button>'/, "producto.html's «Tallas por confirmar» is not the record's sizes-pending state");
   assert.match(bundle, /const sizeList = truthfulSizes\(Array\.isArray\(item\.sizeOptions\) && item\.sizeOptions\.length \? item\.sizeOptions : item\.sizes\);\n    const chosen = String\(item\.selectedSize \|\| ''\)\.trim\(\);\n    if \(sizeList\.length && \(!chosen \|\| !sizeList\.includes\(chosen\)\)\)\{/, "addToCart lets a sized line in without its size");
   assert.match(bundle, /if \(truthfulSizes\(it\.sizes\)\.length\)\{ openCrossSellProduct\(idx\); return; \}/, "the cross-sell rail adds a sized product with no size");
   assert.match(bundle, /function chatSizeOptions\(entry\)\{\n  return truthfulSizes\(entry\.item\.sizes\)\.slice\(0, 24\);\n\}/, "the chat offers sizes that are not the store's");

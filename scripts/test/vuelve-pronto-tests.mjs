@@ -116,7 +116,11 @@ await check("the words: «Vuelve pronto», Spanish, no «Próximamente», no «a
   assert.equal(api.PRIVACY, "Solo te escribimos para avisarte que volvió.");
   assert.ok(!/pr[oó]ximamente|agotad/i.test(src.replace(/\/\*[\s\S]*?\*\//g, "")), "said to the shopper in /vuelve-pronto.js");
   const pdp = readFileSync(ROOT + "producto.html", "utf8");
-  assert.ok(!/agotad/i.test(pdp.replace(/\/\*[\s\S]*?\*\//g, "")), "a shopper-visible «agotado» left on the product page");
+  /* A SIZE the store has sold out is named so in its run (#654/#661, Danny's
+     order: «(agotada)» on the disabled option, and the run's note); a
+     PRODUCT never is -- it is «Vuelve pronto». */
+  const sizeRun = (src) => src.replace(/'la otra está agotada\.' : 'las demás están agotadas\.'/, "").replace(/' \(agotada\)<\/option>'/, "").replace(/data-agotada="1"/, "");
+  assert.ok(!/agotad/i.test(sizeRun(pdp.replace(/\/\*[\s\S]*?\*\//g, ""))), "a shopper-visible «agotado» left on the product page");
   assert.ok(!/Agotado en la tienda/.test(pdp));
   assert.match(pdp, /<em>Vuelve pronto<\/em>/);
   assert.match(pdp, />Vuelve pronto<\/button>/);

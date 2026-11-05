@@ -251,24 +251,108 @@ export function applySnipesPass(departments, passRows) {
       it.onSale = false;
       if (was > it.price) { it.originalPrice = money(was); it.onSale = true; report.onSale++; }
       if (inStock.length) {
-        it.sizes = inStock;
         it.sizeSource = "snipes-pdp";
         delete it.sizesPending;
         report.sized++;
-        /* THE REST OF THE STORE'S RUN (#443, Danny's QA on #648: "shoes
-           that only have one size"). The page lists every size button;
-           the disabled ones are sold out at SNIPES. They ride as
-           `sizesOut` so the product page can show the whole run with
-           those sizes marked agotada -- never in `sizes`, so nothing can
-           sell them. */
-        const inSet = new Set(inStock);
-        const out = run.filter((s) => !inSet.has(s));
-        if (out.length) { it.sizesOut = out; report.soldOutSizes++; }
-        else delete it.sizesOut;
+        /* The page lists every size button; the disabled ones are sold
+           out at SNIPES (setSizeRun below). */
+        if (setSizeRun(it, inStock, run)) report.soldOutSizes++;
       } else if (it.sizesPending) report.stillPending++;
       return true;
     });
   }
   for (const k of Object.keys(departments)) if (!departments[k].items.length) delete departments[k];
   return report;
+}
+
+/* ============================================================
+   THE STORE'S WHOLE SIZE RUN (#443 c.6633182280, after Danny's QA on
+   #648: "we're showing shoes that only have one size"). One rule for
+   every store whose own data says which sizes are sold out:
+     - `sizes` is what we sell: only sizes the store has in stock;
+     - `sizesOut` is the rest of the store's own run, sold out there.
+       The product pages show them in the run, disabled and marked
+       agotada; nothing reads them to sell (the cart, the checkout and
+       the order endpoint only ever see `sizes`).
+   Never a size the store did not list. A size both in stock and sold
+   out is in stock. Returns how many sizes are sold out.
+   ============================================================ */
+export function setSizeRun(it, inStock, soldOut) {
+  const inSet = new Set(inStock);
+  it.sizes = inStock;
+  const out = [...new Set(soldOut || [])].filter((s) => typeof s === "string" && s.trim() && !inSet.has(s));
+  if (out.length) it.sizesOut = out;
+  else delete it.sizesOut;
+  return out.length;
+}
+
+/* A Shopify store's products.json (the feeds the catalogues were built
+   from; the 2026-11-01 pulls in data/colorways-2026-11-01): every
+   variant is listed, each with the store's own `available` flag. The
+   run is the size option's values in the store's order; a size is in
+   stock when any of its variants is available (any colour), sold out
+   when every one of its variants says available:false. A product with
+   no size option has no run. */
+const RUN_SIZE_AXIS = /\b(size|talla)\b/i;
+export function shopifySizeRun(p) {
+  const options = Array.isArray(p && p.options) ? p.options : [];
+  const si = options.findIndex((o) => RUN_SIZE_AXIS.test(String((o && (o.name || o)) || "")));
+  const variants = Array.isArray(p && p.variants) ? p.variants : [];
+  if (si < 0 || !variants.length) return null;
+  const val = (v) => String(v["option" + (si + 1)] ?? (Array.isArray(v.options) ? v.options[si] : "") ?? "").trim();
+  const run = [], live = new Set();
+  for (const v of variants) {
+    const s = val(v);
+    if (!s) continue;
+    if (!run.includes(s)) run.push(s);
+    if (v.available !== false) live.add(s);
+  }
+  if (!run.length) return null;
+  return { run, inStock: run.filter((s) => live.has(s)), soldOut: run.filter((s) => !live.has(s)) };
+}
+export const shopifyHandleOf = (url) => (String(url || "").trim().toLowerCase().replace(/[?#].*$/, "").replace(/\/+$/, "").match(/\/products\/([^/]+)$/) || [])[1] || "";
+/* url -> run, for one store's feed. */
+export function shopifyRunIndex(feed) {
+  const byHandle = new Map();
+  for (const p of feed || []) if (p && p.handle) byHandle.set(String(p.handle).toLowerCase(), p);
+  return (it) => { const p = byHandle.get(shopifyHandleOf(it && it.url)); return p ? shopifySizeRun(p) : null; };
+}
+
+/* The rule on a store's catalogue items. runOf(item) answers the
+   store's own { inStock, soldOut } for that product, or null (not in
+   the store's data: unchanged). Our list is the catalogue's; the store
+   decides which of those sizes are in stock now:
+     - sold: our sizes the store has in stock (a size the store no
+       longer lists at all is not sold, and not shown: we cannot say it
+       is agotada);
+     - shown sold out: the store's sold-out sizes;
+     - a size the store has in stock that our list never had is not
+       added (sizes are never widened here);
+     - every one of our sizes sold out at the store: unchanged, and
+       counted (whether such a product is listed is a separate call);
+     - an item with no size list: unchanged (no run is made up for it).
+   Returns the counts for the report, and the products left as they were
+   because the store has none of their sizes. */
+export function applyStoreRuns(items, runOf) {
+  const report = { items: 0, matched: 0, noRun: 0, noSizes: 0, sizesNarrowed: 0, soldOutRun: 0, allSoldOut: 0, goneFromRun: 0, unchanged: 0 };
+  const allSoldOut = [];
+  const clean = (l) => (Array.isArray(l) ? l.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []);
+  for (const it of items) {
+    report.items++;
+    const r = runOf(it);
+    if (!r) { report.noRun++; continue; }
+    report.matched++;
+    const ours = clean(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes);
+    if (!ours.length) { report.noSizes++; continue; }
+    const live = new Set(r.inStock), all = new Set([...r.inStock, ...r.soldOut]);
+    const keep = ours.filter((s) => live.has(s));
+    if (!keep.length) { report.allSoldOut++; allSoldOut.push(it); continue; }
+    if (ours.some((s) => !all.has(s))) report.goneFromRun++;
+    const before = JSON.stringify([ours, it.sizesOut || []]);
+    if (keep.length < ours.length) report.sizesNarrowed++;
+    if (setSizeRun(it, keep, r.soldOut)) report.soldOutRun++;
+    if (Array.isArray(it.availableSizes)) it.availableSizes = keep.slice();
+    if (JSON.stringify([it.sizes, it.sizesOut || []]) === before) report.unchanged++;
+  }
+  return { report, allSoldOut };
 }

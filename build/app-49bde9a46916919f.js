@@ -20630,14 +20630,27 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      asks the product's shard, the same record producto.html reads, and
      the buy button waits for that answer. */
   const pageProduct = pendingProduct;
-  const drawSizes = (list) => {
+  /* THE STORE'S WHOLE RUN (#443 c.6633182280, as producto.html since
+     #654): `out` is the rest of the store's own run, sold out there
+     (the record's sizesOut). Those sizes sit in the run disabled and
+     marked agotada, with no value -- the list the cart checks
+     (pageProduct.sizeList) is the in-stock one only, so a sold-out
+     size can never be chosen, added, checked out or ordered. */
+  const drawSizes = (list, out) => {
     pageProduct.sizeList = list;
+    const gone = soldOutSizeList(out, list);
     if (list.length){
+      const prev = sizeSelect.value;
+      const goneSet = new Set(gone);
       sizeWrap.hidden = false;
       sizeSelect.required = true;
       sizeSelect.innerHTML = '<option value="" disabled selected>' + (sizeIsMeasure(list) ? 'Selecciona un tamaño' : 'Selecciona una talla') + '</option>'
-        + list.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
-      sizeNote.textContent = sizeIsMeasure(list) ? 'Tamaños reales disponibles en la tienda.' : 'Tallas reales disponibles en la tienda.';
+        + (gone.length ? sortSizes(list.concat(gone)) : list).map(s => goneSet.has(s)
+          ? `<option value="" disabled data-agotada="1">${escapeHtml(s.toUpperCase())} (agotada)</option>`
+          : `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
+      if (prev && list.includes(prev)) sizeSelect.value = prev;
+      sizeNote.textContent = gone.length ? soldOutSizeNote(list.length, gone.length)
+        : sizeIsMeasure(list) ? 'Tamaños reales disponibles en la tienda.' : 'Tallas reales disponibles en la tienda.';
     } else {
       sizeWrap.hidden = true;
       sizeSelect.required = false;
@@ -20648,13 +20661,23 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     document.getElementById('sizeGuideLink').hidden = sizeWrap.hidden;
   };
   const rawSizes = truthfulSizes(sizes);
-  drawSizes(rawSizes);
+  drawSizes(rawSizes, []);
   if (!rawSizes.length){
-    pageProduct.sizeLookup = recordSizeList(retailer, name).then((list) => {
-      if (pendingProduct === pageProduct && list.length) drawSizes(list);
+    pageProduct.sizeLookup = recordSizeList(retailer, name, imageUrl).then(async (list) => {
+      if (pendingProduct === pageProduct && list.length) drawSizes(list, []);
+      /* No list, and the record says its sizes are not confirmed (a shoe
+         whose store never gave them to us): «Tallas por confirmar», and
+         the cart refuses it -- never sold sizeless (#443 c.6635781472). */
+      if (!list.length && await recordSizesPending(retailer, name, imageUrl)) markSizesPending(pageProduct);
       return list;
     });
   }
+  /* The sold-out rest of the run comes from the product's shard record
+     (the one producto.html renders), only from the record whose in-stock
+     list is the one on screen. */
+  Promise.resolve(pageProduct.sizeLookup || rawSizes).then((list) => list.length ? recordSoldOutSizes(retailer, name, list).then((out) => {
+    if (pendingProduct === pageProduct && out.length && pageProduct.sizeList === list) drawSizes(list, out);
+  }) : null).catch(() => {});
 
   /* showPage('productView') moved above: the tap commits before population. */
 
@@ -20716,7 +20739,19 @@ function sizeShardOf(key){
   return ('00' + ((h >>> 0) % 4096).toString(16)).slice(-3);
 }
 const SIZE_SHARD_CACHE = {};
-function recordSizeList(retailer, title){
+/* WHICH RECORD IS THIS CARD (#443 c.6644778221). One title can be
+   several listings of one store -- a boot in camel, black and brown,
+   each with its own size run (Johanna Ortiz «Western Legacy Boot»). The
+   card's own photo names its listing; without a match, the first, as
+   before. */
+function ownSizeRecord(cands, rk, image){
+  const own = cands.filter(c => c && String(c.retailer || '').toLowerCase() === rk);
+  const pool = own.length ? own : (cands.length === 1 ? cands : []);
+  const key = (u) => String(u || '').trim().toLowerCase().replace(/[?#].*$/, '').replace(/^https?:\/\//, '');
+  const k = key(image);
+  return (k && pool.find(c => key(c.image) === k)) || pool[0];
+}
+function recordSizeList(retailer, title, image){
   const key = sizeRecordKey(title);
   if (!key) return Promise.resolve([]);
   const shard = sizeShardOf(key);
@@ -20727,9 +20762,58 @@ function recordSizeList(retailer, title){
   const rk = String(retailer || '').toLowerCase();
   return SIZE_SHARD_CACHE[shard].then((d) => {
     const cands = (d && Array.isArray(d[key])) ? d[key] : [];
-    const own = cands.filter(c => c && String(c.retailer || '').toLowerCase() === rk);
-    const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+    const rec = ownSizeRecord(cands, rk, image);
     return rec ? truthfulSizes(rec.sizes) : [];
+  }).catch(() => []);
+}
+/* The same record's sizes-pending flag (producto.html reads it too):
+   true only for a record with no size list of its own. */
+function recordSizesPending(retailer, title, image){
+  const key = sizeRecordKey(title);
+  if (!key) return Promise.resolve(false);
+  const shard = sizeShardOf(key);
+  if (!SIZE_SHARD_CACHE[shard]){
+    SIZE_SHARD_CACHE[shard] = fetch(dataUrl('/assets/pdp/p/' + shard + '.json'))
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const rk = String(retailer || '').toLowerCase();
+  return SIZE_SHARD_CACHE[shard].then((d) => {
+    const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+    const rec = ownSizeRecord(cands, rk, image);
+    return !!(rec && rec.sizesPending === true && !truthfulSizes(rec.sizes).length);
+  }).catch(() => false);
+}
+/* THE STORE'S SOLD-OUT SIZES (#443 c.6633182280; producto.html's
+   soldOutSizes, #654). A store that lists its whole run with part of it
+   sold out hands us those sizes as the record's `sizesOut`. Strings
+   only, one copy each, none that is also in stock. */
+function soldOutSizeList(list, inStock){
+  if (!Array.isArray(list) || !list.length) return [];
+  const have = new Set((inStock || []).map(s => String(s).trim().toUpperCase()));
+  return truthfulSizes(list.filter(v => typeof v === 'string' || typeof v === 'number')).filter(s => !have.has(s.toUpperCase()));
+}
+/* "1 de 13 tallas disponible en la tienda; las demás están agotadas." */
+function soldOutSizeNote(nIn, nOut){
+  return nIn + ' de ' + (nIn + nOut) + ' tallas ' + (nIn === 1 ? 'disponible' : 'disponibles') + ' en la tienda; ' + (nOut === 1 ? 'la otra está agotada.' : 'las demás están agotadas.');
+}
+/* The record's sold-out sizes, from the same shard recordSizeList()
+   reads: this store's record whose in-stock list is exactly `inStock`
+   (the list on screen), so another listing's run never shows. */
+function recordSoldOutSizes(retailer, title, inStock){
+  const key = sizeRecordKey(title);
+  if (!key || !Array.isArray(inStock) || !inStock.length) return Promise.resolve([]);
+  const shard = sizeShardOf(key);
+  if (!SIZE_SHARD_CACHE[shard]){
+    SIZE_SHARD_CACHE[shard] = fetch(dataUrl('/assets/pdp/p/' + shard + '.json'))
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const rk = String(retailer || '').toLowerCase();
+  const want = inStock.slice().sort().join('\u0000');
+  return SIZE_SHARD_CACHE[shard].then((d) => {
+    const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+    const rec = cands.find(c => c && String(c.retailer || '').toLowerCase() === rk && Array.isArray(c.sizesOut)
+      && truthfulSizes(c.sizes).slice().sort().join('\u0000') === want);
+    return rec ? soldOutSizeList(rec.sizesOut, inStock) : [];
   }).catch(() => []);
 }
 /* The same shard's photos for a cart line (#443): the line's store's
@@ -20777,8 +20861,16 @@ async function isSizesPendingItem(retailer, title){
 }
 async function gateSizesPending(p){
   if (!p || !(await isSizesPendingItem(p.retailer, p.name))) return;
-  if (pendingProduct !== p || (Array.isArray(p.sizes) && p.sizes.length)) return;
+  markSizesPending(p);
+}
+/* The «Tallas por confirmar» state, in place of the size picker and the
+   cart button: from the list above, or from the product's own record
+   (its shard's sizesPending: a shoe whose store never gave us its sizes,
+   #443 c.6635781472, scripts/build-pdp-slices.mjs). */
+function markSizesPending(p){
+  if (!p || (Array.isArray(p.sizes) && p.sizes.length) || (Array.isArray(p.sizeList) && p.sizeList.length)) return;
   p.sizesPending = true;
+  if (pendingProduct !== p) return;
   const btn = document.getElementById('addToCartBtn');
   const note = document.getElementById('productNoPriceNote');
   if (btn){
