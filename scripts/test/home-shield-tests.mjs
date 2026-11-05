@@ -1285,6 +1285,71 @@ if (pw) {
     assert.equal(r.statusCode, 200, r.body); assert.equal(JSON.parse(r.body).type, "image/jpeg");
     await c.close();
   });
+  /* NO SIZE WALL FOR PHOTOS (#443 c.6668130487). */
+  const jpegjs = (await import("jpeg-js")).default;
+  const bigJpeg = (() => {
+    const w = 3000, hh = 2250, data = Buffer.alloc(w * hh * 4);
+    for (let i = 0; i < w * hh; i++) { data[i * 4] = (i % w) & 255; data[i * 4 + 1] = ((i / w) | 0) & 255; data[i * 4 + 2] = 128; data[i * 4 + 3] = 255; }
+    const j = jpegjs.encode({ data, width: w, height: hh }, 90).data;
+    return Buffer.concat([j, Buffer.alloc(14 * 1024 * 1024 - j.length, 0)]); // a 14 MB camera file (trailing bytes after EOI)
+  })();
+  const bigHeic = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from("ftypheic"), Buffer.alloc(12 * 1024 * 1024, 7)]);
+  const NO_WALL = /too big|demasiado grande|smaller photo|foto más pequeña|over 10 MB|más de 10 MB/i;
+  await check("copy: no «too big / send a smaller photo» text anywhere in the photo path", () => {
+    for (const L of ["en", "es"]) for (const [k, v] of Object.entries(I18N[L])) assert.ok(!NO_WALL.test(v), `${L} ${k}: ${v}`);
+    assert.ok(!/policy\.size/.test(JS), "the old size message is gone");
+  });
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: a 14 MB JPEG and a 12 MB iPhone HEIC compress silently (<= 2000 px, under the limit), upload, and Aria reads them`, async () => {
+      reset();
+      stub["hs-policy-review"] = () => ({ json: DEC_REVIEW });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(() => {
+        const orig = window.createImageBitmap.bind(window);
+        window.createImageBitmap = async (b) => { if (b && /hei[cf]/i.test(b.type)) { const cv = new OffscreenCanvas(3024, 4032); const x = cv.getContext("2d"); const g = x.createLinearGradient(0, 0, 3024, 4032); g.addColorStop(0, "#fff"); g.addColorStop(1, "#345"); x.fillStyle = g; x.fillRect(0, 0, 3024, 4032); return orig(cv); } return orig(b); };
+      });
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await pickFile(page, { name: "IMG_3001.JPG", mimeType: "image/jpeg", buffer: bigJpeg });
+      await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 1, null, { timeout: 15000 });
+      await page.waitForSelector(".hs-review", { timeout: 8000 });
+      await pickFile(page, { name: "IMG_3002.HEIC", mimeType: "image/heic", buffer: bigHeic }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction(() => document.querySelectorAll('.hs-file .hs-file-st[data-st="received"]').length === 2, null, { timeout: 15000 });
+      await page.waitForFunction(() => document.querySelectorAll(".hs-review").length === 2, null, { timeout: 8000 });
+      const ups = log.filter((x) => x.fn === "hs-doc-upload").map((x) => x.body.file);
+      assert.equal(ups.length, 2);
+      for (const u of ups) { assert.equal(u.type, "image/jpeg"); assert.ok(Buffer.from(u.data, "base64").length <= 10 * 1024 * 1024, "uploaded size " + u.data.length); }
+      const dims = await page.evaluate(() => [...document.querySelectorAll(".hs-thumb")].map((i) => Math.max(i.naturalWidth, i.naturalHeight)));
+      assert.ok(dims.length === 2 && dims.every((d) => d > 0 && d <= 2000), "long edges " + dims);
+      const txt = await page.locator("#hsMsgs").innerText();
+      assert.ok(!NO_WALL.test(txt), "a size message reached the customer");
+      assert.equal(await page.locator('.hs-file[data-st="failed"]').count(), 0);
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+    await check(`browser 390 ${L}: forced rejections (PDF over the limit, undecodable 12 MB HEIC) send nothing and say one plain thing`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const count = () => page.locator("#hsMsgs .hs-msg-a").count();
+      await page.locator('[data-action="talk"]').first().click();
+      await page.waitForSelector("#hsMsgs .hs-msg-a");
+      let n = await count();
+      await pickFile(page, { name: "policy.pdf", mimeType: "application/pdf", buffer: Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(10 * 1024 * 1024 + 100, 32)]) }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.pdfBig"]);
+      await page.waitForTimeout(500);
+      assert.equal(await count(), n + 1, "exactly one message");
+      n = await count();
+      await pickFile(page, { name: "IMG_9.HEIC", mimeType: "image/heic", buffer: bigHeic }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["upload.cantOpen"]);
+      await page.waitForTimeout(500);
+      assert.equal(await count(), n + 1, "exactly one message");
+      assert.equal(await page.locator(".hs-file").count(), 0, "no status bubble for a rejected file");
+      assert.deepEqual(log.filter((x) => x.fn === "hs-doc-upload" || x.fn === "hs-case-create").map((x) => x.fn), [], "nothing sent after a client-side rejection");
+      assert.ok(!NO_WALL.test(await page.locator("#hsMsgs").innerText()));
+      await c.close();
+    });
+  }
+
   for (const L of ["en", "es"]) {
     await check(`browser 390 ${L}: every upload failure gets a plain message in the chat (type, size, rate limit, network, server), never a raw code`, async () => {
       reset();
@@ -1293,8 +1358,10 @@ if (pw) {
       const last = () => page.locator("#hsMsgs .hs-msg-a").last().innerText();
       await pickFile(page, { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
       await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.type"]);
-      await pickFile(page, { name: "big.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 10, 1) }, "#hsCompose [data-action=upload]");
-      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["policy.size"]);
+      // An undecodable "photo" over the limit: one plain message, no upload, no "make it smaller".
+      await pickFile(page, { name: "broken.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 10, 1) }, "#hsCompose [data-action=upload]");
+      await page.waitForFunction((m) => document.getElementById("hsMsgs").innerText.includes(m), I18N[L]["upload.cantOpen"]);
+      assert.equal(log.filter((x) => x.fn === "hs-doc-upload").length, 0, "no upload after a client-side rejection");
       for (const [name, setup, key] of [
         ["rate", () => { stub["hs-doc-upload"] = () => ({ status: 429, json: { error: "Too many requests", code: "rate_limited" } }); }, "err.rate"],
         ["network", () => { stub["hs-doc-upload"] = () => ({ destroy: true }); }, "err.network"],

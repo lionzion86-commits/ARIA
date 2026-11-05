@@ -403,7 +403,7 @@
   function friendly(e) {
     var c = (e && e.code) || "";
     if (c === "bad_type" || c === "type_mismatch" || c === "unreadable_format") return t("policy.type");
-    if (c === "too_large") return t("policy.size");
+    if (c === "too_large") return t("policy.pdfBig");
     if (c === "rate_limited") return t("err.rate");
     if (c === "not_found") return t("err.expired");
     if (c === "too_many") return t("err.tooMany");
@@ -942,27 +942,37 @@
     showErr("");
     handleFile(f);
   }
-  var IMG_EXT = /\.(jpe?g|png|heic|heif)$/i;
+  var IMG_EXT = /\.(jpe?g|png|heic|heif|webp)$/i;
   function isHeic(f) { return /image\/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name); }
   function isImage(f) { return /^image\//i.test(f.type) || IMG_EXT.test(f.name); }
   /* iPhone photos: decode HEIC (iOS Safari can), re-encode as JPEG at most
      2000 px. Big photos get the same. If decoding fails, the original goes. */
+  /* EVERY photo is compressed on the phone before anything else (#443
+     c.6668130487): long edge at most 2000 px, JPEG 0.85, stepping quality
+     and size down silently until it fits. A phone photo never meets a size
+     wall. If this browser cannot decode it (some HEIC), the original goes
+     only when it is under the limit. */
+  var LIMIT = 10 * 1024 * 1024, TARGET = 4 * 1024 * 1024;
+  var STEPS = [[2000, 0.85], [2000, 0.75], [2000, 0.65], [1600, 0.65], [1600, 0.5], [1200, 0.5]];
   function prepareImage(f) {
-    var need = isHeic(f) || f.size > 3 * 1024 * 1024;
     var decode = function () {
       if (window.createImageBitmap) return createImageBitmap(f);
       return new Promise(function (res, rej) { var u = URL.createObjectURL(f), im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = u; });
     };
     return decode().then(function (bmp) {
       var w = bmp.width, hgt = bmp.height;
-      if (!need && Math.max(w, hgt) <= 2000) return { blob: f, name: f.name, type: f.type || "image/jpeg", w: w, h: hgt };
-      var k = Math.min(1, 2000 / Math.max(w, hgt));
-      var cv = doc.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(hgt * k);
-      cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
-      return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/jpeg", 0.88); }).then(function (b) {
-        if (!b) throw new Error("encode");
-        return { blob: b, name: f.name.replace(/\.[^.]+$/, "") + ".jpg", type: "image/jpeg", converted: true };
-      });
+      if (!w || !hgt) throw new Error("decode");
+      var encode = function (i) {
+        var edge = STEPS[i][0], k = Math.min(1, edge / Math.max(w, hgt));
+        var cv = doc.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(hgt * k);
+        cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+        return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, "image/jpeg", STEPS[i][1]); }).then(function (b) {
+          if (!b) throw new Error("encode");
+          if (b.size > TARGET && i < STEPS.length - 1) return encode(i + 1);
+          return { blob: b, name: f.name.replace(/\.[^.]+$/, "") + ".jpg", type: "image/jpeg", converted: true, w: cv.width, h: cv.height };
+        });
+      };
+      return encode(0);
     }).catch(function () { return { blob: f, name: f.name, type: f.type || (isHeic(f) ? "image/heic" : ""), undecodable: true }; });
   }
   function fileBubble(f) {
@@ -982,21 +992,23 @@
   }
   function handleFile(f) {
     openSheet(); greetIfNeeded(false);
-    var typeOk = /^(application\/pdf|image\/(jpeg|png|heic|heif))$/i.test(f.type) || /\.(pdf|jpe?g|png|heic|heif)$/i.test(f.name);
+    var typeOk = /^(application\/pdf|image\/(jpeg|png|heic|heif|webp))$/i.test(f.type) || /\.(pdf|jpe?g|png|heic|heif|webp)$/i.test(f.name);
+    /* Any rejection here ends the attempt: one plain message, no upload. */
     if (!typeOk) { failSay(t("policy.type")); return Promise.resolve(); }
-    if (f.size > 10 * 1024 * 1024) { failSay(t("policy.size")); return Promise.resolve(); }
-    var bub = fileBubble(f);
     var image = isImage(f);
+    if (!image && f.size > LIMIT) { failSay(t("policy.pdfBig")); return Promise.resolve(); }
     var prep = image ? prepareImage(f) : Promise.resolve({ blob: f, name: f.name, type: "application/pdf" });
     return prep.then(function (p) {
-      if (bub.img) { if (!p.undecodable) bub.img.src = URL.createObjectURL(p.blob); else { bub.img.replaceWith(h("span", { class: "hs-chip", text: t("upload.photo") + " · " + f.name })); } }
-      return ensureCase().then(function () { return sendFile(p.blob, p.name, p.type); });
-    }).then(function (j) {
-      bub.set("received");
-      return readDoc(j.docId, image);
-    }).catch(function (e) {
-      bub.set("failed");
-      failSay(friendly(e));
+      if (p.blob.size > LIMIT) { failSay(t("upload.cantOpen")); return; }
+      var bub = fileBubble(f);
+      if (bub.img) { if (!p.undecodable) bub.img.src = URL.createObjectURL(p.blob); else bub.img.replaceWith(h("span", { class: "hs-chip", text: t("upload.photo") + " · " + f.name })); }
+      return ensureCase().then(function () { return sendFile(p.blob, p.name, p.type); }).then(function (j) {
+        bub.set("received");
+        return readDoc(j.docId, image);
+      }, function (e) {
+        bub.set("failed");
+        failSay(friendly(e));
+      });
     });
   }
   /* A plain message from Aria, on screen and in her voice. */
