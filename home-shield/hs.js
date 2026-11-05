@@ -249,6 +249,7 @@
   function setSpeaking(on) {
     clearTimeout(mouthT);
     if (on) {
+      loadFrame("talk1"); loadFrame("talk2");
       if (starState !== "speaking") setStarState("speaking");
       var flip = function (m) { setFrame(m); mouthT = setTimeout(function () { flip(m === "talk1" ? "talk2" : "talk1"); }, 120 + Math.random() * 60); };
       flip("talk1");
@@ -267,7 +268,7 @@
   function initStars() {
     var els = doc.querySelectorAll(".hs-star");
     for (var i = 0; i < els.length; i++) stars.push({ el: els[i], face: els[i].querySelector(".hs-star-face") });
-    var later = function () { loadFrame("blink"); loadFrame("talk1"); loadFrame("talk2"); };
+    var later = function () { loadFrame("blink"); };
     if (doc.readyState === "complete") setTimeout(later, 400); else window.addEventListener("load", function () { setTimeout(later, 400); });
     if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) blinkLoop();
   }
@@ -592,6 +593,7 @@
     c.listen = function (barged) {
       if (!c.active) return;
       c.resume();
+      sayMicPending();
       c.set("listening");
       c.startRec();
       if (barged) { c.heard = true; c.lastVoice = Date.now(); c.set("listening"); }
@@ -694,7 +696,10 @@
     micWarnedAt = Date.now();
     showErr(t("err.micSilent"));
     if (!speech.active) speak(t("err.micSilent"), { owner: "chat" });
+    else micPending = true; // said as soon as her current line ends
   }
+  var micPending = false;
+  function sayMicPending() { if (micPending && !speech.active) { micPending = false; speak(t("err.micSilent"), { owner: "chat" }); } }
 
   function blobToB64(blob) {
     return new Promise(function (res, rej) {
@@ -715,6 +720,7 @@
       return;
     }
     stopSpeech();
+    loadFrame("talk1"); loadFrame("talk2");
     var micReady = convo.start();
     var greeting = greetIfNeeded(false).then(function () {
       if (chat.messages.length === 1) { convo.set("speaking"); return speak(introText(), { owner: "chat" }); }

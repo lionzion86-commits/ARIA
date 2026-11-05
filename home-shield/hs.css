@@ -332,20 +332,21 @@ button{cursor:pointer}
 
 /* Aria, cut out (alpha frames): no white disc, she stands on the page. */
 .hs-cut .hs-star-face{background:transparent;border-radius:0;overflow:visible;box-shadow:none}
-.hs-cut .hs-star-face img{object-fit:contain;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.hs-cut .hs-star-face img{object-fit:contain}
 .hs-cut .hs-star-glow{inset:4%;background:radial-gradient(closest-side,rgba(236,210,154,.55),rgba(214,180,106,0))}
 .hs-cut[data-state=listening] .hs-star-face{box-shadow:none}
 .hs-cut[data-state=listening] .hs-star-glow{opacity:1;animation:none}
 .hs-cut[data-state=listening] .hs-star-face img{filter:drop-shadow(0 0 10px rgba(236,210,154,.9)) drop-shadow(0 0 22px rgba(214,180,106,.55))}
-.hs-star-hero.hs-cut{width:196px;height:196px}
-.hs-star-mini.hs-cut{width:68px;height:68px}
+.hs-star-hero.hs-cut{width:170px;height:214px}
+.hs-star-mini.hs-cut{width:56px;height:70px}
 /* The floating launcher: always there, bottom-right, like the shop's Aria. */
-body[data-page=home]{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
-.hs-float{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:92px;height:92px;z-index:35}
+body[data-page=home]{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
+.hs-float{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:86px;height:108px;z-index:35}
 .hs-float .hs-star-face{animation:hsBob 3.4s ease-in-out infinite}
 .hs-float[data-state=speaking] .hs-star-face{animation:hsTalk .9s ease-in-out infinite}
 body.hs-sheet-open .hs-float{display:none}
 @keyframes hsBob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.03)}}
 
-@media (min-width:980px){.hs-star-hero.hs-cut{width:300px;height:300px}.hs-float{width:104px;height:104px;right:24px;bottom:24px}}
+@media (min-width:980px){.hs-star-hero.hs-cut{width:238px;height:300px}.hs-float{width:96px;height:121px;right:24px;bottom:24px}}
 
+.hs-caso-head .hs-star-caso{width:51px;height:64px}

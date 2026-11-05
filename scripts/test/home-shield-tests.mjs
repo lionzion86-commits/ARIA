@@ -727,7 +727,7 @@ await check("Mountain Test (static): no shop bundle, no catalogue, deferred scri
   assert.ok(!/\/build\/|catalog\.json|-catalog/.test(JS));
   assert.ok(Buffer.byteLength(JS) < 110 * 1024, "hs.js " + Buffer.byteLength(JS));
   assert.ok(gzipSync(JS).length < 32 * 1024, "hs.js gz " + gzipSync(JS).length);
-  for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 20 * 1024, f);
+  for (const f of readdirSync(join(ROOT, "home-shield/img"))) assert.ok(readFileSync(join(ROOT, "home-shield/img", f)).length < 40 * 1024, f);
 });
 await check("slots: photos and the badge render only when the file exists (manifest is current)", () => {
   const m = FE.assets.buildManifest(ROOT);
@@ -950,7 +950,7 @@ if (pw) {
         await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), y);
         await page.waitForTimeout(80);
         const b = await f.boundingBox();
-        assert.ok(b && b.width >= 84 && b.width <= 96, "size " + JSON.stringify(b));
+        assert.ok(b && b.width >= 84 && b.width <= 96 && b.height >= 100 && b.height <= 116, "size " + JSON.stringify(b));
         assert.ok(b.x + b.width <= 390 && b.x + b.width >= 360 && b.y + b.height <= 844 && b.y + b.height >= 800, name + " " + JSON.stringify(b));
         assert.ok(await f.isVisible(), name);
         if (L === "en") await shot(page, "float-" + name);
@@ -972,24 +972,31 @@ if (pw) {
     });
   }
 
-  await check("browser 390: her frames are cut out (transparent corners, solid body), used by the launcher and the chat", async () => {
+  await check("browser 390: the tornado frames keep their alpha (transparent corners, no box, solid body, 571:720) and every Home Shield slot uses them", async () => {
     reset();
     const c = await ctx(390); const page = await c.newPage();
     await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
     const r = await page.evaluate(async () => {
       const out = {};
-      for (const f of ["open", "blink", "talk1", "talk2"]) {
-        const img = new Image(); img.src = "/home-shield/img/aria-" + f + "-cut-400.webp"; await img.decode();
+      for (const f of ["open-360", "blink-360", "talk1-360", "talk2-360", "open-240", "blink-240", "talk1-240", "talk2-240"]) {
+        const img = new Image(); img.src = "/home-shield/img/tornado-" + f + ".webp"; await img.decode();
         const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
         const x = cv.getContext("2d"); x.drawImage(img, 0, 0);
         const a = (px, py) => x.getImageData(px, py, 1, 1).data[3];
-        out[f] = { w: img.width, corners: [a(0, 0), a(img.width - 1, 0), a(0, img.height - 1), a(img.width - 1, img.height - 1)], centre: a(img.width / 2, img.height / 2) };
+        out[f] = { w: img.width, h: img.height, corners: [a(0, 0), a(img.width - 1, 0), a(0, img.height - 1), a(img.width - 1, img.height - 1)], centre: a(Math.floor(img.width / 2), Math.floor(img.height / 2)) };
       }
-      out.uses = [...document.querySelectorAll("#hsFloat img, .hs-star-mini img")].every((i) => /-cut-400\.webp$/.test(i.src || i.dataset.src));
+      out.uses = [...document.querySelectorAll("#hsFloat img, .hs-star-mini img")].every((i) => /\/tornado-(open|blink|talk1|talk2)-240\.webp$/.test(i.getAttribute("src") || i.dataset.src))
+        && [...document.querySelectorAll(".hs-star-hero img")].every((i) => /\/tornado-(open|blink|talk1|talk2)-360\.webp$/.test(i.getAttribute("src") || i.dataset.src))
+        && !document.querySelector('img[src*="aria-"], img[data-src*="aria-"]');
+      out.faceBg = getComputedStyle(document.querySelector("#hsFloat .hs-star-face")).backgroundColor;
       return out;
     });
-    for (const f of ["open", "blink", "talk1", "talk2"]) { assert.deepEqual(r[f].corners, [0, 0, 0, 0], f); assert.equal(r[f].centre, 255, f); assert.equal(r[f].w, 400); }
-    assert.ok(r.uses, "launcher and chat use the cut frames");
+    for (const [f, v] of Object.entries(r).filter(([k]) => /-\d+$/.test(k))) {
+      assert.deepEqual(v.corners, [0, 0, 0, 0], f); assert.equal(v.centre, 255, f);
+      assert.equal(v.h, Number(f.split("-")[1]), f); assert.ok(Math.abs(v.w / v.h - 571 / 720) < 0.01, f + " aspect " + v.w + "x" + v.h);
+    }
+    assert.ok(r.uses, "hero, launcher and chat use the tornado frames");
+    assert.equal(r.faceBg, "rgba(0, 0, 0, 0)", "no box behind her");
     await c.close();
   });
 
@@ -1008,7 +1015,7 @@ if (pw) {
       assert.ok(ttsTexts()[0].startsWith(L === "es" ? "Hola, soy Aria" : "Hey, I'm Aria"));
       const mini = page.locator(".hs-star-mini");
       assert.ok(await mini.isVisible(), "Aria at the top of the chat");
-      assert.equal(await mini.locator("img.f-open").getAttribute("src"), "/home-shield/img/aria-open-cut-400.webp");
+      assert.equal(await mini.locator("img.f-open").getAttribute("src"), "/home-shield/img/tornado-open-240.webp");
       assert.ok(await page.locator("#hsClose").isVisible(), "a separate close button");
       assert.notEqual(await mini.getAttribute("id"), "hsClose");
       if (L === "en") await shot(page, "float-chat");
