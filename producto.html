@@ -461,9 +461,13 @@ async function pageRate(){
     var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
     if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return (PAGE_FX = c.venta);
   }catch(e){}
+  /* The shared rate (/import-tax.js AriaImportTax.fx): the endpoint,
+     SUNAT's last good rate, then the last one this phone saw. */
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  if (F){ var v = await F.get(); if (v > 0) PAGE_FX = v; return PAGE_FX; }
   var d = await fetchJson("/.netlify/functions/exchange-rate", 6000);
   if (d && typeof d.venta === "number" && d.venta > 0){
-    try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+    if (!d.stale){ try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){} }
     PAGE_FX = d.venta;
   }
   return PAGE_FX;
@@ -1453,8 +1457,11 @@ function relKey(item){ return (item.retailer || "") + "|" + norm(item.name || it
 function relCardHTML(it){
   var usd = finalUsd(it.price, it.retailer);
   var wasUsd = it.wasPrice > it.price ? finalUsd(it.wasPrice, it.retailer) : 0;
-  var price = FX_RATE ? fmtPen(usd * FX_RATE) : fmtUsd(usd);
-  var was = wasUsd ? (FX_RATE ? fmtPen(wasUsd * FX_RATE) : fmtUsd(wasUsd)) : "";
+  /* Soles only, the IMP line directly under them (#443 c.6629812301,
+     Danny: "we only show soles"); without a rate, soles placeholders that
+     fill when one lands (/import-tax.js fx.slot) -- never dollars. */
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  var solesOf = function(n, cls){ return FX_RATE ? '<span class="' + cls + '">' + esc(fmtPen(n * FX_RATE)) + '</span>' : (F ? F.slot(n, { cls: cls }) : '<span class="' + cls + '">S/ \u2026</span>'); };
   var href = "producto.html?producto=" + encodeURIComponent(it.name) + "&tienda=" + encodeURIComponent(it.retailer);
   /* The photo waits in data-src until its card is about to be seen. */
   return '<a class="rel-card" href="' + esc(href) + '">'
@@ -1462,8 +1469,7 @@ function relCardHTML(it){
     + '<div class="rel-body">'
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'
-    +   '<span class="rel-pricebox"><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '')
-    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '')
+    +   '<span class="rel-pricebox" data-usd="' + usd + '">' + solesOf(usd, 'rel-price') + (wasUsd ? solesOf(wasUsd, 'rel-was') : '')
     /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
        the arithmetic checkout charges; nothing under $200 of goods. */
     +     (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.price, retailer: it.retailer, title: it.name }, { tag: 'span' }) : '') + '</span>'

@@ -592,6 +592,107 @@ const NOT_FACE_RX = /\b(body|corporal|corps|lipsticks?|lip ?gloss|nails?|hand|fo
 const BEAUTY_STORE = new Set(["sephora", "ulta", "yesstyle", "beauty", "sleekshop"]);
 const isBeautyP = (p) => BEAUTY_DEPT_RX.test((p.departments && p.departments[0]) || "") || BEAUTY_STORE.has(p.retailer) || /^(skin|cuidado|piel|facial)/i.test((p.departments && p.departments[0]) || "");
 const deptOf = (p) => (p.departments && p.departments[0]) || "";
+/* ---------- THE EVERYDAY WORDS' OWN TYPES (#443 c.6632585468) ----------
+   The daily search watch on production: «toallas» opened on Disney
+   costumes, «plancha» on keratin sprays, «monitor» on a soundbar, «laptop»
+   on tablets, «consola» on a remote player and VR headsets, «vajilla» on
+   napkins and glasses, «cámara» with an RGB light bar, «zapatilla» on
+   sandals and cleats, «keratina» and «alisado» with a body peel. Each word
+   landed on an aisle (departamento.html ?ver=) and the aisle holds more
+   than the word names. Each rule below reads the product's own name --
+   what the title says the thing IS, never a word it only mentions ("for
+   Desktop Monitor", "Camera Bag", "No-Iron Pants") -- and it decides both
+   the search's answer (TYPE_WORLDS) and what the word's landing page
+   shows (_department-core.js, ?pt=<id>): the lead rail and every rail
+   after it hold that type only. A rule with nothing true in stock gives
+   nothing, and the page says so; it never fills in with lookalikes.
+   Department rows (assets/sections/departamento/_fn) carry no store
+   department, so a rule reads the title, the brand and -- given -- the
+   feed's own type label (typeLabel). */
+const TP_TITLE = (p) => String((p && p.title) || "");
+/* The name before the first comma, bracket or dash ("..., Backlit Keyboard"
+   is a laptop's feature, not the product). */
+const tpHead = (t) => String(t || "").split(/\s+(?:with|for|compatible|fits)\s+|\s*[,(|]\s*|\s+[-\u2013]\s+/)[0];
+export function isTowel(p) {
+  const t = TP_TITLE(p);
+  return /\b(towels?|washcloths?|wash ?cloths?|toallas?)\b/i.test(t) &&
+    !/\b(towel (bars?|racks?|rings?|hooks?|holders?|warmers?|stands?|ladders?|shel(f|ves))|paper towels?|holders?|racks?|hooks?|costumes?|dolls?|toys?|ponchos?|robes?|makeup|wraps?|turbans?|bikinis?|swimsuits?|shorts|dress(es)?|sunglasses|t-?shirts?|tees?|hoodies?)\b/i.test(t) && !isToyDept(p);
+}
+/* A plancha is the iron: the hair iron (flat iron, straightener) or the
+   clothes iron -- never a straightening balm, a "No-Iron" shirt, an eye
+   roller or cast iron. */
+export function isIron(p) {
+  const t = TP_TITLE(p);
+  return /\b(flat irons?|hair straighteners?|straightening (brush|comb|iron)(es|s)?|(wet[- ]to[- ]dry |ceramic |titanium |professional )straighteners?|straightener and|airstrait|steam irons?|clothes irons?|garment steamers?|irons? for clothes)\b/i.test(t) &&
+    !/\b(eye roller|balms?|shampoos?|conditioners?|creams?|sprays?|serums?|protect(or|ant)s?|treatments?|oils?|mists?|enhancers?|retexturi[sz]ers?|defrizzers?|gels?|lotions?|masks?|masques?|covers?|mats?|cases?|bags?|pouches?|clips?|holders?|no-?iron|iron[- ]free|cast iron)\b/i.test(t);
+}
+/* A monitor is the screen: the first "monitor" the title says is not
+   what something else is for ("Sound Bar ... for Desktop Monitor", "Wall
+   Mount for Monitor") nor a health, baby, studio-speaker or camera one. */
+export function isComputerMonitor(p) {
+  const t = TP_TITLE(p), m = /\bmonitors?\b/i.exec(t);
+  if (!m) return false;
+  const pre = t.slice(0, m.index).replace(/cable lock slot|built-in speakers?/gi, "");
+  return !/\b(for|with|compatible|fits|to)\b/i.test(pre) &&
+    !/\b(mounts?|stands?|arms?|cables?|cords?|speakers?|sound ?bars?|light ?bars?|ball heads?|risers?|brackets?|hubs?|docks?|adapters?|covers?|filters?|screen protectors?|lamps?)\b/i.test(pre) &&
+    !/\b(blood pressure|heart rate|sleep monitor|glucose|oximeters?|fetal|headphones?|earphones?|in-ear|studio monitors?|dash ?cams?|cameras?|baby|pet|smart ?watch(es)?|fitness trackers?|pedometers?|tire pressure)\b/i.test(t);
+}
+/* Zapatillas are sneakers: the title says so, or the store files the shoe
+   as one (typeLabel "Zapatillas") -- never a sandal, a slide, a cleat, a
+   boot, a sock liner or a tee printed with a sneaker. */
+const NOT_SNEAKER_RX = /\b(sandals?|slides?|cleats?|boots?|booties|heels?|pumps?|loafers?|slippers?|clogs?|flip[- ]?flops?|mules?|wedges?|water shoes|socks?|liners?|insoles?|laces?|shoelaces|cleaners?|charms?|keychains?|t-?shirts?|tees?|shirts?|hoodies?|pajamas?|bags?|backpacks?|stickers?|ornaments?|toys?|dolls?|plush|figures?|cakes?|cribs?)\b/i;
+export function isSneaker(p) {
+  const t = TP_TITLE(p);
+  const named = /\b(sneakers?|trainers?|running shoes?|tennis shoes?|athletic shoes?|walking shoes?|basketball shoes?|skate shoes?|training shoes?|trail shoes?|court shoes?|lifestyle shoes?|zapatillas?)\b/i.test(t);
+  const filed = p && p.typeLabel === "Zapatillas";
+  return (named || filed) && !NOT_SNEAKER_RX.test(t) && !/\b(tees?|apparel|graphic)\b/i.test(String((p && p.brand) || "")) && !isToyDept(p);
+}
+/* Alisado: what straightens or smooths hair -- never a body peel, an
+   ingrown-hair or bikini-line treatment, a razor, a wrinkle spray. */
+export function isHairStraightening(p) {
+  const t = TP_TITLE(p);
+  return /\b(straighten(s|ing|er|ers)?|alisad[oa]s?|hair relaxers?|relaxer (kit|system|cream)s?|no-?lye|brazilian blowout|smoothing (treatments?|systems?|therapy)|blow ?out smoothing|lisse design|phytolisse)\b/i.test(t) && !APPAREL_RX.test(t) && !/\b(clutch|wallets?|purses?|totes?)\b/i.test(t) &&
+    !/\b(body|skin|ingrown|bikini|legs?|underarms?|face|facial|peels?|razors?|shave|shaving|bumps?|exfoliat\w*|nails?|lash(es)?|brows?|aprons?|combs?|capes?|gloves?|clips?|flat irons?|irons?|dryers?|towels?|bags?|pants|jeans|dress(es)?|shirts?|wrinkles?|fabric|clothes|garments?|cuticles?|primers?)\b/i.test(t);
+}
+/* A camera, by the thing the title names (its head): not a light bar, a
+   ring light, a tripod, a bag, a lens filter, VR goggles, a drone or the
+   tablet whose camera the title lists. */
+export function isCamera(p) {
+  const t = TP_TITLE(p);
+  return /\b(cameras?|camcorders?|gopro|mirrorless|dslr|instax|polaroid)\b/i.test(titleHead(t)) &&
+    !/\b(light ?bars?|ring lights?|lights?|lamps?|tripods?|gimbals?|stabili[sz]ers?|lens (caps?|cloths?|filters?)|filters?|bags?|backpacks?|cases?|straps?|batter(y|ies)|chargers?|memory cards?|sd cards?|mounts?|holders?|cables?|adapters?|vr|goggles?|drones?|quadcopters?|toys?|stickers?|decals?|skins?|covers?|screen protectors?|monitors?|microphones?|mics?|tablets?|galaxy tab|ipad|phones?|smartphones?|laptops?)\b/i.test(t) && !isToyDept(p);
+}
+/* Vajilla: what the meal is served on -- dinnerware sets, place settings,
+   plates and bowls. Not napkins, runners, placemats, glasses, mugs,
+   flatware, serving pieces, a license or switch plate, a pet bowl. */
+export function isDinnerware(p) {
+  const t = TP_TITLE(p);
+  /* Vajilla is the set: dinnerware, place settings, plates or bowls sold as a set. */
+  return (/\b(dinnerware|dinner ?sets?|place settings?|vajillas?)\b/i.test(t) || (/\b(plates|bowls|platos)\b/i.test(t) && /\b(sets?|\d+[- ]?(piece|pc\.?|pk|pack)|set of \d+|service for \d+)\b/i.test(t))) &&
+    !/[-\s](silver|gold|rose gold|rhodium)[- ]plat(e|ed)\b|\bplated\b/i.test(t) &&
+    !/\b(earrings?|necklaces?|bracelets?|rings?|pendants?|jewelry|charms?|anklets?|nesting|lids?|storage|pedestal|centerpieces?|fruit bowls?|popcorn|prep|food containers?|napkins?|runners?|placemats?|place ?mats?|glass(es)?|glassware|mugs?|cups?|tumblers?|flatware|cutlery|forks?|spoons?|knives|serving|platters?|trays?|chargers?|license|wall plates?|switch plates?|hot plates?|racks?|holders?|stands?|covers?|pet|dogs?|cats?|birds?|feeders?|mixing|candles?|decorative|ornaments?|vases?|planters?|pots?|baking|bakeware|sinks?|toilets?|lamps?|aprons?|towels?|toys?|baby|kids|toddlers?|silicone|suction|bibs?|sippy|shirts?|tees?|hoodies?|stickers?)\b/i.test(t);
+}
+/* A laptop: the computer the title names -- not a Chromebook or a tablet
+   (their own types), and not what fits one (a sleeve, a stand, a dock) or
+   only works with one ("Gaming Headset ... for PC PS4 PS5 Laptop"). */
+export function isLaptop(p) {
+  const t = TP_TITLE(p), m = /\b(laptops?|notebooks?|macbook|surface laptop)\b/i.exec(t);
+  if (!m || /\b(for|with|compatible|fits)\b/i.test(t.slice(0, m.index)) || /\b(headsets?|headphones?|earbuds?|webcams?|printers?|routers?|eau de|toilette|parfum|perfumes?|colognes?|fragrances?|sprays?|mists?)\b/i.test(t)) return false;
+  /* "Notebook" alone is also paper and a perfume's name: a computer says what it runs on. */
+  if (!/\b(laptops?|macbook|surface laptop)\b/i.test(t) && !/\b(intel|amd|ryzen|core i\d|celeron|snapdragon|windows|ram|ssd|gb|copilot|ai pc|\d{2}(\.\d)?["”]|\d{2}(\.\d)?-?inch)\b/i.test(t)) return false;
+  return !/\b(chromebooks?|tablets?|ipad|toys?|learning|pretend|dolls?|journals?|paper|spiral|composition|ruled|planners?|stationery)\b/i.test(t) &&
+    !/\b(sleeves?|cases?|bags?|totes?|backpacks?|briefcases?|stands?|desks?|trays?|cooling pads?|coolers?|docks?|docking|hubs?|chargers?|adapters?|power (banks?|supply|supplies)|batter(y|ies)|skins?|stickers?|decals?|keyboards?|mouse|mice|locks?|screen protectors?|privacy|filters?|cables?|lights?|lamps?)\b/i.test(tpHead(t)) && !isToyDept(p);
+}
+/* A console: PlayStation 5, Xbox Series, Nintendo Switch, and the handheld
+   consoles (Steam Deck, ROG Ally, Legion Go), the title opening on it. Not
+   the PlayStation Portal (a remote player for a PS5), not a VR headset,
+   not a game, a controller or what fits one. */
+export function isGameConsole(p) {
+  const t = TP_TITLE(p).replace(/[™®]/g, "").replace(/\bchoose your game bundle\b/i, "bundle");
+  if (/\s[-–]\s*(nintendo|switch|xbox|ps5|playstation)\b|\[(physical|digital)\]/i.test(t)) return false;
+  return /^(?:(?:new|sony|microsoft|valve|nintendo|asus|lenovo)\s+)*(?:playstation\s*5|ps5|xbox series [xs]|nintendo switch|switch\s*2|steam deck|rog ally|legion go)\b/i.test(t) &&
+    !/\b(portal|remote player|vr|headsets?|quest|games?|controllers?|joy-?cons?|amiibo|cases?|screen protectors?|protectors?|chargers?|charging|docks?|grips?|skins?|stands?|cards?|wheels?|subscription|membership|gift|repair|kits?|replacement|covers?|decals?|stickers?|cables?|bags?|straps?|ssd|hard drives?|drives?)\b/i.test(titleHead(t)) && !isToyDept(p);
+}
 export const TYPE_WORLDS = [
   { id: "llantas", label: "Llantas", q: /(llantas?|neumaticos?|tires?|tyres?|cauchos?)/,
     test: (p) => TIRE_RX.test(p.title) && !NOT_TIRE_RX.test(p.title) && !isToyDept(p) && !FASHION_DEPT_RX.test(deptOf(p)),
@@ -631,7 +732,22 @@ export const TYPE_WORLDS = [
     test: (p) => /^(auto_parts|motos|autopartes)$/i.test(deptOf(p)) && !/\b(eau de|perfume|parfum|toilette|cologne|refill|helmets?|jackets?|gloves?|boots?|pants|jerseys?|vests?|goggles?|tees?|t-?shirts?|hoodies?|dash ?cams?|backpacks?|bags?)\b/i.test(p.title),
     lead: (p) => /^(auto_parts|motos)$/i.test(deptOf(p)),
     quals: { moto: (p) => /moto/i.test(deptOf(p)), auto: (p) => !/moto/i.test(deptOf(p)) } },
+  /* The everyday words (#443 c.6632585468): the rules above. */
+  { id: "toallas", label: "Toallas", q: /(toallas?|toallas? de (?:bano|playa|mano|cocina)|towels?|bath towels?|beach towels?|hand towels?|kitchen towels?)/, test: isTowel },
+  { id: "planchas", label: "Planchas", q: /(planchas?|planchas? (?:de|para) (?:el )?(?:pelo|cabello|ropa)|planchas? alisadoras?|flat irons?|hair straighteners?|clothes irons?|steam irons?)/, test: isIron },
+  { id: "monitores", only: true, label: "Monitores", q: /(monitor|monitores|monitor(?:es)? de (?:computadora|pc)|monitor(?:es)? gamer|computer monitors?|gaming monitors?)/, test: isComputerMonitor,
+    quals: { gamer: (p) => /\bgaming\b/i.test(p.title) } },
+  { id: "zapatillas", only: true, label: "Zapatillas", q: /(zapatillas?|zapatillas? deportivas?|zapatillas? de (?:correr|running)|sneakers?|trainers?|running shoes?)/, test: isSneaker },
+  { id: "keratina", label: "Keratina", q: /(keratinas?|keratin|queratinas?|tratamientos? de keratina|keratina (?:capilar|brasilena))/, test: (p) => isHairKeratin(p) && !/\b(peel|kojic|scrub|deodorant)\b/i.test(p.title) },
+  { id: "alisado", lead: (p) => /\b(straighten\w*|alisad\w*|brazilian blowout)\b/i.test(p.title), label: "Alisados", q: /(alisados?|alisado (?:brasilero|brasileno|permanente|de keratina)|alisadores?|brazilian blowout|hair straightening|straightening treatments?)/, test: isHairStraightening },
+  { id: "camaras", only: true, label: "Cámaras", q: /(camaras?|camaras? (?:de fotos?|fotograficas?|digitales?)|cameras?|digital cameras?)/, test: isCamera },
+  { id: "vajilla", label: "Vajilla", q: /(vajillas?|juegos? de (?:platos|vajilla)|platos|dinnerware|dinner ?sets?)/, test: isDinnerware,
+    lead: (p) => /\b(dinnerware|dinner ?sets?|place settings?)\b/i.test(p.title) },
+  { id: "laptops", only: true, label: "Laptops", q: /(laptops?|lap ?tops?|notebooks?|portatil(?:es)?|computadoras? portatil(?:es)?|laptop computers?)/, test: isLaptop },
+  { id: "consolas", only: true, label: "Consolas", q: /(consolas?|consolas? de videojuegos?|videoconsolas?|consoles?|game consoles?|video game consoles?)/, test: isGameConsole },
 ];
+/** The type with this id (the landing pages' ?pt=), or null. */
+export function typeWorldById(id) { return TYPE_WORLDS.find((t) => t.id === id) || null; }
 /** The type a whole query names, with its qualifiers, or null. */
 export function typeWorldOf(q) {
   const k = deaccent(q).replace(/[^a-z0-9" ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -648,6 +764,8 @@ export function typeWorldOf(q) {
     const quals = [];
     let ok = true;
     for (const w of words) {
+      /* A device type reads only its own qualifiers: «monitor de bebé» is a baby monitor, not a monitor for babies. */
+      if (t.only && !(t.quals && t.quals[w])) { ok = false; break; }
       if (/^\d{1,3}$/.test(w) && t.num) { quals.push({ w, test: (p) => t.num(w).test(p.title) }); continue; }
       let a = Q_AUDIENCE[w];
       if (typeof a === "string") a = Q_AUDIENCE[a];

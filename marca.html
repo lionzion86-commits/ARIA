@@ -136,6 +136,7 @@ footer a{color:#fff;}
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
+<script src="/assets/js/page-banner.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
 .hs-dark{--hs-fg:#F4F6FB;--hs-mute:rgba(236,241,250,.8);--hs-bg:rgba(255,255,255,.1);--hs-line:rgba(255,255,255,.26);--hs-go:#F4C463;--hs-gofg:#0A1F44;--hs-sheet:#0A1F44;--hs-ring:rgba(244,196,99,.35)}
@@ -252,7 +253,7 @@ html body #status .ok{color:#0F6B34}
   <div id="status" role="status">Cargando productos…</div>
 
   <!-- Card-shaped placeholders from the first paint, before any script. -->
-  <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section></div>
+  <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div></div></div></div></div></section></div>
 </main>
 
 
@@ -513,34 +514,21 @@ function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 
 /* ---------- soles, always (#416) ----------
    The site's own rate: the same endpoint and 24-hour cache key the
-   home page, search and checkout use. Until it is known the price row
-   holds its place; if it cannot be had at all, dollars, plainly
-   labelled, rather than nothing. */
+   home page, search and checkout use (/import-tax.js). Until it is
+   known the price row holds its place -- never a dollar figure. */
 var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 var FX_RATE;             // undefined: asking; null: unavailable; number: S/ per US$
 function loadFx(){
-  try{
-    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
-    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ FX_RATE = c.venta; return; }
-  }catch(e){}
-  var done = false;
-  function fin(rate){
-    if (done) return; done = true;
-    FX_RATE = rate > 0 ? rate : null;
-    paintPrices(document);
-  }
-  var to = setTimeout(function(){ fin(0); }, 8000);
-  try{
-    fetch(BASE + "/.netlify/functions/exchange-rate")
-      .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
-      .then(function(x){
-        clearTimeout(to);
-        var v = x.ok && x.d && typeof x.d.venta === "number" && x.d.venta > 0 ? x.d.venta : 0;
-        if (v){ try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); }catch(e){} }
-        fin(v);
-      })
-      .catch(function(){ clearTimeout(to); fin(0); });
-  }catch(e){ clearTimeout(to); fin(0); }
+  /* SOLES, ALWAYS (#443 c.6629812301, Danny: "we only show soles"): the
+     shared rate (/import-tax.js AriaImportTax.fx -- the 24-hour cache, the
+     endpoint, SUNAT's last good rate, then a retry). Until a rate is
+     known the price row keeps its placeholder; never dollars. */
+  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  if (!F) return;
+  var now = F.now();
+  if (now > 0) FX_RATE = now;
+  F.on(function(v){ FX_RATE = v; paintPrices(document); });
+  if (!(now > 0)) F.get().then(function(v){ if (v > 0 && FX_RATE !== v){ FX_RATE = v; paintPrices(document); } });
 }
 
 /* ---------- product-type classification (word-boundary, not substring) ---------- */
@@ -611,10 +599,9 @@ var FIRST_RAILS = 3;
 
 /* ---------- rendering ---------- */
 function priceInner(f, was){
-  if (FX_RATE === undefined) return '<div class="pen"><i></i></div><div class="usd">&nbsp;</div>';
-  if (!FX_RATE) return '<div class="pen">' + esc(fmtUsd(f)) + '</div><div class="usd">&nbsp;</div>';
-  var h = '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + (was > f ? '<span class="was">' + esc(fmtPen(was * FX_RATE)) + '</span>' : '') + '</div>';
-  return h + '<div class="usd">' + esc(fmtUsd(f)) + '</div>';
+  /* Soles only, the IMP line directly under them (#443 c.6629812301). */
+  if (!FX_RATE) return '<div class="pen"><i></i></div>';
+  return '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + (was > f ? '<span class="was">' + esc(fmtPen(was * FX_RATE)) + '</span>' : '') + '</div>';
 }
 /* Prices are painted in place, so a rate that lands after the cards
    never redraws a carousel (scroll position and photos stay). */
@@ -687,7 +674,7 @@ function cardHTML(c){
 }
 var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
   '<div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div>' +
-  '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
+  '<div class="price"><div class="pen"><i></i></div></div></div></div>';
 function skeletons(n){ var h = ""; for (var i = 0; i < n; i++) h += SKELETON; return h; }
 
 /* The stores with a storefront of their own (assets/tienda/<key>/index.json;
@@ -904,19 +891,21 @@ function init(){
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
 }
-/* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from
-   assets/brands/ -- decoration, so it waits for the first screen's
-   product photos (12s at most) instead of sharing a slow link. */
+/* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop -- decoration,
+   so it waits for the first screen's product photos (12s at most)
+   instead of sharing a slow link. THE HEADER BANNER (#443
+   c.6642024745): assets/js/page-banner.js paints the brand's banner file
+   (assets/banners/brand/<key>.json) when it has one; else its brand
+   photo, then the photo of the brand's own store, in turn. */
 function heroImage(){
   try{
     var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     var _heroImg = document.getElementById('brandHeroBg');
-    var _heroScrim = document.getElementById('brandHeroScrim');
-    if (_heroImg){
-      _heroImg.onload = function(){ _heroImg.hidden = false; if (_heroScrim) _heroScrim.hidden = false; };
-      _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
-      _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
-    }
+    if (!_heroImg || !_heroKey) return;
+    var o = { kind: 'brand', key: _heroKey, host: document.getElementById('brandHero'), bg: _heroImg, scrim: document.getElementById('brandHeroScrim'),
+      fallbacks: ['/assets/brands/' + _heroKey + '-hero.jpg', '/assets/tienda/hero/' + _heroKey + '.jpg', '/assets/stores/' + _heroKey + '.jpg'] };
+    if (window.AriaBanner) window.AriaBanner.paint(o);
+    else (window.AriaBannerQ = window.AriaBannerQ || []).push(o);
   }catch(_e){}
 }
 function afterFirstPhotos(fn){

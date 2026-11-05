@@ -76,9 +76,12 @@ export function headOf(name) {
 
 
 /* The words a shoe's name ends on (its head noun). Singular «pump»,
-   «flat», «wedge», «runner» are left out: «Hand Vacuum Pump», «Flat
-   Iron», «Wedge Pillow» end on them too. */
-export const FOOT_RX = /\b(derbys|derbies|shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moc+asins?|espadrilles?|heels?|clogs?|slippers?|mules|oxfords|flats|pumps|slingbacks?|sling\s*backs?|mary\s*janes?|ballerinas?|wedges|trainers|huaraches?|slip[- ]?ons?|zapatillas?|zapatos?|sandalias?|botas?|botines?|pantuflas?|chanclas?)\b/i;
+   «wedge», «runner» are left out: «Hand Vacuum Pump», «Wedge Pillow»
+   end on them too. A singular «flat» counts only as the name's last word
+   after a word («ELSA FLAT», «Iconic Ballet Flat», #443 c.6642247782),
+   never after a size or a comma («Skate Rail – 6ft Flat»); «Flat Iron»
+   does not end on it. product-type.js's zapatos nouns carry the same rule. */
+export const FOOT_RX = /\b(derbys|derbies|shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moc+asins?|espadrilles?|heels?|clogs?|slippers?|mules|oxfords|flats|pumps|slingbacks?|sling\s*backs?|mary\s*janes?|ballerinas?|(?<!\d\w*\s|,\s?)flat(?=\s*$)|wedges|trainers|huaraches?|slip[- ]?ons?|zapatillas?|zapatos?|sandalias?|botas?|botines?|pantuflas?|chanclas?)\b/i;
 export const lastAt = (rx, s) => { const g = new RegExp(rx.source, "gi"); let m, at = -1; while ((m = g.exec(s))) at = m.index; return at; };
 
 /** A footwear house's model line, by its name and brand. */

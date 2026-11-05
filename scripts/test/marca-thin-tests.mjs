@@ -112,7 +112,8 @@ await check("shape-held cards, placeholder carousels in the HTML, photos on appr
 await check("soles first with the shared rate; yellow only on the sale badge; no emojis; no link out", () => {
   assert.match(PAGE, /FX_CACHE_KEY = "aria_fx_rate_v1"/);
   const pi = PAGE.slice(PAGE.indexOf("function priceInner("), PAGE.indexOf("function paintPrices("));
-  assert.ok(pi.indexOf('class="pen"') < pi.indexOf('class="usd"'));
+  /* Soles only, no dollar line under them (#443 c.6629812301: "we only show soles"). */
+  assert.ok(pi.indexOf('class="pen"') > 0 && pi.indexOf('class="usd"') < 0 && !/fmtUsd\(/.test(pi), "a dollar figure on the card");
   assert.match(PAGE, /\.card \.price \.pen\{font-size:17px; font-weight:800;/);
   assert.ok(!/aprox\./.test(PAGE), "soles still labelled as an approximation under dollars");
   const yellow = PAGE.split("\n").filter((l) => /#FFDE59|var\(--gold\)/i.test(l) && !/--gold:/.test(l));
