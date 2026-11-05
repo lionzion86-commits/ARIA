@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { deflateSync } from "node:zlib";
 import { randomBytes } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { spawnSync, execFileSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.chdir(ROOT);
@@ -119,12 +119,15 @@ await check("--check catches a frame that grew past 40 KB or a byte size that no
   assert.ok(r.problems.some((p) => /over 40 KB/.test(p)) && r.problems.some((p) => /manifest says/.test(p)), r.problems.join("; "));
 });
 
-await check("the CLI: --check passes with no manifest (the orb stays) and fails with --require", async () => {
-  const a = spawnSync(process.execPath, ["scripts/import-aria-star.mjs", "--check"], { cwd: ROOT });
+await check("the CLI: --check passes with no manifest (the orb stays) and fails with --require; on the repo, as it stands, it passes", async () => {
+  const none = join(TMP, "none");
+  const a = spawnSync(process.execPath, ["scripts/import-aria-star.mjs", "--check", "--out", none], { cwd: ROOT });
   assert.equal(a.status, 0, a.stdout + a.stderr);
   assert.match(a.stdout.toString(), /no manifest yet/);
-  const b = spawnSync(process.execPath, ["scripts/import-aria-star.mjs", "--check", "--require"], { cwd: ROOT });
+  const b = spawnSync(process.execPath, ["scripts/import-aria-star.mjs", "--check", "--require", "--out", none], { cwd: ROOT });
   assert.equal(b.status, 1);
+  const c = spawnSync(process.execPath, ["scripts/import-aria-star.mjs", "--check", ...(existsSync("assets/aria/star/manifest.json") ? ["--require"] : [])], { cwd: ROOT });
+  assert.equal(c.status, 0, c.stdout + c.stderr);
 });
 
 await check("the image tool: sharp when present, else python PIL, else ImageMagick; each backend that exists here produces the same contract", async () => {
@@ -142,21 +145,36 @@ await check("the image tool: sharp when present, else python PIL, else ImageMagi
 });
 
 /* ==================================================================
-   THE REPO AS SHIPPED (no frames yet)
+   THE REPO: BEFORE THE FRAMES, AND AS IMPORTED
+
+   "With no manifest the orb is unchanged" is checked on the repo as it
+   stood just before the import (the parent of the commit that added
+   assets/aria/star/manifest.json; HEAD while the import is uncommitted;
+   the working tree itself when nothing is imported yet).
    ================================================================== */
-const STAR_JS = readFileSync("assets/js/aria-star.js", "utf8");
-const INDEX = readFileSync("index.html", "utf8");
+const git = (...a) => execFileSync("git", a, { cwd: ROOT, maxBuffer: 64 << 20 }).toString();
+const REPO_MANIFEST = "assets/aria/star/manifest.json";
+const REPO_IMPORTED = existsSync(REPO_MANIFEST);
+const IMPORTED_AT = REPO_IMPORTED ? git("log", "--diff-filter=A", "--format=%H", "--", REPO_MANIFEST).trim().split("\n").filter(Boolean).pop() || "" : "";
+const PRE_REV = REPO_IMPORTED ? (IMPORTED_AT ? IMPORTED_AT + "^1" : "HEAD") : null;
+const fromPre = (f) => (PRE_REV ? git("show", `${PRE_REV}:${f}`) : readFileSync(f, "utf8"));
+const STAR_JS_NOW = readFileSync("assets/js/aria-star.js", "utf8");
+const STAR_JS = IMP.stampScript(STAR_JS_NOW, null);
+const STAR_JS_PRE = fromPre("assets/js/aria-star.js");
+const INDEX = fromPre("index.html");
+const INDEX_NOW = readFileSync("index.html", "utf8");
+const REAL = REPO_IMPORTED ? JSON.parse(readFileSync(REPO_MANIFEST, "utf8")) : null;
 const LAUNCHER = readFileSync("assets/js/aria-launcher.js", "utf8");
 const BUNDLE_NAME = /<script src="\/(build\/app-[0-9a-f]{16}\.js)" defer><\/script>/.exec(INDEX)[1];
 const BUNDLE = readFileSync(BUNDLE_NAME, "utf8");
 
-await check("no manifest yet: aria-star.js carries a null manifest, so it stops at once and never fetches one", () => {
-  assert.match(STAR_JS, /var M = \/\*ARIA-STAR-MANIFEST:START\*\/null\/\*ARIA-STAR-MANIFEST:END\*\/;/);
-  assert.doesNotMatch(STAR_JS, /fetch\(|XMLHttpRequest|manifest\.json["']/, "the component requests its manifest");
-  assert.equal(IMP.checkStar().state, "pending");
+await check("before the frames: aria-star.js carried a null manifest, so it stopped at once; it never fetches one", () => {
+  assert.match(STAR_JS_PRE, /var M = \/\*ARIA-STAR-MANIFEST:START\*\/null\/\*ARIA-STAR-MANIFEST:END\*\/;/);
+  assert.doesNotMatch(STAR_JS_NOW, /fetch\(|XMLHttpRequest|manifest\.json["']/, "the component requests its manifest");
+  if (!REPO_IMPORTED) assert.equal(IMP.checkStar().state, "pending");
 });
 
-await check("no manifest yet: index.html's launcher and favicon are the orb, byte for byte the markup it had", () => {
+await check("before the frames: index.html's launcher and favicon were the orb, byte for byte the markup it had", () => {
   assert.match(INDEX, /<img id="ariaOrbImg" src="assets\/aria-orb-pixar-320\.webp" onerror="this\.onerror=null;this\.src='assets\/aria-orb-pixar-320\.png'" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">/);
   assert.match(INDEX, /<img id="ariaOrbBlink" data-src="assets\/aria-orb-pixar-blink-320\.webp"/);
   assert.match(INDEX, /<link rel="icon" type="image\/png" href="assets\/aria-orb-pixar-64\.png">/);
@@ -182,8 +200,8 @@ await check("every page with the launcher loads aria-star.js deferred, just befo
   const pages = readdirSync(ROOT).filter((f) => f.endsWith(".html") && readFileSync(f, "utf8").includes("/assets/js/aria-launcher.js"));
   assert.ok(pages.length >= 20, pages.length + " pages");
   for (const f of pages) assert.match(readFileSync(f, "utf8"), /<script src="\/assets\/js\/aria-star\.js" defer><\/script>\r?\n<script src="\/assets\/js\/aria-launcher\.js" defer><\/script>/, f);
-  assert.match(INDEX, /<script src="\/build\/app-[0-9a-f]{16}\.js" defer><\/script>\r\n<script src="\/assets\/js\/aria-star\.js" defer><\/script>/);
-  assert.equal((INDEX.match(/<script src="\/assets\/js\/aria-star\.js" defer><\/script>/g) || []).length, 1);
+  assert.match(INDEX_NOW, /<script src="\/build\/app-[0-9a-f]{16}\.js" defer><\/script>\r\n<script src="\/assets\/js\/aria-star\.js" defer><\/script>/);
+  assert.equal((INDEX_NOW.match(/<script src="\/assets\/js\/aria-star\.js" defer><\/script>/g) || []).length, 1);
   assert.ok(STAR_JS.length < 18000, "aria-star.js is " + STAR_JS.length + " bytes");
 });
 
@@ -229,17 +247,25 @@ const TYPES = { ".html": "text/html", ".js": "application/javascript", ".json": 
 const STAMPED = IMP.stampScript(STAR_JS, M);
 const WIRED = IMP.wireIndex(INDEX, M);
 /* No request interception: Playwright's routing turns the HTTP cache off,
-   and the Mountain Test is about what a real phone's cache does. Two
-   servers instead (orb as shipped, star as imported), each counting the
-   requests that reached it; every other host fails fast in the resolver. */
+   and the Mountain Test is about what a real phone's cache does. Three
+   servers instead, each counting the requests that reached it; every
+   other host fails fast in the resolver:
+     orb      the site just before the import (null manifest, orb markup)
+     star     the same site with the FIXTURE imported in memory
+     real     the repo exactly as it is (the real frames, once imported) */
 let HITS = [];
-function serve(star) {
+function serve(mode) {
+  const star = mode === "star";
   const s = http.createServer((req, res) => {
     const u = new URL(req.url, "http://x");
     const p = decodeURIComponent(u.pathname);
     HITS.push(p);
     if (/^\/(\.netlify\/functions|api)\//.test(p)) { res.writeHead(503, { "Content-Type": "application/json" }); res.end("{}"); return; }
     const send = (body, type) => { res.writeHead(200, { "Content-Type": type, "Cache-Control": "public, max-age=3600" }); res.end(body); };
+    if (mode === "orb") {
+      if (p === "/assets/js/aria-star.js") return send(STAR_JS, TYPES[".js"]);
+      if (p === "/" || p === "/index.html") return send(INDEX, TYPES[".html"]);
+    }
     if (star) {
       if (p === "/assets/js/aria-star.js") return send(STAMPED, TYPES[".js"]);
       if (p === "/" || p === "/index.html") return send(WIRED, TYPES[".html"]);
@@ -252,8 +278,8 @@ function serve(star) {
   });
   return new Promise((r) => s.listen(0, "127.0.0.1", () => r(s)));
 }
-const SERVERS = { orb: await serve(false), star: await serve(true) };
-const url = (star) => `http://127.0.0.1:${SERVERS[star ? "star" : "orb"].address().port}`;
+const SERVERS = { orb: await serve("orb"), star: await serve("star"), real: await serve("real") };
+const url = (star) => `http://127.0.0.1:${SERVERS[star === "real" ? "real" : star ? "star" : "orb"].address().port}`;
 const browser = await chromium.launch({
   ...(process.env.PLAYWRIGHT_CHROMIUM ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM } : {}),
   args: ["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1"],
@@ -425,7 +451,7 @@ await check("FIXTURE, IDLE: blink swaps open/blink every 3.5-5 s at random, clos
   const gaps = ons.slice(1).map((e, i) => e.t - ons[i].t);
   for (const d of gaps) assert.ok(d >= 3500 && d <= 5000, "gap " + d + " ms");
   assert.ok(new Set(gaps.map((g) => Math.round(g / 100))).size > 2, "the gaps are not random: " + gaps);
-  assert.deepEqual(after, { on: ["open"], state: "idle" });
+  assert.equal(after.state, "idle"); assert.match(after.on.join(), /^(open|blink)$/);
 });
 
 await check("FIXTURE, SPEAKING: talk1/talk2 alternate every 120-180 ms only inside setOrbState('speaking'), the real TTS hook; idle again on its end", async () => {
@@ -456,7 +482,8 @@ await check("FIXTURE, SPEAKING: talk1/talk2 alternate every 120-180 ms only insi
   }
   assert.equal(mid[0].state, "speaking");
   assert.equal(mid[0].on.length, 1); assert.match(mid[0].on[0], /^talk[12]$/);
-  assert.deepEqual(head, { on: ["open"], state: "idle" });
+  /* back to idle: open eyes, or a blink caught in its 150 ms -- never a mouth frame */
+  assert.equal(head.state, "idle"); assert.equal(head.on.length, 1); assert.match(head.on[0], /^(open|blink)$/);
 });
 
 await check("FIXTURE, LISTENING: the shopper typing (#assistantInput) or the live call hearing her (setOrbState('listening')) leans her in; blink still runs", async () => {
@@ -495,10 +522,10 @@ await check("FIXTURE, THINKING then HAPPY: setOrbState('thinking') / the typing 
   await pg.clock.runFor(1300);
   const back = await shown(pg, "#assistantHeadFace .aria-star");
   await ctx.close();
-  assert.deepEqual(think, { on: ["open"], state: "thinking" });
+  assert.deepEqual(think, { on: ["open"], state: "thinking" }); /* no blink while thinking */
   assert.equal(anim, "ariaStarThink");
   assert.deepEqual(happy, { on: ["talk2"], state: "happy" });
-  assert.deepEqual(back, { on: ["open"], state: "idle" });
+  assert.equal(back.state, "idle"); assert.match(back.on.join(), /^(open|blink)$/);
 });
 
 await check("FIXTURE, prefers-reduced-motion: a still star in every state (no bob, no blink, no mouth, no pose), and only the open frame is downloaded", async () => {
@@ -605,8 +632,134 @@ await check("FIXTURE, every other page: the corner launcher is her (80px, no bal
   assert.deepEqual(faceHits(hits).sort(), starFiles());
 });
 
+/* ==================================================================
+   THE REAL FRAMES (Lucifer's delivery, data/aria-brand dae5152), once
+   imported. Skipped, and said so, while the repo has no manifest.
+   ================================================================== */
+const REALS = "FOTOGRAMAS REALES de Aria.";
+const realFiles = () => NAMES.map((k) => REAL.base + REAL.frames[k]).sort();
+await check("REAL: the four imported frames are 240px WebP at most 40 KB each; the 1600px masters are never referenced and are forced 404", () => {
+  if (!REAL) { console.log("         (skipped: no frames imported yet)"); return; }
+  assert.deepEqual(Object.keys(REAL.frames), NAMES);
+  for (const k of NAMES) {
+    const f = REAL.files.find((x) => x.file === REAL.frames[k]);
+    const buf = readFileSync(join("assets/aria/star", f.file));
+    const sz = IMP.imageSize(buf);
+    assert.equal(sz.type, "webp"); assert.equal(sz.width, 240); assert.equal(sz.height, 240);
+    assert.ok(buf.length <= 40960, `${k}: ${buf.length} bytes`);
+    assert.equal(buf.length, f.bytes);
+  }
+  const refs = [];
+  for (const f of readdirSync(ROOT).filter((x) => /\.(html|js)$/.test(x))) if (/assets\/aria-star\//.test(readFileSync(f, "utf8"))) refs.push(f);
+  for (const f of readdirSync("assets/js")) if (/assets\/aria-star\//.test(readFileSync(join("assets/js", f), "utf8"))) refs.push(f);
+  if (/assets\/aria-star\//.test(BUNDLE)) refs.push(BUNDLE_NAME);
+  assert.deepEqual(refs, [], "a page names a master");
+  assert.match(readFileSync("netlify.toml", "utf8"), /\[\[redirects\]\]\n  from = "\/assets\/aria-star\/\*"\n  to = "\/404"\n  status = 404\n  force = true/);
+  assert.deepEqual(readFileSync("favicon.ico"), readFileSync("assets/aria/star/favicon.ico"));
+  for (const f of ["index.html", "terminos.html", "privacidad.html", "checkout.html"]) assert.match(readFileSync(f, "utf8"), /<link rel="icon" type="image\/png" sizes="32x32" href="\/assets\/aria\/star\/favicon-32\.png">/, f);
+});
+
+await check("REAL, 390px: every slot and every state with her real frames; four frame requests, once each, no master, no orb", async () => {
+  if (!REAL) { console.log("         (skipped: no frames imported yet)"); return; }
+  const clipHead = async (pg, name) => {
+    if (!SHOT_DIR) return;
+    const b = await pg.evaluate(() => { const r = document.getElementById("assistantPanel").getBoundingClientRect(); return { x: 0, y: Math.max(0, r.top), width: innerWidth, height: 150 }; });
+    await pg.screenshot({ path: join(SHOT_DIR, `aria-star-real-${name}-header.png`), clip: b });
+  };
+  const ln = async (pg, t) => label(pg, REALS + " " + t);
+  /* the corner, home and another page */
+  {
+    const { ctx, pg, hits } = await open("index.html", { star: "real" });
+    await pg.waitForFunction(() => window.AriaStar && window.AriaStar.blinkReady(), null, { timeout: 15000 });
+    await ln(pg, "Lanzador: ella en la esquina.");
+    if (SHOT_DIR) { await pg.screenshot({ path: join(SHOT_DIR, "aria-star-real-launcher.png") }); await pg.screenshot({ path: join(SHOT_DIR, "aria-star-real-launcher-zoom.png"), clip: { x: 390 - 130, y: 844 - 130, width: 130, height: 130 } }); }
+    const face = faceHits(hits);
+    await ctx.close();
+    assert.deepEqual(face.sort(), realFiles(), face.join(", "));
+    assert.ok(!hits.list.some((h) => /\/assets\/aria-star\//.test(h.p)), "a master was requested");
+  }
+  {
+    const { ctx, pg } = await open("producto.html", { star: "real" });
+    await pg.waitForTimeout(800);
+    await ln(pg, "Lanzador en la página de producto.");
+    await shot(pg, "real-launcher-producto");
+    await ctx.close();
+  }
+  /* the open chat: header presence, avatars, the typing row (loader) */
+  {
+    const { ctx, pg } = await open("index.html", { star: "real" });
+    await pg.waitForFunction(() => window.AriaStar.blinkReady(), null, { timeout: 15000 });
+    await pg.click("#assistantBtn");
+    await pg.waitForTimeout(400);
+    await pg.evaluate(() => { addAssistantMessage("bot", "Hola, soy Aria. ¿Qué estás buscando hoy?", null, { speak: false }); addAssistantMessage("user", "Zapatillas blancas"); addAssistantMessage("bot", "Mira estas opciones.", null, { speak: false }); showAssistantTyping(); });
+    await pg.waitForTimeout(300);
+    await ln(pg, "Chat abierto: arriba, junto a sus mensajes y en «escribiendo».");
+    await shot(pg, "real-chat-open");
+    if (SHOT_DIR) { const b = await pg.evaluate(() => { const r = document.getElementById("assistantMessages").getBoundingClientRect(); return { x: 0, y: r.top, width: innerWidth, height: Math.min(260, r.height) }; }); await pg.screenshot({ path: join(SHOT_DIR, "aria-star-real-avatar-loader.png"), clip: b }); }
+    await ctx.close();
+  }
+  /* the states, on a frozen clock */
+  {
+    const { ctx, pg } = await frozen({ star: "real" });
+    await pg.evaluate(() => toggleAssistant());
+    await pg.evaluate(() => { for (const el of document.querySelectorAll("#assistantMessages > *")) el.remove(); });
+    const st = async () => (await shown(pg, "#assistantHeadFace .aria-star"));
+    const seen = {};
+    seen.idle = await st();
+    await ln(pg, "Reposo."); await shot(pg, "real-state-idle"); await clipHead(pg, "idle");
+    for (let t = 0; t < 6000 && !(await pg.evaluate(() => window.AriaStar.frame === "blink")); t += 20) await pg.clock.runFor(20);
+    seen.blink = await st();
+    await ln(pg, "Parpadeo."); await shot(pg, "real-state-blink"); await clipHead(pg, "blink");
+    await pg.clock.runFor(400);
+    await pg.evaluate(() => setOrbState("speaking"));
+    for (const want of ["talk1", "talk2"]) {
+      for (let t = 0; t < 1000 && (await pg.evaluate(() => window.AriaStar.frame)) !== want; t += 10) await pg.clock.runFor(10);
+      seen[want] = await st();
+      await ln(pg, `Hablando (${want === "talk1" ? "boca abierta" : "sonrisa"}).`); await shot(pg, "real-state-speaking-" + want); await clipHead(pg, "speaking-" + want);
+    }
+    await pg.evaluate(() => setOrbState("idle"));
+    await pg.focus("#assistantInput"); await pg.keyboard.type("zapa");
+    seen.listening = await st();
+    await ln(pg, "Escuchando: la persona escribe."); await shot(pg, "real-state-listening"); await clipHead(pg, "listening");
+    await pg.clock.runFor(1600);
+    await pg.evaluate(() => { document.getElementById("assistantInput").value = ""; setOrbState("thinking"); showAssistantTyping("Buscando…"); });
+    seen.thinking = await st();
+    await ln(pg, "Pensando: busca productos."); await shot(pg, "real-state-thinking"); await clipHead(pg, "thinking");
+    await pg.evaluate(() => { hideAssistantTyping(); setOrbState("idle"); rememberShownProduct({ name: "x" }, "x", document.createElement("div")); });
+    seen.happy = await st();
+    await ln(pg, "Feliz: llegan productos."); await shot(pg, "real-state-happy"); await clipHead(pg, "happy");
+    await ctx.close();
+    assert.equal(seen.idle.state, "idle"); assert.deepEqual(seen.idle.on, ["open"]);
+    assert.deepEqual(seen.blink.on, ["blink"]);
+    assert.deepEqual(seen.talk1, { on: ["talk1"], state: "speaking" });
+    assert.deepEqual(seen.talk2, { on: ["talk2"], state: "speaking" });
+    assert.equal(seen.listening.state, "listening");
+    assert.equal(seen.thinking.state, "thinking");
+    assert.deepEqual(seen.happy, { on: ["talk2"], state: "happy" });
+  }
+  /* the favicon, as a browser tab draws it */
+  if (SHOT_DIR) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 420 }, deviceScaleFactor: 2 });
+    const pg = await ctx.newPage();
+    await pg.goto(url("real") + "/terminos.html", { waitUntil: "domcontentloaded" });
+    const B = REAL.base;
+    await pg.setContent(`<body style="margin:0;font:600 13px system-ui;background:#fff;color:#0A1F44">
+      <div style="background:#B42318;color:#fff;padding:6px 9px">${REALS} Favicon a su tamaño real y ampliado.</div>
+      <div style="display:flex;gap:6px;padding:10px;background:#dee1e6"><div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px 8px 0 0;padding:8px 12px"><img src="${B}favicon-16.png" width="16" height="16">Aria Shop</div></div>
+      <div style="display:flex;gap:6px;padding:10px;background:#202124;color:#e8eaed"><div style="display:flex;align-items:center;gap:8px;background:#35363a;border-radius:8px 8px 0 0;padding:8px 12px"><img src="${B}favicon-16.png" width="16" height="16">Aria Shop (tema oscuro)</div></div>
+      <div style="display:flex;gap:18px;align-items:flex-end;padding:14px">
+        <figure style="margin:0;text-align:center"><img src="${B}favicon-16.png" width="128" height="128" style="image-rendering:pixelated;border:1px solid #ccc"><figcaption>16 px x8</figcaption></figure>
+        <figure style="margin:0;text-align:center"><img src="${B}favicon-32.png" width="96" height="96" style="image-rendering:pixelated;border:1px solid #ccc"><figcaption>32 px x3</figcaption></figure>
+        <figure style="margin:0;text-align:center"><img src="${B}favicon-48.png" width="48" height="48" style="border:1px solid #ccc"><figcaption>48 px</figcaption></figure>
+      </div></body>`);
+    await pg.waitForTimeout(300);
+    await pg.screenshot({ path: join(SHOT_DIR, "aria-star-real-favicon.png") });
+    await ctx.close();
+  }
+});
+
 await check("no <video> element is ever in the page, orb or star, chat closed or open", async () => {
-  for (const star of [false, true]) {
+  for (const star of [false, true, "real"]) {
     const { ctx, pg, hits } = await open("index.html", { star });
     const n = await pg.evaluate(() => { toggleAssistant(); return document.querySelectorAll("video").length; });
     await ctx.close();
@@ -616,10 +769,10 @@ await check("no <video> element is ever in the page, orb or star, chat closed or
 });
 
 await browser.close();
-SERVERS.orb.close(); SERVERS.star.close();
+for (const s of Object.values(SERVERS)) s.close();
 rmSync(TMP, { recursive: true, force: true });
 
-const MIN_CHECKS = 29;
+const MIN_CHECKS = 31;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

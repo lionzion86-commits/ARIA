@@ -45,7 +45,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var M = /*ARIA-STAR-MANIFEST:START*/null/*ARIA-STAR-MANIFEST:END*/;
+  var M = /*ARIA-STAR-MANIFEST:START*/{"base":"/assets/aria/star/","frames":{"open":"star-open-240.eb7338f1.webp","blink":"star-blink-240.6bc48708.webp","talk1":"star-talk1-240.fd38a1e9.webp","talk2":"star-talk2-240.26be56f3.webp"},"slots":{"launcher":80,"presence":64,"avatar":24,"loader":20}}/*ARIA-STAR-MANIFEST:END*/;
   var api = { active: false };
   window.AriaStar = api;
   if (!M || !M.frames || !M.frames.open) return;
