@@ -235,6 +235,11 @@ export function scrubText(text, known = []) {
   if (!s) return "";
   s = s.replace(EMAIL_FIND_RX, "[email removed]");
   s = s.replace(URL_RX, "[link removed]");
+  s = s.replace(LABELLED_ID_RX, (m, label, sep) => `${label}${sep.replace(/[:#.\s]+$/, "")} [number removed]`);
+  s = s.replace(STREET_RX, "[address removed]");
+  s = s.replace(CALLE_RX, "[address removed]");
+  s = s.replace(PO_BOX_RX, "[address removed]");
+  s = s.replace(UNIT_RX, "[address removed]");
   for (const k of known) {
     if (typeof k !== "string" || k.length < 2) continue;
     const digits = k.replace(/\D/g, "");
@@ -246,11 +251,6 @@ export function scrubText(text, known = []) {
     }
     s = s.replace(new RegExp(`(?<![\\p{L}\\p{N}])${reEsc(k)}(?![\\p{L}\\p{N}])`, "giu"), "[removed]");
   }
-  s = s.replace(LABELLED_ID_RX, (m, label, sep) => `${label}${sep.replace(/[:#.\s]+$/, "")} [number removed]`);
-  s = s.replace(STREET_RX, "[address removed]");
-  s = s.replace(CALLE_RX, "[address removed]");
-  s = s.replace(PO_BOX_RX, "[address removed]");
-  s = s.replace(UNIT_RX, "[address removed]");
   s = s.replace(PHONE_RX, "[phone removed]");
   s = s.replace(MIXED_ID_RX, "[number removed]");
   s = s.replace(LONG_NUM_RX, "[number removed]");

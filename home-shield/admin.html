@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0B0B0C">
+<title>Home Shield Admin</title>
+<!-- ============================================================
+     ARIA HOME SHIELD -- admin (#443). Approve pros' licenses, see cases.
+     SAME LOGIN AS /admin.html: the shop's session cookie whose email is
+     on ADMIN_EMAILS (hs-admin-pros / hs-admin-verify / hs-admin-cases
+     check it on the server). This page's gate is a courtesy, never the
+     boundary. Cases are shown anonymized here too: contact goes only to
+     the pro the homeowner chose. Black and gold, English / Espanol.
+     ============================================================ -->
+<style>
+  :root { --bg: #0B0B0C; --bg-2: #111113; --card: #151517; --line: #2A2A2E; --line-2: #3A3A40; --ink: #F5F1E8; --ink-2: #BDB7AA; --ink-3: #8A857B;
+    --gold: #C9A24A; --gold-2: #E4C77E; --gold-soft: rgba(201, 162, 74, .12); --ok: #7FBF8E; --bad: #E07A6E;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header { border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+  header b { font-family: var(--serif); font-size: 18px; font-weight: 600; }
+  header .tag { margin-left: 4px; }
+  .sp { flex: 1; }
+  .pill { display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px; }
+  .pill button { border: 0; background: none; color: var(--ink-2); padding: 5px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .pill button[aria-pressed="true"] { background: var(--gold); color: #0B0B0C; }
+  main { padding: 20px 0 80px; }
+  h1, h2 { font-family: var(--serif); font-weight: 600; margin: 0; }
+  .tabs { display: flex; gap: 6px; margin: 16px 0; }
+  .tabs button { border: 1px solid var(--line-2); background: none; color: var(--ink-2); min-height: 42px; padding: 0 16px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+  .tabs button[aria-selected="true"] { border-color: var(--gold); color: var(--gold-2); background: var(--gold-soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .card + .card { margin-top: 10px; }
+  .row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 220px; }
+  .muted { color: var(--ink-2); } .small { font-size: 13px; } .tiny { font-size: 12px; color: var(--ink-3); }
+  .tag { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px; font-weight: 800; color: var(--ink-2); }
+  .tag.gold { color: var(--gold-2); border-color: rgba(201, 162, 74, .5); background: var(--gold-soft); }
+  .tag.ok { color: var(--ok); border-color: rgba(127, 191, 142, .45); }
+  .tag.bad { color: var(--bad); border-color: rgba(224, 122, 110, .45); }
+  .btn { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: none; color: var(--ink); font-weight: 700; cursor: pointer; }
+  .btn.gold { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #0B0B0C; border-color: transparent; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; margin: 8px 0 0; }
+  .kv dt { color: var(--ink-3); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+  .in { width: 100%; min-height: 40px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--ink); padding: 8px 12px; font: inherit; margin-top: 8px; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<header><div class="wrap"><b>Aria Home Shield</b><span class="tag gold">ADMIN</span><span class="sp"></span>
+  <div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+  "use strict";
+  var T = {
+    en: { gateT: "Admins only", gate: "This page needs the shop session of an account listed in ADMIN_EMAILS. Sign in on the store with that account and come back.",
+      signin: "Go to sign in", retry: "I signed in", pros: "Pros", cases: "Cases", pending: "Pending verification", verified: "Verified", verify: "Approve license",
+      revoke: "Revoke", note: "Note (optional): how you checked the license", license: "License", trades: "Trades", area: "Area", phone: "Phone", email: "Email",
+      joined: "Enrolled", requests: "Requests", connected: "Connected", noPros: "No pros enrolled yet.", noCases: "No cases yet.", offers: "Offers", docs: "Docs",
+      contact: "Contact on file", yes: "yes", no: "no", within: "mi of", checkHint: "Check the number on the state licensing board's public lookup before approving.",
+      st_open: "Open", st_offered: "Offered", st_connected: "Connected", st_closed: "Closed" },
+    es: { gateT: "Solo para administradores", gate: "Esta página necesita la sesión de la tienda de una cuenta que esté en ADMIN_EMAILS. Inicia sesión en la tienda con esa cuenta y vuelve.",
+      signin: "Ir a iniciar sesión", retry: "Ya inicié sesión", pros: "Profesionales", cases: "Casos", pending: "Verificación pendiente", verified: "Verificado", verify: "Aprobar licencia",
+      revoke: "Revocar", note: "Nota (opcional): cómo verificaste la licencia", license: "Licencia", trades: "Especialidades", area: "Zona", phone: "Teléfono", email: "Correo",
+      joined: "Inscrito", requests: "Solicitudes", connected: "Conectados", noPros: "Todavía no hay profesionales inscritos.", noCases: "Todavía no hay casos.", offers: "Solicitudes", docs: "Docs",
+      contact: "Contacto guardado", yes: "sí", no: "no", within: "mi de", checkHint: "Revisa el número en el buscador público de la junta de licencias del estado antes de aprobar.",
+      st_open: "Abierto", st_offered: "Con solicitudes", st_connected: "Conectado", st_closed: "Cerrado" },
+  };
+  var S = { lang: "en", tab: "pros", pros: null, cases: null };
+  try { var l = new URLSearchParams(location.search).get("lang") || localStorage.getItem("hs_lang"); if (l === "es") S.lang = "es"; } catch (e) {}
+  function t(k) { return T[S.lang][k] || T.en[k] || k; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function get(path) { return fetch("/.netlify/functions/" + path, { credentials: "same-origin" }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; }); }); }
+  var app = document.getElementById("app");
+  document.querySelectorAll("[data-lang]").forEach(function (b) { b.onclick = function () { S.lang = b.dataset.lang; try { localStorage.setItem("hs_lang", S.lang); } catch (e) {} render(); }; });
+
+  function load() {
+    return Promise.all([get("hs-admin-pros"), get("hs-admin-cases")]).then(function (r) {
+      if (r[0].status === 403 || r[0].status === 401) { S.gate = true; render(); return; }
+      S.gate = false; S.pros = r[0].body; S.cases = r[1].body; render();
+    });
+  }
+  function render() {
+    document.documentElement.lang = S.lang;
+    document.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)); });
+    if (S.gate) {
+      app.innerHTML = '<div class="card"><h2>' + esc(t("gateT")) + '</h2><p class="muted">' + esc(t("gate")) + '</p><div class="row"><a class="btn gold" style="display:inline-grid;place-items:center;text-decoration:none" href="/">' + esc(t("signin")) + '</a><button class="btn" id="retry">' + esc(t("retry")) + "</button></div></div>";
+      document.getElementById("retry").onclick = load; return;
+    }
+    if (!S.pros) { app.innerHTML = '<p class="muted">...</p>'; return; }
+    app.innerHTML = '<div class="tabs" role="tablist"><button role="tab" data-tab="pros" aria-selected="' + (S.tab === "pros") + '">' + esc(t("pros")) + " (" + S.pros.pending + " " + esc(t("pending").toLowerCase()) + ')</button><button role="tab" data-tab="cases" aria-selected="' + (S.tab === "cases") + '">' + esc(t("cases")) + " (" + (S.cases.cases || []).length + ")</button></div><section id='pane'></section>";
+    app.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { S.tab = b.dataset.tab; render(); }; });
+    var pane = document.getElementById("pane");
+    if (S.tab === "pros") paintPros(pane); else paintCases(pane);
+  }
+  function paintPros(pane) {
+    var list = S.pros.pros || [];
+    if (!list.length) { pane.innerHTML = '<div class="card muted">' + esc(t("noPros")) + "</div>"; return; }
+    pane.innerHTML = list.map(function (p) {
+      var a = p.serviceZips && p.serviceZips.length ? p.serviceZips.join(", ") : (p.serviceArea ? p.serviceArea.radiusMiles + " " + t("within") + " " + p.serviceArea.centerZip : "");
+      return '<div class="card"><div class="row"><div class="grow"><strong>' + esc(p.name) + "</strong>" + (p.company ? ' <span class="muted">&middot; ' + esc(p.company) + "</span>" : "") +
+        ' <span class="tag ' + (p.verified ? "ok" : "gold") + '">' + esc(p.verified ? t("verified") : t("pending")) + "</span>" +
+        '<dl class="kv"><dt>' + esc(t("license")) + "</dt><dd>" + esc(p.licenseType) + " &middot; " + esc(p.licenseState) + " " + esc(p.licenseNumber) + "</dd>" +
+        "<dt>" + esc(t("trades")) + "</dt><dd>" + esc((p.trades || []).join(", ")) + "</dd><dt>" + esc(t("area")) + "</dt><dd>" + esc(a) + "</dd>" +
+        "<dt>" + esc(t("email")) + "</dt><dd>" + esc(p.email) + "</dd><dt>" + esc(t("phone")) + "</dt><dd>" + esc(p.phone) + "</dd>" +
+        "<dt>" + esc(t("joined")) + "</dt><dd>" + esc((p.createdAt || "").slice(0, 10)) + "</dd><dt>" + esc(t("requests")) + "</dt><dd>" + p.offers + " &middot; " + esc(t("connected")) + " " + p.connected + "</dd>" +
+        (p.verificationNote ? "<dt>Note</dt><dd>" + esc(p.verificationNote) + "</dd>" : "") + "</dl>" +
+        (p.verified ? "" : '<p class="tiny">' + esc(t("checkHint")) + '</p><input class="in" data-note="' + esc(p.id) + '" placeholder="' + esc(t("note")) + '" maxlength="300">') +
+        '</div><div><button class="btn ' + (p.verified ? "" : "gold") + '" data-verify="' + esc(p.id) + '" data-to="' + (!p.verified) + '">' + esc(p.verified ? t("revoke") : t("verify")) + '</button><p class="err small" data-err="' + esc(p.id) + '"></p></div></div></div>';
+    }).join("");
+    pane.querySelectorAll("[data-verify]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.verify, note = pane.querySelector('[data-note="' + id + '"]');
+        b.disabled = true;
+        fetch("/.netlify/functions/hs-admin-verify", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proId: id, verified: b.dataset.to === "true", note: note ? note.value : "" }) })
+          .then(function (r) { return r.json().then(function (x) { if (!r.ok) throw new Error(x.error || r.status); }); })
+          .then(load).catch(function (e) { b.disabled = false; pane.querySelector('[data-err="' + id + '"]').textContent = e.message; });
+      };
+    });
+  }
+  function paintCases(pane) {
+    var list = S.cases.cases || [];
+    if (!list.length) { pane.innerHTML = '<div class="card muted">' + esc(t("noCases")) + "</div>"; return; }
+    pane.innerHTML = list.map(function (c) {
+      return '<div class="card"><div class="row"><strong class="grow">' + esc(c.issue.replace(/_/g, " ")) + " &middot; " + esc(c.area.label || "") + ", " + esc(c.area.state || "") + " " + esc(c.area.zip3 || "") + 'xx</strong><span class="tag ' + (c.status === "connected" ? "ok" : "gold") + '">' + esc(t("st_" + c.status)) + "</span></div>" +
+        '<p class="small muted">' + esc(c.summary) + "</p>" +
+        '<dl class="kv"><dt>' + esc(t("trades")) + "</dt><dd>" + esc(c.trades.join(", ")) + " &middot; " + esc(c.urgency) + "</dd><dt>" + esc(t("offers")) + "</dt><dd>" +
+        (c.offers.length ? c.offers.map(function (o) { return esc(o.proName || o.proId) + " (" + esc(o.status) + ")"; }).join(", ") : "0") + "</dd>" +
+        "<dt>" + esc(t("docs")) + "</dt><dd>" + c.docCount + "</dd><dt>" + esc(t("contact")) + "</dt><dd>" + esc(c.contactOnFile ? t("yes") : t("no")) + "</dd>" +
+        "<dt>ID</dt><dd class=\"tiny\">" + esc(c.id) + " &middot; " + esc((c.createdAt || "").slice(0, 16).replace("T", " ")) + "</dd></dl></div>";
+    }).join("");
+  }
+  render(); load();
+})();
+</script>
+</body>
+</html>
