@@ -551,7 +551,7 @@ function partCard(it, vehicle, fitted){
       '<p class="pmeta">' + esc(sourceLabel(it.s)) + (it.b ? ' · ' + esc(it.b) : '') + (loc ? ' · ' + esc(loc) : '') + '</p>' +
       '<p class="ppart">' + (pn ? 'N.º de parte: ' + esc(pn) : '&nbsp;') + '</p>' +
       (ok
-        ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b><small>' + fmtUSD(usd) + '</small></div>'
+        ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b></div>'
           /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
              the arithmetic checkout charges; nothing under $200 of goods. */
           + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.u, retailer: it.s || 'autozone', title: it.t }) : '')
