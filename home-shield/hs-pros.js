@@ -20,6 +20,8 @@
       yes: "Yes, choose", cancel: "Not yet", picked: "You picked", pickedBody: "They will reach out in the app; nothing is shared until you say so.",
       emptyTitle: "Aria is still lining up options here", emptyBody: "No professional for this is ready in your area yet. Keep talking with Aria or leave your case open; we will bring options to you.",
       talkAria: "Talk to Aria", err: "Something went wrong. Please try again.", gallery: "Photos",
+      chatLine: "Here are licensed pros who cover your area. Take a look and pick who you like. Nothing is shared until you say so.",
+      chatEmpty: "No professional is ready in your area for this yet. Your case stays open and I will bring you options as they join.",
     },
     es: {
       title: "Tus opciones", sub: "Profesionales con licencia que atienden tu zona. Mira, compara y elige a quien quieras. Nadie recibe tu contacto hasta que tú lo digas.",
@@ -31,6 +33,8 @@
       yes: "Sí, elegir", cancel: "Todavía no", picked: "Elegiste a", pickedBody: "Se comunicará contigo en la app; nada se comparte hasta que tú lo digas.",
       emptyTitle: "Aria todavía está reuniendo opciones aquí", emptyBody: "Aún no hay un profesional listo para esto en tu zona. Sigue conversando con Aria o deja tu caso abierto; te traeremos opciones.",
       talkAria: "Hablar con Aria", err: "Algo salió mal. Inténtalo de nuevo.", gallery: "Fotos",
+      chatLine: "Aquí tienes profesionales con licencia que atienden tu zona. Míralos y elige al que te guste. Nada se comparte hasta que tú lo digas.",
+      chatEmpty: "Todavía no hay un profesional listo para esto en tu zona. Tu caso sigue abierto y te traeré opciones en cuanto se unan.",
     },
   };
   function lang() { return document.documentElement.lang === "es" ? "es" : "en"; }
@@ -76,76 +80,90 @@
       ((p.specialties || []).length ? "<h4>" + esc(t("specialties")) + '</h4><div class="hsp-badges">' + p.specialties.map(function (s) { return '<span class="hsp-badge">' + esc(s) + "</span>"; }).join("") + "</div>" : "") +
       (withChoose ? '<div class="hsp-actions" data-choose-box><button type="button" class="hsp-btn hsp-gold" data-choose>' + esc(t("choose")) + "</button></div>" : "") + "</div>";
   }
-  window.HSPros = { cardHTML: cardHTML, fullHTML: fullHTML, injectCss: injectCss, t: t };
+  function get(path) { return fetch(API + path, { credentials: "same-origin" }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; }); }); }
+
+  /**
+   * "Your options" for one OPEN case, into `root` (caso.html, or Aria's chat). Reads the case's
+   * trades from hs-case-status; a draft, connected or closed case shows nothing (a draft is never
+   * shown to a pro, and its contact + consent step comes first). Resolves { shown, pros } where
+   * pros is the number of cards across trades. opts.inChat: Aria's invite is inline (no link away).
+   */
+  function mountOptions(root, C, T, opts) {
+    opts = opts || {};
+    var S = { trades: [], lists: {} };
+    function render() {
+      injectCss();
+      if (!S.trades.length) { root.hidden = true; return; }
+      root.hidden = false;
+      root.classList.add("hsp");
+      root.innerHTML = "<h2>" + esc(t("title")) + "</h2><p>" + esc(t("sub")) + "</p>" + S.trades.map(function (tr) {
+        var L = S.lists[tr];
+        if (!L) return "";
+        var head = '<section class="hsp-sec" data-trade="' + esc(tr) + '"><h3>' + esc(t("tr_" + tr)) + "</h3>";
+        if (L.picked) {
+          var pc = (L.pros || []).filter(function (p) { return p.proId === L.picked; })[0];
+          return head + '<div class="hsp-empty hsp-picked"><b>' + esc(t("picked")) + " " + esc(pc ? pc.displayName : "") + '</b><p class="hsp-ok">' + esc(t("pickedBody")) + "</p></div></section>";
+        }
+        var cards = (L.pros || []).map(cardHTML).join("");
+        if (!cards) return head + '<div class="hsp-empty"><b>' + esc(t("emptyTitle")) + "</b><p>" + esc(t("emptyBody")) + "</p>" +
+          (opts.inChat ? "" : '<a class="hsp-btn hsp-gold" href="/home-shield?lang=' + lang() + '">' + esc(t("talkAria")) + "</a>") + "</div></section>";
+        return head + '<div class="hsp-rail">' + cards + "</div></section>";
+      }).join("");
+      Array.prototype.forEach.call(root.querySelectorAll("[data-pro]"), function (b) {
+        b.onclick = function () { openSheet(b.getAttribute("data-pro"), b.closest("[data-trade]").getAttribute("data-trade")); };
+      });
+    }
+    function openSheet(proId, trade) {
+      get("hs-pro-profile?p=" + encodeURIComponent(proId) + "&c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T)).then(function (r) {
+        if (!r.ok) return;
+        var p = r.body.profile;
+        var sh = document.createElement("div");
+        sh.className = "hsp-sheet"; sh.setAttribute("role", "dialog"); sh.setAttribute("aria-modal", "true"); sh.setAttribute("aria-label", p.displayName);
+        sh.innerHTML = '<div class="hsp-in"><button type="button" class="hsp-btn hsp-x" data-close>' + esc(t("close")) + "</button>" + fullHTML(p, true) + "</div>";
+        document.body.appendChild(sh);
+        document.body.style.overflow = "hidden";
+        var close = function () { sh.remove(); document.body.style.overflow = ""; };
+        sh.addEventListener("click", function (e) { if (e.target === sh) close(); });
+        sh.querySelector("[data-close]").onclick = close;
+        sh.querySelector("[data-choose]").onclick = function () {
+          var box = sh.querySelector("[data-choose-box]");
+          box.innerHTML = '<div style="width:100%"><b style="display:block;font-size:17px">' + esc(t("confirmQ")) + '</b><p style="color:#b8ae9c;margin:6px 0 12px">' + esc(t("confirmBody")) + '</p><div class="hsp-actions" style="margin:0"><button type="button" class="hsp-btn hsp-gold" data-yes>' + esc(t("yes")) + '</button><button type="button" class="hsp-btn" data-no>' + esc(t("cancel")) + "</button></div></div>";
+          box.querySelector("[data-no]").onclick = close;
+          box.querySelector("[data-yes]").onclick = function () {
+            fetch(API + "hs-case-pick", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseId: C, token: T, proId: proId, trade: trade }) })
+              .then(function (x) { return x.json().then(function (b) { return { ok: x.ok, body: b }; }); })
+              .then(function (x) {
+                if (!x.ok) { box.innerHTML = '<p style="color:#f0a39a">' + esc(x.body.error || t("err")) + "</p>"; return; }
+                box.innerHTML = '<p class="hsp-ok">' + esc(t("picked")) + " " + esc(p.displayName) + ". " + esc(t("pickedBody")) + "</p>";
+                S.lists[trade].picked = proId;
+                render();
+                if (opts.onPicked) opts.onPicked(p, x.body);
+              });
+          };
+        };
+      });
+    }
+    new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    return get("hs-case-status?c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T)).then(function (r) {
+      if (!r.ok || !r.body.case) return { shown: false, pros: 0 };
+      var cs = r.body.case;
+      if (cs.status !== "open" && cs.status !== "offered") return { shown: false, pros: 0 };
+      S.trades = (cs.trades || []).slice(0, 5);
+      return Promise.all(S.trades.map(function (tr) {
+        return get("hs-pros-for-case?c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T) + "&trade=" + encodeURIComponent(tr)).then(function (x) { S.lists[tr] = x.ok ? x.body : { pros: [] }; });
+      })).then(function () {
+        render();
+        var n = 0;
+        S.trades.forEach(function (tr) { n += ((S.lists[tr] && S.lists[tr].pros) || []).filter(function (p) { return p.mainPhoto; }).length; });
+        return { shown: S.trades.length > 0, pros: n };
+      });
+    }).catch(function () { return { shown: false, pros: 0 }; });
+  }
+  window.HSPros = { cardHTML: cardHTML, fullHTML: fullHTML, injectCss: injectCss, t: t, mountOptions: mountOptions };
 
   /* ---------------- caso.html ---------------- */
   var root = document.getElementById("hsPros");
   if (!root) return;
   var qs = new URLSearchParams(location.search), C = qs.get("c"), T = qs.get("t");
-  if (!C || !T) return;
-  var S = { trades: [], lists: {}, picked: {} };
-  function get(path) { return fetch(API + path, { credentials: "same-origin" }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; }); }); }
-
-  function render() {
-    injectCss();
-    if (!S.trades.length) { root.hidden = true; return; }
-    root.hidden = false;
-    root.className = "hsp";
-    root.innerHTML = "<h2>" + esc(t("title")) + "</h2><p>" + esc(t("sub")) + "</p>" + S.trades.map(function (tr) {
-      var L = S.lists[tr];
-      if (!L) return "";
-      var head = '<section class="hsp-sec" data-trade="' + esc(tr) + '"><h3>' + esc(t("tr_" + tr)) + "</h3>";
-      if (L.picked) {
-        var pc = (L.pros || []).filter(function (p) { return p.proId === L.picked; })[0];
-        return head + '<div class="hsp-empty hsp-picked"><b>' + esc(t("picked")) + " " + esc(pc ? pc.displayName : "") + '</b><p class="hsp-ok">' + esc(t("pickedBody")) + "</p></div></section>";
-      }
-      var cards = (L.pros || []).map(cardHTML).join("");
-      if (!cards) return head + '<div class="hsp-empty"><b>' + esc(t("emptyTitle")) + "</b><p>" + esc(t("emptyBody")) + '</p><a class="hsp-btn hsp-gold" href="/home-shield?lang=' + lang() + '">' + esc(t("talkAria")) + "</a></div></section>";
-      return head + '<div class="hsp-rail">' + cards + "</div></section>";
-    }).join("");
-    Array.prototype.forEach.call(root.querySelectorAll("[data-pro]"), function (b) {
-      b.onclick = function () { openSheet(b.getAttribute("data-pro"), b.closest("[data-trade]").getAttribute("data-trade")); };
-    });
-  }
-
-  function openSheet(proId, trade) {
-    get("hs-pro-profile?p=" + encodeURIComponent(proId) + "&c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T)).then(function (r) {
-      if (!r.ok) return;
-      var p = r.body.profile;
-      var sh = document.createElement("div");
-      sh.className = "hsp-sheet"; sh.setAttribute("role", "dialog"); sh.setAttribute("aria-modal", "true"); sh.setAttribute("aria-label", p.displayName);
-      sh.innerHTML = '<div class="hsp-in"><button type="button" class="hsp-btn hsp-x" data-close>' + esc(t("close")) + "</button>" + fullHTML(p, true) + "</div>";
-      document.body.appendChild(sh);
-      document.body.style.overflow = "hidden";
-      var close = function () { sh.remove(); document.body.style.overflow = ""; };
-      sh.addEventListener("click", function (e) { if (e.target === sh) close(); });
-      sh.querySelector("[data-close]").onclick = close;
-      sh.querySelector("[data-choose]").onclick = function () {
-        var box = sh.querySelector("[data-choose-box]");
-        box.innerHTML = '<div style="width:100%"><b style="display:block;font-size:17px">' + esc(t("confirmQ")) + '</b><p style="color:#b8ae9c;margin:6px 0 12px">' + esc(t("confirmBody")) + '</p><div class="hsp-actions" style="margin:0"><button type="button" class="hsp-btn hsp-gold" data-yes>' + esc(t("yes")) + '</button><button type="button" class="hsp-btn" data-no>' + esc(t("cancel")) + "</button></div></div>";
-        box.querySelector("[data-no]").onclick = close;
-        box.querySelector("[data-yes]").onclick = function () {
-          fetch(API + "hs-case-pick", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseId: C, token: T, proId: proId, trade: trade }) })
-            .then(function (x) { return x.json().then(function (b) { return { ok: x.ok, body: b }; }); })
-            .then(function (x) {
-              if (!x.ok) { box.innerHTML = '<p style="color:#f0a39a">' + esc(x.body.error || t("err")) + "</p>"; return; }
-              box.innerHTML = '<p class="hsp-ok">' + esc(t("picked")) + " " + esc(p.displayName) + ". " + esc(t("pickedBody")) + "</p>";
-              S.lists[trade].picked = proId;
-              render();
-            });
-        };
-      };
-    });
-  }
-
-  get("hs-case-status?c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T)).then(function (r) {
-    if (!r.ok || !r.body.case) return;
-    var cs = r.body.case;
-    if (cs.status === "connected" || cs.status === "closed") return;
-    S.trades = (cs.trades || []).slice(0, 5);
-    return Promise.all(S.trades.map(function (tr) {
-      return get("hs-pros-for-case?c=" + encodeURIComponent(C) + "&t=" + encodeURIComponent(T) + "&trade=" + encodeURIComponent(tr)).then(function (x) { S.lists[tr] = x.ok ? x.body : { pros: [] }; });
-    })).then(render);
-  }).catch(function () { /* the rest of the page works without options */ });
-  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  if (C && T) mountOptions(root, C, T);
 })();

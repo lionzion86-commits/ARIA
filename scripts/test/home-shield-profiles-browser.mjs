@@ -64,6 +64,25 @@ STORES.sessions = memStore();
 await STORES.sessions.setJSON("adm1n", { email: "danny@correo.test", createdAt: new Date().toISOString() });
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp", ".json": "application/json" };
+/* Aria's brain and voice are stubbed (no model / voice key here): hs-chat streams a fixed reply. */
+const STUB = {};
+const TTS = [];
+let chatReply = null;
+STUB["hs-chat"] = async (req, res) => {
+  const r = chatReply;
+  res.writeHead(200, { "Content-Type": "text/event-stream" });
+  for (const w of r.reply.match(/\S+\s*/g)) res.write(`data: ${JSON.stringify({ t: w })}\n\n`);
+  res.write(`data: ${JSON.stringify({ done: true, ...r })}\n\n`);
+  res.end();
+};
+STUB["hs-tts"] = async (req, res, body) => {
+  try { TTS.push(JSON.parse(body).text); } catch { /* ignore */ }
+  /* 0.2 s of silence, WAV. */
+  const n = 3200, b = Buffer.alloc(44 + n * 2);
+  b.write("RIFF", 0); b.writeUInt32LE(36 + n * 2, 4); b.write("WAVEfmt ", 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(16000, 24); b.writeUInt32LE(32000, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write("data", 36); b.writeUInt32LE(n * 2, 40);
+  res.writeHead(200, { "Content-Type": "audio/wav" }); res.end(b);
+};
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://localhost");
   if (u.pathname.startsWith("/.netlify/functions/")) {
@@ -71,11 +90,13 @@ const server = http.createServer(async (req, res) => {
     if (!/^hs-[a-z-]+$/.test(name) || !existsSync(join(FN, name + ".js"))) { res.writeHead(404); return res.end(); }
     let body = "";
     for await (const ch of req) body += ch;
+    if (STUB[name]) return STUB[name](req, res, body);
     const r = await (await fn(name))({ httpMethod: req.method, headers: { ...req.headers, "x-nf-client-connection-ip": "127.0.0.1" }, queryStringParameters: Object.fromEntries(u.searchParams), body });
     res.writeHead(r.statusCode, r.headers || {});
     return res.end(r.isBase64Encoded ? Buffer.from(r.body, "base64") : r.body);
   }
   let p = u.pathname;
+  if (p === "/home-shield/") p = "/home-shield/index.html";
   if (p === "/home-shield/pro" || p === "/home-shield/pro/") p = "/home-shield/pro/index.html";
   if (p === "/home-shield/admin") p = "/home-shield/admin.html";
   if (p === "/home-shield/partners" || p === "/home-shield/partners/") p = "/home-shield/partners/index.html";
@@ -207,6 +228,89 @@ try {
   assert.match(await cp.textContent(".hsp-sheet"), /Elegir/);
   const p6 = join(OUT, "hs-profiles-3b-profile-es.png"); await cp.screenshot({ path: p6 }); console.log("    shot " + p6);
   ok("Spanish carousel, profile and empty state");
+  /* ---- In Aria's chat: ready -> contact + consent first -> the carousel -> choose -> talk-first. ---- */
+  for (const L of ["en", "es"]) {
+    const ch = await ctx.newPage();
+    ch.on("pageerror", (e) => errors.push(e.message));
+    const trades = L === "en" ? ["roofer"] : ["attorney"]; // es: a trade with nobody listed -> Aria's invite
+    chatReply = { reply: L === "en" ? "I have what I need. Let me find who covers your area." : "Ya tengo lo que necesito. Busco quién atiende tu zona.",
+      caseDraft: { issue: L === "en" ? "roof" : "denied_claim", trades, zip: "32801", state: "FL", urgency: "soon", summary: "Shingles lifted after the storm." }, ready: true };
+    await ch.goto(`${BASE}/home-shield/?lang=${L}`);
+    await ch.locator('[data-action="talk"]').first().click();
+    await ch.waitForSelector("#hsSheet:not([hidden])");
+    await ch.fill("#hsInput", L === "en" ? "My roof lost shingles in Orlando." : "Me negaron el reclamo.");
+    await ch.press("#hsInput", "Enter");
+    await ch.waitForSelector("#hsCaseCard");
+    /* Not open yet: no options, no pro list asked for. */
+    assert.equal(await ch.locator("#hsOptions").count(), 0, "no carousel before contact + consent");
+    const ask = await ch.evaluate(() => performance.getEntriesByType("resource").filter((e) => /hs-pros-for-case/.test(e.name)).length);
+    assert.equal(ask, 0);
+    const card = ch.locator("#hsCaseCard");
+    await card.locator("input[name=cname]").fill("Ana Prueba");
+    await card.locator("input[name=phone]").fill("(305) 555-0142");
+    await card.locator("#hsConsent").check();
+    await ch.locator("#hsSendCase").click();
+    await ch.waitForSelector("#hsOptions .hsp-sec", { timeout: 10000 });
+    const optTxt = await ch.textContent("#hsOptions");
+    assert.ok(!BAN.test(optTxt), "no distance or place in the chat carousel");
+    const msgsTxt = await ch.textContent("#hsMsgs");
+    if (L === "en") {
+      assert.match(msgsTxt, /Here are licensed pros who cover your area/);
+      await ch.waitForFunction(() => true);
+      assert.ok(TTS.some((x) => /Here are licensed pros who cover your area/.test(x)), "Aria says it in her voice");
+      assert.equal(await ch.locator("#hsOptions .hsp-card").count() >= 1, true);
+      await ch.evaluate(() => { const m = document.getElementById("hsMsgs"), o = document.getElementById("hsOptions"); m.scrollTop = o.offsetTop - m.offsetTop - 70; });
+      await ch.waitForTimeout(300);
+      const s1 = join(OUT, "hs-profiles-5-chat-carousel-en.png"); await ch.screenshot({ path: s1 }); console.log("    shot " + s1);
+      await ch.click("#hsOptions .hsp-card");
+      await ch.waitForSelector(".hsp-sheet [data-choose]");
+      await ch.click(".hsp-sheet [data-choose]");
+      await ch.click(".hsp-sheet [data-yes]");
+      await ch.waitForFunction(() => /You picked/.test(document.querySelector("#hsOptions").textContent));
+      const caseId = new URL(await ch.locator("#hsCaseLink").innerText()).searchParams.get("c");
+      const offers = [...STORES["hs-offers"].m.entries()].filter(([k]) => k.startsWith("o_")).map(([, v]) => JSON.parse(v)).filter((o) => o.caseId === caseId);
+      assert.equal(offers.length, 1); assert.equal(offers[0].status, "accepted_talk_first"); assert.equal(offers[0].origin, "customer_pick");
+      ok("chat (en): ready -> contact + consent first -> carousel in the chat, Aria's line spoken -> choose -> talk-first record");
+      /* A draft case (no contact, no consent) never shows options. */
+      const d = await call("hs-case-create", "POST", { draft: true, lang: "en", caseDraft: { issue: "roof" } });
+      const r = await ch.evaluate(async ([c, t]) => { const el = document.createElement("div"); document.body.appendChild(el); const x = await window.HSPros.mountOptions(el, c, t, { inChat: true }); return { x, html: el.innerHTML }; }, [d.body.caseId, d.body.token]);
+      assert.equal(r.x.shown, false); assert.equal(r.html, "", "a draft is never shown to a pro or listed");
+      ok("draft case: no options until the contact + consent step");
+    } else {
+      assert.match(msgsTxt, /Todavía no hay un profesional listo para esto en tu zona/);
+      assert.match(optTxt, /Aria todavía está reuniendo opciones aquí/);
+      assert.equal(await ch.locator("#hsOptions a").count(), 0, "the invite stays inline in the chat");
+      assert.match(optTxt, /Tus opciones/);
+      await ch.evaluate(() => { const m = document.getElementById("hsMsgs"), o = document.getElementById("hsOptions"); m.scrollTop = o.offsetTop - m.offsetTop - 120; });
+      await ch.waitForTimeout(300);
+      const s2 = join(OUT, "hs-profiles-6-chat-empty-es.png"); await ch.screenshot({ path: s2 }); console.log("    shot " + s2);
+      ok("chat (es): empty -> Aria's invite inline, in Spanish");
+    }
+    await ch.close();
+  }
+  /* The Spanish carousel in the chat, with pros. */
+  {
+    const ch = await ctx.newPage();
+    chatReply = { reply: "Ya tengo lo que necesito.", caseDraft: { issue: "roof", trades: ["roofer"], zip: "32801", state: "FL", urgency: "soon", summary: "Tejas levantadas." }, ready: true };
+    await ch.goto(`${BASE}/home-shield/?lang=es`);
+    await ch.locator('[data-action="talk"]').first().click();
+    await ch.waitForSelector("#hsSheet:not([hidden])");
+    await ch.fill("#hsInput", "Se me dañó el techo.");
+    await ch.press("#hsInput", "Enter");
+    await ch.waitForSelector("#hsCaseCard");
+    const card = ch.locator("#hsCaseCard");
+    await card.locator("input[name=cname]").fill("Ana Prueba");
+    await card.locator("input[name=phone]").fill("(305) 555-0142");
+    await card.locator("#hsConsent").check();
+    await ch.locator("#hsSendCase").click();
+    await ch.waitForSelector("#hsOptions .hsp-card", { timeout: 10000 });
+    assert.match(await ch.textContent("#hsMsgs"), /Aquí tienes profesionales con licencia que atienden tu zona/);
+    await ch.evaluate(() => { const m = document.getElementById("hsMsgs"), o = document.getElementById("hsOptions"); m.scrollTop = o.offsetTop - m.offsetTop - 70; });
+    await ch.waitForTimeout(300);
+    const s3 = join(OUT, "hs-profiles-5b-chat-carousel-es.png"); await ch.screenshot({ path: s3 }); console.log("    shot " + s3);
+    ok("chat (es): the carousel in Spanish");
+    await ch.close();
+  }
   assert.ok(await cp.evaluate(() => document.documentElement.scrollWidth) <= 390, "no horizontal page scroll");
   assert.deepEqual(errors, []);
   ok("no page errors, no horizontal scroll");
