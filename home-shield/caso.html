@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Your case · Aria Home Shield</title>
+<meta name="theme-color" content="#0b0a08">
+<link rel="icon" href="/home-shield/img/aria-open-480.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/home-shield/hs.css">
+<script>
+(function(){var l="en";try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{var s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s}}catch(e){}
+var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},1500)}})();
+</script>
+<script defer src="/home-shield/hs.js"></script>
+</head>
+<body data-page="caso">
+<header class="hs-top">
+  <a class="hs-brand" href="/home-shield/" aria-label="Aria Home Shield">
+    <svg class="hs-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4 5.6v6.1c0 4.6 3.3 8.6 8 9.8 4.7-1.2 8-5.2 8-9.8V5.6L12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Aria <em>Home Shield</em></span>
+  </a>
+  <nav class="hs-topnav">
+    <button class="hs-lang" id="hsLang" type="button" lang="es" data-i18n="lang.toggle" data-i18n-aria="lang.aria" aria-label="Ver en español">Español</button>
+  </nav>
+</header>
+<main class="hs-caso" id="main">
+  <div class="hs-caso-head">
+    <span class="hs-star" aria-hidden="true"><span class="hs-star-face" data-frame="open"><img class="f-open" src="/home-shield/img/aria-open-480.webp" width="480" height="480" alt=""></span></span>
+    <div>
+      <h1 class="hs-h2" data-i18n="caso.title">Your case</h1>
+      <p class="hs-sub" data-i18n="caso.sub">Private to you. This page checks for news every 15 seconds.</p>
+    </div>
+  </div>
+  <div id="casoBody" aria-live="polite"></div>
+</main>
+<footer class="hs-foot">
+  <p class="hs-disclaimer" data-i18n="footer.disclaimer">Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.</p>
+  <p data-i18n="footer.emergency">If anyone is in danger, call 911.</p>
+</footer>
+</body>
+</html>

@@ -171,9 +171,12 @@
       "policy.uploading": "Uploading your policy privately…",
       "policy.reviewing": "Reading your policy…",
       "policy.found": "What I found",
+      "policy.strong": "What's strong",
+      "policy.weak": "What's weak",
+      "policy.improve": "Where it can improve",
       "policy.better": "Find me a better policy",
       "policy.betterDone": "Done. Licensed insurance agents near you can now request your case to quote a better policy. You still choose who contacts you.",
-      "policy.betterLater": "I added an insurance agent to your case. Send your case and agents near you can offer to quote a better policy.",
+      "policy.betterLater": "I added an insurance agent to your case. When you send it, licensed agents near you can offer to quote a better policy. You still choose who contacts you.",
       "policy.err": "I couldn't review the policy ({e}).",
       "policy.size": "That file is over 10 MB. Please upload a smaller file or a PDF.",
       "policy.type": "Please upload a PDF, JPG, PNG or HEIC file.",
@@ -190,11 +193,28 @@
       "caso.offers": "Pros who want to help",
       "caso.none": "No offers yet. Licensed pros in your area are reviewing your anonymous case. You'll see their offers here.",
       "caso.license": "License",
-      "caso.accept": "Accept and share my contact",
-      "caso.decline": "Decline",
+            "caso.decline": "Decline",
       "caso.declined": "Declined",
       "caso.connected": "You're connected",
       "caso.connectedBody": "{name} now has your contact, and here is theirs. You stay in control: talk with them before you sign anything.",
+      "caso.talkFirst": "Talk first through Aria Home Shield",
+      "caso.talkFirstNote": "Talking first keeps your contact private. You message here, and share your contact only if and when you decide.",
+      "caso.share": "Share my contact",
+      "caso.talking": "You're talking privately. Your contact is not shared.",
+      "caso.sharedNote": "You shared your contact with this professional.",
+      "caso.thread": "Private messages with {name}",
+      "caso.threadEmpty": "No messages yet. Ask anything: how they would handle your case, their fees, their availability.",
+      "caso.threadPh": "Write a message",
+      "caso.threadPrivate": "Phone numbers, emails and addresses are removed from your messages until you choose to share your contact.",
+      "caso.scrubbed": "We removed contact details from that message to keep you private.",
+      "caso.verified": "verified",
+      "lic.public_adjuster": "Public adjuster",
+      "lic.attorney": "Attorney",
+      "lic.roofing_contractor": "Roofing contractor",
+      "lic.general_contractor": "General contractor",
+      "lic.insurance_agent": "Insurance agent",
+      "lic.home_inspector": "Home inspector",
+      "lic.other": "License",
       "caso.delete": "Delete my case and documents",
       "caso.deleteConfirm": "Yes, delete everything",
       "caso.deleteAsk": "This deletes your case and every document you uploaded. It can't be undone.",
@@ -362,9 +382,12 @@
       "policy.uploading": "Subiendo tu póliza en privado…",
       "policy.reviewing": "Leyendo tu póliza…",
       "policy.found": "Lo que encontré",
+      "policy.strong": "Lo que está fuerte",
+      "policy.weak": "Lo que está débil",
+      "policy.improve": "Dónde puede mejorar",
       "policy.better": "Búscame una mejor póliza",
       "policy.betterDone": "Listo. Los agentes de seguros con licencia de tu zona ya pueden pedir tu caso para cotizarte una mejor póliza. Tú sigues eligiendo quién te contacta.",
-      "policy.betterLater": "Agregué un agente de seguros a tu caso. Envía tu caso y los agentes de tu zona podrán ofrecerte una cotización mejor.",
+      "policy.betterLater": "Agregué un agente de seguros a tu caso. Cuando lo envíes, los agentes con licencia de tu zona podrán ofrecerte una cotización mejor. Tú sigues eligiendo quién te contacta.",
       "policy.err": "No pude revisar la póliza ({e}).",
       "policy.size": "Ese archivo pesa más de 10 MB. Sube uno más liviano o un PDF.",
       "policy.type": "Sube un archivo PDF, JPG, PNG o HEIC.",
@@ -381,11 +404,28 @@
       "caso.offers": "Profesionales que quieren ayudarte",
       "caso.none": "Todavía no hay ofertas. Los profesionales con licencia de tu zona están revisando tu caso anónimo. Aquí verás sus ofertas.",
       "caso.license": "Licencia",
-      "caso.accept": "Aceptar y compartir mis datos",
-      "caso.decline": "Rechazar",
+            "caso.decline": "Rechazar",
       "caso.declined": "Rechazada",
       "caso.connected": "Ya están conectados",
       "caso.connectedBody": "{name} ya tiene tus datos de contacto, y aquí están los suyos. Tú sigues en control: habla con esta persona antes de firmar nada.",
+      "caso.talkFirst": "Hablar primero por Aria Home Shield",
+      "caso.talkFirstNote": "Hablar primero mantiene tus datos en privado. Se escriben aquí, y compartes tus datos solo si lo decides y cuando lo decidas.",
+      "caso.share": "Compartir mis datos",
+      "caso.talking": "Están hablando en privado. Tus datos no se han compartido.",
+      "caso.sharedNote": "Compartiste tus datos con este profesional.",
+      "caso.thread": "Mensajes privados con {name}",
+      "caso.threadEmpty": "Todavía no hay mensajes. Pregunta lo que quieras: cómo manejaría tu caso, sus honorarios, su disponibilidad.",
+      "caso.threadPh": "Escribe un mensaje",
+      "caso.threadPrivate": "Quitamos teléfonos, correos y direcciones de tus mensajes hasta que decidas compartir tus datos.",
+      "caso.scrubbed": "Quitamos datos de contacto de ese mensaje para cuidar tu privacidad.",
+      "caso.verified": "verificada",
+      "lic.public_adjuster": "Ajustador público",
+      "lic.attorney": "Abogado",
+      "lic.roofing_contractor": "Contratista de techos",
+      "lic.general_contractor": "Contratista general",
+      "lic.insurance_agent": "Agente de seguros",
+      "lic.home_inspector": "Inspector de viviendas",
+      "lic.other": "Licencia",
       "caso.delete": "Borrar mi caso y mis documentos",
       "caso.deleteConfirm": "Sí, borrar todo",
       "caso.deleteAsk": "Esto borra tu caso y todos los documentos que subiste. No se puede deshacer.",
@@ -749,7 +789,7 @@
     typing(true);
     if (convo.active) convo.set("thinking");
     else setStarState("thinking");
-    return post("hs-chat", { messages: chat.messages, lang: lang, caseDraft: chat.draft, voice: !!viaVoice || convo.active })
+    return post("hs-chat", { messages: chat.messages, lang: lang, caseDraft: chat.draft, voice: !!viaVoice || convo.active, policy: chat.policy || null })
       .then(function (j) {
         typing(false); chat.busy = false;
         var reply = String(j.reply || "");
@@ -1002,7 +1042,7 @@
   function showCaseCard(mode) {
     chat.cardMode = mode;
     var d = chat.draft || {};
-    if (mode === "file") d = mergeDraft({ issue: "policy_review", urgency: "planning", trades: [], summary: t("policy.summary") }, d.issue ? d : {});
+    if (mode === "file") d = mergeDraft({ issue: "policy_review", urgency: "planning", trades: ["insurance_agent"], summary: t("policy.summary") }, d.issue ? d : {});
     var keep = readCard();
     var old = cardEl;
     var v = keep || { issue: d.issue || "other", trades: d.trades || [], zip: d.zip || "", urgency: d.urgency || "soon", summary: d.summary || "", name: "", phone: "", email: "", pref: "phone", consent: false };
@@ -1072,7 +1112,7 @@
       .then(function (j) {
         if (!j.caseId || !j.token) throw new Error("no case id");
         chat.caseId = j.caseId; chat.token = j.token; chat.draft = mergeDraft(chat.draft, caseDraft);
-        chat.link = location.origin + "/home-shield/caso.html?c=" + encodeURIComponent(j.caseId) + "&t=" + encodeURIComponent(j.token);
+        chat.link = location.origin + (j.statusUrl && j.statusUrl.charAt(0) === "/" ? j.statusUrl : "/home-shield/caso.html?c=" + encodeURIComponent(j.caseId) + "&t=" + encodeURIComponent(j.token));
         store("hs_case", chat.link);
         showMyCase();
         renderSent();
@@ -1129,28 +1169,60 @@
     if (chat.caseId) uploadPolicy(f);
     else { chat.pendingFile = f; showCaseCard("file"); }
   }
+  /* Base64 JSON; files over 4 MB go in ~3 MB chunks (Netlify's 6 MB cap). */
+  var CHUNK = 3 * 1024 * 1024;
+  function sendFile(f) {
+    var base = { caseId: chat.caseId, token: chat.token, kind: "policy" };
+    var type = f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "");
+    if (f.size <= 4 * 1024 * 1024) {
+      return blobToB64(f).then(function (b64) { return post("hs-doc-upload", Object.assign({}, base, { file: { name: f.name, type: type, size: f.size, data: b64 } })); });
+    }
+    var total = Math.ceil(f.size / CHUNK), uploadId = null;
+    var step = function (i) {
+      return blobToB64(f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK))).then(function (b64) {
+        var chunk = { index: i, total: total };
+        if (uploadId) chunk.uploadId = uploadId;
+        return post("hs-doc-upload", Object.assign({}, base, { file: { name: f.name, type: type, size: f.size, data: b64, chunk: chunk } }));
+      }).then(function (j) {
+        if (j.docId) return j;
+        uploadId = j.uploadId || uploadId;
+        return step(i + 1);
+      });
+    };
+    return step(0);
+  }
+  function list(titleKey, items) {
+    if (!items || !items.length) return null;
+    return h("div", { class: "hs-review-group" }, [h("p", { class: "hs-review-h", text: t(titleKey) }),
+      h("ul", { class: "hs-flags" }, items.map(function (x) { return h("li", { text: typeof x === "string" ? x : (x && (x.label || x.text)) || "" }); }))]);
+  }
   function uploadPolicy(f) {
     var status = addMsg("assistant", t("policy.uploading"));
     setStarState("thinking");
-    blobToB64(f).then(function (b64) {
-      return post("hs-doc-upload", { caseId: chat.caseId, token: chat.token, file: { name: f.name, type: f.type || "application/pdf", size: f.size, data: b64 } });
-    }).then(function (j) {
+    sendFile(f).then(function (j) {
       status.textContent = t("policy.reviewing");
       return post("hs-policy-review", { caseId: chat.caseId, token: chat.token, docId: j.docId, lang: lang });
     }).then(function (r) {
       status.remove();
+      var strong = r.strong || [], weak = r.weak || [], improve = r.improve || [];
       var flags = Array.isArray(r.flags) ? r.flags : [];
-      var box = doc.createElement("div");
-      if (flags.length) {
-        box.appendChild(h("p", { text: t("policy.found") }));
-        box.appendChild(h("ul", { class: "hs-flags" }, flags.map(function (x) { return h("li", { text: typeof x === "string" ? x : (x && (x.text || x.label || x.title)) || "" }); })));
+      chat.policy = { textFound: !!r.textFound, strong: strong, weak: weak, improve: improve, flags: flags, excerpt: String(r.excerpt || "").slice(0, 6000) };
+      var box = h("div", { class: "hs-review" }, [
+        list("policy.strong", strong), list("policy.weak", weak), list("policy.improve", improve),
+        !strong.length && !weak.length && !improve.length ? list("policy.found", flags) : null
+      ]);
+      if (r.textFound !== false) {
+        var better = h("button", { class: "hs-btn hs-btn-gold", type: "button", text: t("policy.better") });
+        better.addEventListener("click", function () { findBetterPolicy(better); });
+        box.appendChild(better);
       }
-      var better = h("button", { class: "hs-btn hs-btn-gold", type: "button", text: t("policy.better") });
-      better.addEventListener("click", function () { findBetterPolicy(better); });
-      box.appendChild(better);
       var plain = String(r.plainSummary || "");
       addMsg("assistant", plain, box);
-      chat.messages.push({ role: "assistant", content: plain + (flags.length ? "\n" + flags.map(function (x) { return "- " + (typeof x === "string" ? x : x.text || ""); }).join("\n") : "") });
+      var lines = [plain];
+      if (strong.length) lines.push(t("policy.strong") + ": " + strong.join("; "));
+      if (weak.length) lines.push(t("policy.weak") + ": " + weak.join("; "));
+      if (improve.length) lines.push(t("policy.improve") + ": " + improve.join("; "));
+      chat.messages.push({ role: "assistant", content: lines.join("\n") });
       setStarState("idle");
       return sayReply(plain);
     }).catch(function (e) {
@@ -1161,119 +1233,156 @@
   function findBetterPolicy(btn) {
     btn.disabled = true;
     var d = chat.draft = mergeDraft(chat.draft, {});
+    var had = (d.trades || []).indexOf("insurance_agent") >= 0;
     d.trades = (d.trades || []).slice();
-    if (d.trades.indexOf("insurance_agent") < 0) d.trades.push("insurance_agent");
+    if (!had) d.trades.push("insurance_agent");
     if (!d.issue) d.issue = "policy_review";
-    if (chat.caseId) {
-      post("hs-case-update", { caseId: chat.caseId, token: chat.token, addTrades: ["insurance_agent"] })
-        .then(function () { addMsg("assistant", t("policy.betterDone")); sayReply(t("policy.betterDone")); })
-        .catch(function (e) { btn.disabled = false; showErr(t("err.chat", { e: e.message })); });
-    } else {
-      addMsg("assistant", t("policy.betterLater"));
-      showCaseCard("case");
-    }
+    if (chat.caseId && had) { addMsg("assistant", t("policy.betterDone")); sayReply(t("policy.betterDone")); }
+    else { addMsg("assistant", t("policy.betterLater")); sayReply(t("policy.betterLater")); chat.edited = false; showCaseCard("case"); }
   }
 
   /* ================================================================
      caso.html: the homeowner's private case page.
      ================================================================ */
+  function prettyPhone(p) {
+    var d = String(p || "").replace(/\D/g, "");
+    if (d.length === 11 && d.charAt(0) === "1") d = d.slice(1);
+    return d.length === 10 ? "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6) : String(p);
+  }
   function initCaso() {
     var q = new URLSearchParams(location.search);
     var c = q.get("c"), tok = q.get("t");
     var box = doc.getElementById("casoBody");
-    var poll = 0, data = null, deleted = false, busyOffer = null;
+    var poll = 0, data = null, deleted = false, busy = false, threads = {}, drafts = {};
     if (c && tok) store("hs_case", location.href.split("#")[0]);
-    function get() {
-      if (!c || !tok) return Promise.reject(Object.assign(new Error("bad link"), { status: 404 }));
-      return fetch(FN + "hs-case-status?c=" + encodeURIComponent(c) + "&t=" + encodeURIComponent(tok), { headers: { Accept: "application/json" } }).then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || "HTTP " + r.status); e.status = r.status; throw e; } return j; });
+    function getJ(url) {
+      return fetch(url, { headers: { Accept: "application/json" } }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || "HTTP " + r.status); e.status = r.status; e.code = j.code; throw e; } return j; });
       });
     }
+    function get() {
+      if (!c || !tok) return Promise.reject(Object.assign(new Error("bad link"), { status: 404 }));
+      return getJ(FN + "hs-case-status?c=" + encodeURIComponent(c) + "&t=" + encodeURIComponent(tok));
+    }
     function norm(j) {
-      var cs = j.case || j;
-      var offers = (j.offers || cs.offersDetail || []).map(function (o) {
+      var cs = j.case || {};
+      var offers = (j.offers || []).map(function (o) {
         var p = o.pro || {};
-        return {
-          id: o.id || o.offerId, status: o.status || "pending", message: o.message || "",
-          name: p.name || o.proName || o.name || "", company: p.company || o.company || "",
-          trades: p.trades || o.trades || (o.trade ? [o.trade] : []), licenseType: p.licenseType || o.licenseType || "",
-          licenseNumber: p.licenseNumber || o.licenseNumber || "", licenseState: p.licenseState || o.licenseState || "",
-          phone: p.phone || o.phone || "", email: p.email || o.email || ""
-        };
+        return { id: o.id, proId: p.id || o.proId || "", status: o.status || "pending", message: o.message || "",
+          name: p.name || "", company: p.company || "", trades: p.trades || [], licenseType: p.licenseType || "",
+          licenseNumber: p.licenseNumber || "", licenseState: p.licenseState || "", verified: !!p.verified,
+          phone: p.phone || "", email: p.email || "" };
       });
-      var conn = j.connectedPro || j.connected || cs.connectedPro || null;
-      if (conn && typeof conn !== "object") conn = null;
-      if (!conn && cs.status === "connected") {
-        var acc = offers.filter(function (o) { return o.status === "accepted"; })[0];
-        if (acc) conn = acc;
-      }
-      return { status: cs.status || "open", summary: cs.summary || "", issue: cs.issue, trades: cs.trades || [], zip: cs.zip, offers: offers, conn: conn };
+      var conn = null;
+      if (cs.status === "connected") conn = offers.filter(function (o) { return o.status === "accepted"; })[0] || null;
+      return { status: cs.status || "open", summary: cs.summary || "", issue: cs.issue, trades: cs.trades || [],
+        area: (cs.area && (cs.area.label || cs.area.zip3)) || cs.zip || "", offers: offers, conn: conn };
+    }
+    function loadThread(o) {
+      if (!o.proId) return Promise.resolve();
+      return getJ(FN + "hs-case-messages?c=" + encodeURIComponent(c) + "&t=" + encodeURIComponent(tok) + "&p=" + encodeURIComponent(o.proId))
+        .then(function (j) { threads[o.proId] = j.messages || []; }).catch(function () { /* keep what we had */ });
+    }
+    function threadEl(o) {
+      var msgsList = threads[o.proId] || [];
+      var list = h("div", { class: "hs-thread-msgs" }, msgsList.length ? msgsList.map(function (m) {
+        return h("p", { class: "hs-tmsg " + (m.from === "homeowner" ? "is-me" : "is-pro"), text: m.text });
+      }) : [h("p", { class: "hs-meta", text: t("caso.threadEmpty") })]);
+      var inp = h("input", { type: "text", maxlength: "2000", "data-thread-input": o.proId, placeholder: t("caso.threadPh"), "aria-label": t("caso.threadPh") });
+      inp.value = drafts[o.proId] || "";
+      inp.addEventListener("input", function () { drafts[o.proId] = inp.value; });
+      var form = h("form", { class: "hs-thread-form", "data-thread": o.proId }, [inp, h("button", { class: "hs-btn hs-btn-line", type: "submit", text: t("chat.send") })]);
+      return h("div", { class: "hs-thread" }, [h("p", { class: "hs-review-h", text: t("caso.thread", { name: o.name || o.company }) }), list, form,
+        o.status === "accepted_talk_first" ? h("p", { class: "hs-meta", text: t("caso.threadPrivate") }) : null]);
     }
     function render() {
       if (deleted) { box.innerHTML = ""; box.appendChild(h("div", { class: "hs-panel" }, [h("p", { class: "hs-ok", text: t("caso.deleted") }), h("a", { href: "/home-shield/", text: t("caso.back") })])); return; }
       if (!data) return;
       var d = data;
       var stepN = d.status === "connected" ? 4 : d.offers.length ? 3 : 2;
-      var tl = h("ol", { class: "hs-timeline", "aria-label": t("caso.title") }, ["caso.s1", "caso.s2", "caso.s3", "caso.s4"].map(function (k, i) {
+      var tl = h("ol", { class: "hs-timeline", id: "casoTimeline", "aria-label": t("caso.title") }, ["caso.s1", "caso.s2", "caso.s3", "caso.s4"].map(function (k, i) {
         var n = i + 1;
         return h("li", { class: n < stepN || (n === 4 && stepN === 4) ? "is-done" : n === stepN ? "is-now" : "", "aria-current": n === stepN ? "step" : null, text: t(k) });
       }));
       var parts = [tl];
       if (d.conn) {
         var cn = d.conn;
-        parts.push(h("section", { class: "hs-panel", id: "casoConnected" }, [
+        parts.push(h("section", { class: "hs-panel hs-connected", id: "casoConnected" }, [
           h("h2", { class: "hs-h3", text: t("caso.connected") }),
           h("p", { text: t("caso.connectedBody", { name: cn.name || cn.company || "" }) }),
-          h("p", { text: [cn.name, cn.company].filter(Boolean).join(" · ") }),
+          h("p", { class: "hs-meta", text: [cn.name, cn.company].filter(Boolean).join(" · ") }),
           h("div", { class: "hs-contact" }, [
-            cn.phone ? h("a", { href: "tel:" + String(cn.phone).replace(/[^\d+]/g, ""), text: cn.phone }) : null,
+            cn.phone ? h("a", { href: "tel:" + String(cn.phone).replace(/[^\d+]/g, ""), text: prettyPhone(cn.phone) }) : null,
             cn.email ? h("a", { href: "mailto:" + cn.email, text: cn.email }) : null
           ])
         ]));
       }
       if (d.summary) parts.push(h("section", { class: "hs-panel" }, [h("h2", { class: "hs-h3", text: t("caso.summary") }), h("p", { text: d.summary }),
-        h("p", { class: "hs-meta", text: [d.issue ? t("issue." + d.issue) : "", (d.trades || []).map(function (x) { return t("trade." + x); }).join(", "), d.zip || ""].filter(Boolean).join(" · ") })]));
+        h("p", { class: "hs-meta", text: [d.issue ? t("issue." + d.issue) : "", (d.trades || []).map(function (x) { return t("trade." + x); }).join(", "), d.area].filter(Boolean).join(" · ") })]));
       parts.push(h("h2", { class: "hs-h3", text: t("caso.offers") }));
       if (!d.offers.length) parts.push(h("p", { class: "hs-panel", text: t("caso.none") }));
       d.offers.forEach(function (o) {
-        var lic = [o.licenseType, o.licenseNumber, o.licenseState].filter(Boolean).join(" ");
-        var acts = null;
-        if (o.status === "pending" && d.status !== "connected") {
-          var acc = h("button", { class: "hs-btn hs-btn-gold", type: "button", "data-offer": o.id, "data-act": "accept", text: t("caso.accept") });
-          var dec = h("button", { class: "hs-btn hs-btn-line", type: "button", "data-offer": o.id, "data-act": "decline", text: t("caso.decline") });
-          if (busyOffer) { acc.disabled = true; dec.disabled = true; }
-          acts = h("div", { class: "hs-offer-actions" }, [acc, dec]);
+        var lic = [o.licenseType ? t("lic." + o.licenseType) : "", o.licenseNumber, o.licenseState].filter(Boolean).join(" ");
+        var btn = function (act, key, cls) { return h("button", { class: "hs-btn " + cls, type: "button", "data-offer": o.id, "data-act": act, disabled: busy, text: t(key) }); };
+        var acts = null, open = d.status !== "connected";
+        if (o.status === "pending" && open) {
+          acts = h("div", { class: "hs-offer-actions" }, [btn("talk_first", "caso.talkFirst", "hs-btn-gold hs-wide"), btn("accept", "caso.share", "hs-btn-line"), btn("decline", "caso.decline", "hs-btn-line")]);
+        } else if (o.status === "accepted_talk_first" && open) {
+          acts = h("div", { class: "hs-offer-actions" }, [btn("share_contact", "caso.share", "hs-btn-gold"), btn("decline", "caso.decline", "hs-btn-line")]);
         }
-        parts.push(h("article", { class: "hs-offer" + (o.status === "declined" ? " is-declined" : ""), "data-offer-id": o.id }, [
+        var note = o.status === "declined" ? t("caso.declined") : o.status === "accepted_talk_first" ? t("caso.talking") : o.status === "accepted" ? t("caso.sharedNote") : o.status === "pending" && open ? t("caso.talkFirstNote") : "";
+        parts.push(h("article", { class: "hs-offer" + (o.status === "declined" ? " is-declined" : ""), "data-offer-id": o.id, "data-status": o.status }, [
           h("h3", { text: o.name || o.company }),
-          h("p", { class: "hs-meta", text: [o.company, (o.trades || []).map(function (x) { return t("trade." + x); }).join(", "), lic ? t("caso.license") + " " + lic : ""].filter(Boolean).join(" · ") }),
+          h("p", { class: "hs-meta", text: [o.company, (o.trades || []).map(function (x) { return t("trade." + x); }).join(", ")].filter(Boolean).join(" · ") }),
+          lic ? h("p", { class: "hs-meta hs-lic", text: t("caso.license") + ": " + lic + (o.verified ? " · " + t("caso.verified") : "") }) : null,
           o.message ? h("blockquote", { text: o.message }) : null,
-          o.status === "declined" ? h("p", { class: "hs-meta", text: t("caso.declined") }) : acts
+          note ? h("p", { class: "hs-meta", text: note }) : null,
+          acts,
+          o.status === "accepted_talk_first" || o.status === "accepted" ? threadEl(o) : null
         ]));
       });
-      var del = h("button", { class: "hs-del", type: "button", id: "casoDelete", text: t("caso.delete") });
-      parts.push(del);
+      parts.push(h("button", { class: "hs-del", type: "button", id: "casoDelete", text: t("caso.delete") }));
+      var focusId = doc.activeElement && doc.activeElement.getAttribute && doc.activeElement.getAttribute("data-thread-input");
       box.innerHTML = "";
       parts.forEach(function (p) { box.appendChild(p); });
+      if (focusId) { var fi = box.querySelector('[data-thread-input="' + focusId + '"]'); if (fi) fi.focus(); }
     }
     function err(e) {
       var p = h("p", { class: "hs-err", role: "alert", text: t("caso.err", { e: e.message }) });
       box.insertBefore(p, box.firstChild);
     }
     function refresh() {
-      return get().then(function (j) { data = norm(j); render(); }).catch(function (e) {
+      return get().then(function (j) {
+        data = norm(j);
+        var open = data.offers.filter(function (o) { return o.status === "accepted_talk_first" || o.status === "accepted"; });
+        return Promise.all(open.map(loadThread));
+      }).then(function () { render(); }).catch(function (e) {
         if (e.status === 404 || e.status === 403 || e.status === 401) { clearInterval(poll); box.innerHTML = ""; box.appendChild(h("div", { class: "hs-panel" }, [h("p", { text: t("caso.bad") }), h("a", { href: "/home-shield/", text: t("caso.back") })])); }
       });
     }
+    box.addEventListener("submit", function (e) {
+      var f = e.target.closest("form[data-thread]");
+      if (!f) return;
+      e.preventDefault();
+      var proId = f.getAttribute("data-thread"), inp = f.querySelector("input"), text = inp.value.trim();
+      if (!text) return;
+      inp.disabled = true;
+      post("hs-case-messages", { caseId: c, token: tok, proId: proId, text: text }).then(function (j) {
+        drafts[proId] = "";
+        (threads[proId] = threads[proId] || []).push(j.message || { from: "homeowner", text: text });
+        render();
+        if (j.scrubbed) { var n = box.querySelector('form[data-thread="' + proId + '"]'); if (n) n.parentNode.appendChild(h("p", { class: "hs-meta", text: t("caso.scrubbed") })); }
+      }).catch(function (x) { inp.disabled = false; err(x); });
+    });
     box.addEventListener("click", function (e) {
       var b = e.target.closest("button");
       if (!b) return;
       if (b.hasAttribute("data-act")) {
-        busyOffer = b.getAttribute("data-offer");
+        busy = true;
         b.disabled = true;
-        post("hs-offer-respond", { caseId: c, token: tok, offerId: busyOffer, action: b.getAttribute("data-act") })
-          .then(function () { busyOffer = null; return refresh(); })
-          .catch(function (x) { busyOffer = null; render(); err(x); });
+        post("hs-offer-respond", { caseId: c, token: tok, offerId: b.getAttribute("data-offer"), action: b.getAttribute("data-act") })
+          .then(function () { busy = false; return refresh(); })
+          .catch(function (x) { busy = false; render(); err(x); });
       } else if (b.id === "casoDelete") {
         var ask = h("div", { class: "hs-panel", id: "casoDeleteAsk" }, [h("p", { text: t("caso.deleteAsk") }), h("button", { class: "hs-del", type: "button", id: "casoDeleteYes", text: t("caso.deleteConfirm") })]);
         b.replaceWith(ask);
@@ -1285,7 +1394,8 @@
     langHooks.push(render);
     box.textContent = t("caso.loading");
     refresh();
-    poll = setInterval(function () { if (!doc.hidden && !busyOffer) refresh(); }, 15000);
+    poll = setInterval(function () { if (!doc.hidden && !busy) refresh(); }, 15000);
+    window.HS_CASO_REFRESH = refresh;
   }
 
   /* ================================================================

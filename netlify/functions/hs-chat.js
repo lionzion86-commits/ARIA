@@ -47,10 +47,10 @@ export function sanitizeMessages(list) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_CHARS) }));
 }
 
-export function buildRequest({ messages, lang, caseDraft, voice }, withJsonMode = true) {
+export function buildRequest({ messages, lang, caseDraft, voice, policy }, withJsonMode = true) {
   const req = {
     model: OPENAI_MODEL,
-    messages: [{ role: "system", content: buildHsSystemPrompt({ lang, caseDraft, voice }) }, ...messages],
+    messages: [{ role: "system", content: buildHsSystemPrompt({ lang, caseDraft, voice, policy }) }, ...messages],
     reasoning_effort: OPENAI_REASONING_EFFORT,
     max_completion_tokens: MAX_COMPLETION_TOKENS,
   };
@@ -89,7 +89,7 @@ export async function handler(event, context) {
       return await fetchImpl(OPENAI_CHAT_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify(buildRequest({ messages, lang, caseDraft: prevDraft, voice }, withJsonMode)),
+        body: JSON.stringify(buildRequest({ messages, lang, caseDraft: prevDraft, voice, policy: body.policy || null }, withJsonMode)),
         signal: ac.signal,
       });
     } finally {

@@ -49,7 +49,7 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
       <li data-i18n="hero.trust3">Never sold or shared without your approval</li>
     </ul>
   </div>
-  <div class="hs-stage" id="intro">
+  <div class="hs-stage">
     <button class="hs-star hs-star-hero" type="button" data-action="star" data-i18n-aria="star.aria" aria-label="Tap Aria to talk with her">
       <span class="hs-star-glow" aria-hidden="true"></span>
       <span class="hs-star-face" data-frame="open" aria-hidden="true">
@@ -61,12 +61,12 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
       </span>
     </button>
     <p class="hs-star-state" data-star-state data-i18n="state.idle">Tap Aria to talk</p>
-    <blockquote class="hs-intro hs-say-root">
+  </div>
+  <blockquote class="hs-intro" id="intro">
       <p class="hs-say" data-i18n="intro.line1">Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your roofer, all into one.</p>
       <p class="hs-say" data-i18n="intro.line2">Upload your policy — I can dissect it: strong points, weak points, a better option if one exists, and my best recommendation.</p>
       <button class="hs-listen" type="button" data-listen="#intro"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
-    </blockquote>
-  </div>
+  </blockquote>
   <figure class="hs-photo hs-photo-hero" data-photo="hero" hidden></figure>
 </section>
 
@@ -121,7 +121,7 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
         <h3 class="hs-h3 hs-say" data-i18n="pros.title">Pro enrollment</h3>
         <p class="hs-say" data-i18n="pros.body">Licensed public adjusters, attorneys, roofers, insurance agents and inspectors in Florida: join the open platform. You see an anonymous case, homeowners see your license, and they choose.</p>
         <div class="hs-door-actions">
-          <a class="hs-btn hs-btn-line" href="/home-shield/pro/" data-i18n="pros.cta">Enroll as a pro</a>
+          <a class="hs-btn hs-btn-line" href="/home-shield/pro?signup=1" data-i18n="pros.cta">Enroll as a pro</a>
           <button class="hs-listen" type="button" data-listen="#doorPro"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
         </div>
       </div>

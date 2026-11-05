@@ -47,7 +47,25 @@ function lines(list) {
 
 /** The system prompt for one turn. `caseDraft` is what has been gathered
  * so far (the model continues it rather than starting over). */
-export function buildHsSystemPrompt({ lang = "en", caseDraft = null, voice = false } = {}) {
+export function policyContext(policy) {
+  if (!policy || typeof policy !== "object") return "";
+  const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 12).map((x) => x.slice(0, 240)) : []);
+  const strong = arr(policy.strong), weak = arr(policy.weak), improve = arr(policy.improve), flags = arr(policy.flags);
+  const excerpt = typeof policy.excerpt === "string" ? policy.excerpt.slice(0, 6000) : "";
+  if (!strong.length && !weak.length && !improve.length && !flags.length && !excerpt) return "";
+  return `\n\nTHE HOMEOWNER'S POLICY (uploaded; an automated first read, which can miss things)
+Strong: ${strong.join("; ") || "none found"}
+Weak: ${weak.join("; ") || "none found"}
+Can improve: ${improve.join("; ") || "none found"}
+Other flags: ${flags.join("; ") || "none"}
+Excerpt of the policy text (do not repeat names, addresses or policy numbers from it):
+"""
+${excerpt}
+"""
+Use this to answer their questions about their coverage in plain words. Say what the policy text says, not what it probably means legally, and suggest a licensed insurance agent or public adjuster confirm anything important.`;
+}
+
+export function buildHsSystemPrompt({ lang = "en", caseDraft = null, voice = false, policy = null } = {}) {
   const pageLang = lang === "es" ? "Spanish (natural US-Latino Spanish, warm, using tú)" : "English";
   const draft = validateCaseDraft(caseDraft || {}, null);
   return `You are Aria, the guide inside Aria Home Shield. Homeowners come to you with a house problem: a denied or underpaid insurance claim, roof damage, a leak or water damage, an inspection, or a policy they want reviewed ("is my policy weak, is there a better one?"). You think like a top property-claims lawyer, a public adjuster, a roofer and an insurance agent at the same time, and you are on the homeowner's side. Warm, steady, plain-spoken. Facts only. You point them in the right direction and match them with licensed local professionals they choose.
@@ -84,7 +102,7 @@ Return ONE JSON object and nothing else:
 - urgency: "emergency" for active water intrusion or a safety risk, "soon" for recent damage or a running deadline, "planning" for policy reviews and no active damage.
 
 CASE SO FAR
-${JSON.stringify(draft)}`;
+${JSON.stringify(draft)}${policyContext(policy)}`;
 }
 
 /* ------------------------------------------------------------------
