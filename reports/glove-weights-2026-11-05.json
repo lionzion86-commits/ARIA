@@ -1,0 +1,5301 @@
+{
+ "generatedBy": "scripts/apply-glove-weights.mjs",
+ "rule": {
+  "source": "#443 c.6648881889, corrected by c.6648728121",
+  "boxingKg": 1,
+  "mmaKg": 0.5,
+  "basis": "gloveFlat",
+  "chargePerKgUsd": 13,
+  "classifier": "scripts/lib/glove-weights.js"
+ },
+ "totals": {
+  "listings": 130,
+  "servedListings": 130,
+  "recordsMatched": 424,
+  "recordsStampedThisRun": 0,
+  "stampSetServed": 121,
+  "freightDeltaUsdServed": 452.92,
+  "kgDeltaServed": 34.84
+ },
+ "byClass": {
+  "boxing": {
+   "flatKg": 1,
+   "served": {
+    "listings": 115,
+    "records": 379,
+    "underFlatQuoted": 108,
+    "atOrAboveFlatQuoted": 7,
+    "catalogNull": 16,
+    "underFlatCatalog": 99,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 470.08,
+    "kgDeltaQuoted": 36.16
+   },
+   "allFiles": {
+    "listings": 115,
+    "records": 379,
+    "underFlatQuoted": 108,
+    "atOrAboveFlatQuoted": 7,
+    "catalogNull": 16,
+    "underFlatCatalog": 99,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 470.08,
+    "kgDeltaQuoted": 36.16
+   }
+  },
+  "mma": {
+   "flatKg": 0.5,
+   "served": {
+    "listings": 15,
+    "records": 45,
+    "underFlatQuoted": 13,
+    "atOrAboveFlatQuoted": 2,
+    "catalogNull": 2,
+    "underFlatCatalog": 13,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": -17.16,
+    "kgDeltaQuoted": -1.32
+   },
+   "allFiles": {
+    "listings": 15,
+    "records": 45,
+    "underFlatQuoted": 13,
+    "atOrAboveFlatQuoted": 2,
+    "catalogNull": 2,
+    "underFlatCatalog": 13,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": -17.16,
+    "kgDeltaQuoted": -1.32
+   }
+  }
+ },
+ "byStore": {
+  "dicks": {
+   "boxing": {
+    "listings": 16,
+    "records": 16,
+    "underFlatQuoted": 14,
+    "atOrAboveFlatQuoted": 2,
+    "catalogNull": 16,
+    "underFlatCatalog": 0,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 115.57,
+    "kgDeltaQuoted": 8.89
+   },
+   "mma": {
+    "listings": 2,
+    "records": 2,
+    "underFlatQuoted": 1,
+    "atOrAboveFlatQuoted": 1,
+    "catalogNull": 2,
+    "underFlatCatalog": 0,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": -4.68,
+    "kgDeltaQuoted": -0.36
+   },
+   "served": true
+  },
+  "everlast": {
+   "boxing": {
+    "listings": 6,
+    "records": 24,
+    "underFlatQuoted": 6,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 6,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 31.2,
+    "kgDeltaQuoted": 2.4
+   },
+   "mma": {
+    "listings": 6,
+    "records": 24,
+    "underFlatQuoted": 6,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 6,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 13.26,
+    "kgDeltaQuoted": 1.02
+   },
+   "served": true
+  },
+  "gorillawear": {
+   "boxing": {
+    "listings": 3,
+    "records": 3,
+    "underFlatQuoted": 3,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 3,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 31.2,
+    "kgDeltaQuoted": 2.4
+   },
+   "mma": {
+    "listings": 3,
+    "records": 3,
+    "underFlatQuoted": 3,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 3,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 11.7,
+    "kgDeltaQuoted": 0.9
+   },
+   "served": true
+  },
+  "killcrew": {
+   "boxing": {
+    "listings": 8,
+    "records": 8,
+    "underFlatQuoted": 8,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 8,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 83.2,
+    "kgDeltaQuoted": 6.4
+   },
+   "mma": {
+    "listings": 0,
+    "records": 0,
+    "underFlatQuoted": 0,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 0,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 0,
+    "kgDeltaQuoted": 0
+   },
+   "served": true
+  },
+  "mmawarehouse": {
+   "boxing": {
+    "listings": 27,
+    "records": 108,
+    "underFlatQuoted": 22,
+    "atOrAboveFlatQuoted": 5,
+    "catalogNull": 0,
+    "underFlatCatalog": 27,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": -69.94,
+    "kgDeltaQuoted": -5.38
+   },
+   "mma": {
+    "listings": 3,
+    "records": 12,
+    "underFlatQuoted": 2,
+    "atOrAboveFlatQuoted": 1,
+    "catalogNull": 0,
+    "underFlatCatalog": 3,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": -41.08,
+    "kgDeltaQuoted": -3.16
+   },
+   "served": true
+  },
+  "venum": {
+   "boxing": {
+    "listings": 55,
+    "records": 220,
+    "underFlatQuoted": 55,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 55,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 278.85,
+    "kgDeltaQuoted": 21.45
+   },
+   "mma": {
+    "listings": 0,
+    "records": 0,
+    "underFlatQuoted": 0,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 0,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 0,
+    "kgDeltaQuoted": 0
+   },
+   "served": true
+  },
+  "fuji": {
+   "boxing": {
+    "listings": 0,
+    "records": 0,
+    "underFlatQuoted": 0,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 0,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 0,
+    "kgDeltaQuoted": 0
+   },
+   "mma": {
+    "listings": 1,
+    "records": 4,
+    "underFlatQuoted": 1,
+    "atOrAboveFlatQuoted": 0,
+    "catalogNull": 0,
+    "underFlatCatalog": 1,
+    "atOrAboveFlatCatalog": 0,
+    "freightDeltaUsd": 3.64,
+    "kgDeltaQuoted": 0.28
+   },
+   "served": true
+  }
+ },
+ "reconciliation": {
+  "audit": {
+   "boxing": {
+    "listings": 434,
+    "under": 413
+   },
+   "mma": {
+    "listings": 45,
+    "under": 39
+   },
+   "stampSet": 452
+  },
+  "repo": {
+   "boxing": {
+    "listings": 115,
+    "under": 108
+   },
+   "mma": {
+    "listings": 15,
+    "under": 13
+   },
+   "stampSet": 121,
+   "rawRecordsAllFiles": {
+    "boxing": 379,
+    "mma": 45
+   }
+  },
+  "note": "The audit's per-listing tables (weight-audit-2026-11-04.md) are not in the repo, so the set was rebuilt from the committed catalogues by rule. 'listings' counts one per store product (a record filed under both a department and a brand bucket is one listing) in the catalogues the site serves; 'rawRecordsAllFiles' counts every record in every catalogue file, duplicates and the unserved mma-catalog.json included."
+ },
+ "files": [],
+ "listings": [
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/adidas-combat-50-boxing-gloves-24adiahybrd150wmnb10/24adiahybrd150wmnb10",
+   "store": "dicks",
+   "title": "adidas Combat 50 Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/adidas-combat-50-boxing-gloves-24adiahybrd150wmnb10/24adiahybrd150wmnb10",
+   "url": "https://www.dickssportinggoods.com/p/adidas-combat-50-boxing-gloves-24adiahybrd150wmnb10/24adiahybrd150wmnb10",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[7]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 1.16,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 15.08,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -2.08,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/adidas-speed-50-boxing-gloves-24adiahybrd150wmnb02/24adiahybrd150wmnb02",
+   "store": "dicks",
+   "title": "adidas Speed 50 Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/adidas-speed-50-boxing-gloves-24adiahybrd150wmnb02/24adiahybrd150wmnb02",
+   "url": "https://www.dickssportinggoods.com/p/adidas-speed-50-boxing-gloves-24adiahybrd150wmnb02/24adiahybrd150wmnb02",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[15]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 1.16,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 15.08,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -2.08,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/adidas-womens-tilt-boxing-gloves-24adiahybrd150wmnb04/24adiahybrd150wmnb04",
+   "store": "dicks",
+   "title": "adidas Women's Tilt Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/adidas-womens-tilt-boxing-gloves-24adiahybrd150wmnb04/24adiahybrd150wmnb04",
+   "url": "https://www.dickssportinggoods.com/p/adidas-womens-tilt-boxing-gloves-24adiahybrd150wmnb04/24adiahybrd150wmnb04",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[6]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.96,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 12.48,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 0.52,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/adidas-youth-hydrid-25-boxing-gloves-24adiahybrd150wmnb01/24adiahybrd150wmnb01",
+   "store": "dicks",
+   "title": "adidas Youth Hybrid 25 Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/adidas-youth-hydrid-25-boxing-gloves-24adiahybrd150wmnb01/24adiahybrd150wmnb01",
+   "url": "https://www.dickssportinggoods.com/p/adidas-youth-hydrid-25-boxing-gloves-24adiahybrd150wmnb01/24adiahybrd150wmnb01",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[5]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.82,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 10.66,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 2.34,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/century-brave-grip-bag-gloves-23cenubrvgrpbgglvmmg/23cenubrvgrpbgglvmmg",
+   "store": "dicks",
+   "title": "Century Brave Grip Bag Gloves",
+   "id": "https://www.dickssportinggoods.com/p/century-brave-grip-bag-gloves-23cenubrvgrpbgglvmmg/23cenubrvgrpbgglvmmg",
+   "url": "https://www.dickssportinggoods.com/p/century-brave-grip-bag-gloves-23cenubrvgrpbgglvmmg/23cenubrvgrpbgglvmmg",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[19]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.81,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 10.53,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 2.47,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/everlast-adult-elite-cardio-boxing-gloves-23elsultcrdbxngglmmg/23elsultcrdbxngglmmg",
+   "store": "dicks",
+   "title": "Everlast Adult Elite Cardio Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/everlast-adult-elite-cardio-boxing-gloves-23elsultcrdbxngglmmg/23elsultcrdbxngglmmg",
+   "url": "https://www.dickssportinggoods.com/p/everlast-adult-elite-cardio-boxing-gloves-23elsultcrdbxngglmmg/23elsultcrdbxngglmmg",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[1]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/everlast-classic-boxing-gloves-25eveaboxiclsscglvggk/25eveaboxiclsscglvggk",
+   "store": "dicks",
+   "title": "Everlast Classic Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/everlast-classic-boxing-gloves-25eveaboxiclsscglvggk/25eveaboxiclsscglvggk",
+   "url": "https://www.dickssportinggoods.com/p/everlast-classic-boxing-gloves-25eveaboxiclsscglvggk/25eveaboxiclsscglvggk",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[0]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/ringside-limited-edition-usa-imf-sparring-gloves-15rngurssmfglvs14bxn/15rngurssmfglvs14bxn",
+   "store": "dicks",
+   "title": "Ringside Limited Edition USA IMF Sparring Gloves",
+   "id": "https://www.dickssportinggoods.com/p/ringside-limited-edition-usa-imf-sparring-gloves-15rngurssmfglvs14bxn/15rngurssmfglvs14bxn",
+   "url": "https://www.dickssportinggoods.com/p/ringside-limited-edition-usa-imf-sparring-gloves-15rngurssmfglvs14bxn/15rngurssmfglvs14bxn",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[2]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxx/15rngarsprstylmfgbxnxx",
+   "store": "dicks",
+   "title": "Ringside Pro Style IMF Tech Training Gloves",
+   "id": "https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxx/15rngarsprstylmfgbxnxx",
+   "url": "https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxx/15rngarsprstylmfgbxnxx",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[18]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxxx/15rngarsprstylmfgbxnxxx",
+   "store": "dicks",
+   "title": "Ringside Pro Style IMF Tech Training Gloves",
+   "id": "https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxxx/15rngarsprstylmfgbxnxxx",
+   "url": "https://www.dickssportinggoods.com/p/ringside-pro-style-imf-tech-training-gloves-15rngarsprstylmfgbxnxxx/15rngarsprstylmfgbxnxxx",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[39]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/ringside-pro-style-training-gloves-15rngursprstyltrnbxn/15rngursprstyltrnbxn",
+   "store": "dicks",
+   "title": "Ringside Pro Style Training Gloves",
+   "id": "https://www.dickssportinggoods.com/p/ringside-pro-style-training-gloves-15rngursprstyltrnbxn/15rngursprstyltrnbxn",
+   "url": "https://www.dickssportinggoods.com/p/ringside-pro-style-training-gloves-15rngursprstyltrnbxn/15rngursprstyltrnbxn",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[13]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/tapout-unisex-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr6/24ituustrnprlvcpblpr6",
+   "store": "dicks",
+   "title": "Tapout Unisex Boxing Gloves With Mesh Palm",
+   "id": "https://www.dickssportinggoods.com/p/tapout-unisex-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr6/24ituustrnprlvcpblpr6",
+   "url": "https://www.dickssportinggoods.com/p/tapout-unisex-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr6/24ituustrnprlvcpblpr6",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[11]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/tapout-womens-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr8/24ituustrnprlvcpblpr8",
+   "store": "dicks",
+   "title": "Tapout Women's Boxing Gloves With Mesh Palm",
+   "id": "https://www.dickssportinggoods.com/p/tapout-womens-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr8/24ituustrnprlvcpblpr8",
+   "url": "https://www.dickssportinggoods.com/p/tapout-womens-boxing-gloves-with-mesh-palm-24ituustrnprlvcpblpr8/24ituustrnprlvcpblpr8",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[10]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/venum-contender-1-5-boxing-gloves-24qgzumpctmngrmbxbxn/24qgzumpctmngrmbxbxn",
+   "store": "dicks",
+   "title": "Venum Contender 1.5 Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/venum-contender-1-5-boxing-gloves-24qgzumpctmngrmbxbxn/24qgzumpctmngrmbxbxn",
+   "url": "https://www.dickssportinggoods.com/p/venum-contender-1-5-boxing-gloves-24qgzumpctmngrmbxbxn/24qgzumpctmngrmbxbxn",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[8]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/venum-giant-3-0-boxing-gloves-19qgzavnmgnt30bxnbxn/19qgzavnmgnt30bxnbxn",
+   "store": "dicks",
+   "title": "Venum Giant 3.0 Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/venum-giant-3-0-boxing-gloves-19qgzavnmgnt30bxnbxn/19qgzavnmgnt30bxnbxn",
+   "url": "https://www.dickssportinggoods.com/p/venum-giant-3-0-boxing-gloves-19qgzavnmgnt30bxnbxn/19qgzavnmgnt30bxnbxn",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[3]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/venum-impact-boxing-gloves-19qgzavnmmpctbxngbxn/19qgzavnmmpctbxngbxn",
+   "store": "dicks",
+   "title": "Venum Impact Boxing Gloves",
+   "id": "https://www.dickssportinggoods.com/p/venum-impact-boxing-gloves-19qgzavnmmpctbxngbxn/19qgzavnmmpctbxngbxn",
+   "url": "https://www.dickssportinggoods.com/p/venum-impact-boxing-gloves-19qgzavnmmpctbxngbxn/19qgzavnmmpctbxngbxn",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[9]"
+   ],
+   "class": "boxing",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/1910-advanced-boxing-gloves",
+   "store": "everlast",
+   "title": "1910 Advanced Boxing Gloves",
+   "id": "https://www.everlast.com/products/1910-advanced-boxing-gloves",
+   "url": "https://www.everlast.com/products/1910-advanced-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[1]",
+    "everlast-catalog.json:brands.everlast[1]",
+    "mma-catalog.json:departments.combat_sports[1]",
+    "mma-catalog.json:brands.everlast[1]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/amateur-competition-boxing-gloves",
+   "store": "everlast",
+   "title": "Amateur Competition Boxing Gloves",
+   "id": "https://www.everlast.com/products/amateur-competition-boxing-gloves",
+   "url": "https://www.everlast.com/products/amateur-competition-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[112]",
+    "everlast-catalog.json:brands.everlast[112]",
+    "mma-catalog.json:departments.combat_sports[112]",
+    "mma-catalog.json:brands.everlast[112]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_TRAINING",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/core-kickboxing-gloves",
+   "store": "everlast",
+   "title": "Core Kickboxing Gloves",
+   "id": "https://www.everlast.com/products/core-kickboxing-gloves",
+   "url": "https://www.everlast.com/products/core-kickboxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[62]",
+    "everlast-catalog.json:brands.everlast[62]",
+    "mma-catalog.json:departments.combat_sports[62]",
+    "mma-catalog.json:brands.everlast[62]"
+   ],
+   "class": "boxing",
+   "storeType": "FITNESS_TRAINING",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/evercool-kickboxing-gloves",
+   "store": "everlast",
+   "title": "Kickboxing Gloves Pink",
+   "id": "https://www.everlast.com/products/evercool-kickboxing-gloves",
+   "url": "https://www.everlast.com/products/evercool-kickboxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[13]",
+    "everlast-catalog.json:brands.everlast[13]",
+    "mma-catalog.json:departments.combat_sports[13]",
+    "mma-catalog.json:brands.everlast[13]"
+   ],
+   "class": "boxing",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/powerlock-og-boxing-glove-hook-loop",
+   "store": "everlast",
+   "title": "Powerlock OG Boxing Glove Hook & Loop",
+   "id": "https://www.everlast.com/products/powerlock-og-boxing-glove-hook-loop",
+   "url": "https://www.everlast.com/products/powerlock-og-boxing-glove-hook-loop",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[8]",
+    "everlast-catalog.json:brands.everlast[8]",
+    "mma-catalog.json:departments.combat_sports[8]",
+    "mma-catalog.json:brands.everlast[8]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/titan-muay-thai-glove",
+   "store": "everlast",
+   "title": "Titan Muay Thai Glove",
+   "id": "https://www.everlast.com/products/titan-muay-thai-glove",
+   "url": "https://www.everlast.com/products/titan-muay-thai-glove",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[72]",
+    "everlast-catalog.json:brands.everlast[72]",
+    "mma-catalog.json:departments.combat_sports[72]",
+    "mma-catalog.json:brands.everlast[72]"
+   ],
+   "class": "boxing",
+   "storeType": "MMA_TRAINING",
+   "catalogBeforeKg": 0.55,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.55,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.15,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.85,
+   "catalogDeltaKg": 0.45,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/montello-boxing-gloves-black",
+   "store": "gorillawear",
+   "title": "Montello Boxing Gloves - Black",
+   "id": "9990390033",
+   "url": "https://usa.gorillawear.com/products/montello-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[64]"
+   ],
+   "class": "boxing",
+   "storeType": "gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/mosby-boxing-gloves-black",
+   "store": "gorillawear",
+   "title": "Mosby Boxing Gloves - Black",
+   "id": "9990590033",
+   "url": "https://usa.gorillawear.com/products/mosby-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[65]"
+   ],
+   "class": "boxing",
+   "storeType": "gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/yakima-boxing-gloves-white",
+   "store": "gorillawear",
+   "title": "Yakima Boxing Gloves - White",
+   "id": "9991410046",
+   "url": "https://usa.gorillawear.com/products/yakima-boxing-gloves-white",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[32]"
+   ],
+   "class": "boxing",
+   "storeType": "apparel_accessories",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.67,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/kill-crew-boxing-gloves-black",
+   "store": "killcrew",
+   "title": "KILL CREW BOXING GLOVES - BLACK",
+   "id": "6900203389026",
+   "url": "https://killcrew.co/products/kill-crew-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[8]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/kill-crew-boxing-gloves-blue",
+   "store": "killcrew",
+   "title": "KILL CREW BOXING GLOVES - BLUE",
+   "id": "6900204306530",
+   "url": "https://killcrew.co/products/kill-crew-boxing-gloves-blue",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[10]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/kill-crew-boxing-gloves-white",
+   "store": "killcrew",
+   "title": "KILL CREW BOXING GLOVES - WHITE",
+   "id": "6900204601442",
+   "url": "https://killcrew.co/products/kill-crew-boxing-gloves-white",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[11]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/kill-crew-boxing-gloves-yellow",
+   "store": "killcrew",
+   "title": "KILL CREW BOXING GLOVES - YELLOW",
+   "id": "6900203487330",
+   "url": "https://killcrew.co/products/kill-crew-boxing-gloves-yellow",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[9]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/lace-up-boxing-gloves-black",
+   "store": "killcrew",
+   "title": "LACE UP BOXING GLOVES - BLACK",
+   "id": "6900205617250",
+   "url": "https://killcrew.co/products/lace-up-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[12]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/lace-up-boxing-gloves-blue",
+   "store": "killcrew",
+   "title": "LACE UP BOXING GLOVES - BLUE",
+   "id": "6900206076002",
+   "url": "https://killcrew.co/products/lace-up-boxing-gloves-blue",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[14]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/lace-up-boxing-gloves-white",
+   "store": "killcrew",
+   "title": "LACE UP BOXING GLOVES - WHITE",
+   "id": "6900206239842",
+   "url": "https://killcrew.co/products/lace-up-boxing-gloves-white",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[15]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "killcrew|https://killcrew.co/products/lace-up-boxing-gloves-yellow",
+   "store": "killcrew",
+   "title": "LACE UP BOXING GLOVES - YELLOW",
+   "id": "6900205977698",
+   "url": "https://killcrew.co/products/lace-up-boxing-gloves-yellow",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[13]"
+   ],
+   "class": "boxing",
+   "storeType": "boxing_gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.4,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-yamantaka-boxing-gloves-box-edition",
+   "store": "mmawarehouse",
+   "title": "Fairtex 'YAMANTAKA' Collector's Edition Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-yamantaka-boxing-gloves-box-edition",
+   "url": "https://www.mmawarehouse.com/products/fairtex-yamantaka-boxing-gloves-box-edition",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[42]",
+    "mma-catalog.json:brands.fairtex[27]",
+    "mmawarehouse-catalog.json:departments.combat_sports[42]",
+    "mmawarehouse-catalog.json:brands.fairtex[27]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv1-falcon-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV1 'Falcon' Limited Edition Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv1-falcon-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv1-falcon-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[34]",
+    "mma-catalog.json:brands.fairtex[19]",
+    "mmawarehouse-catalog.json:departments.combat_sports[34]",
+    "mmawarehouse-catalog.json:brands.fairtex[19]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv1-usflag-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV1 'US Flag' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv1-usflag-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv1-usflag-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[36]",
+    "mma-catalog.json:brands.fairtex[21]",
+    "mmawarehouse-catalog.json:departments.combat_sports[36]",
+    "mmawarehouse-catalog.json:brands.fairtex[21]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv1-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV1 Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv1-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv1-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[0]",
+    "mma-catalog.json:brands.fairtex[0]",
+    "mmawarehouse-catalog.json:departments.combat_sports[0]",
+    "mmawarehouse-catalog.json:brands.fairtex[0]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv11-f-day-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV11 'F-DAY' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv11-f-day-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv11-f-day-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[14]",
+    "mma-catalog.json:brands.fairtex[9]",
+    "mmawarehouse-catalog.json:departments.combat_sports[14]",
+    "mmawarehouse-catalog.json:brands.fairtex[9]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -39,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14-boxing-gloves-blue-wave",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14 'Blue Wave' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14-boxing-gloves-blue-wave",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14-boxing-gloves-blue-wave",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[29]",
+    "mma-catalog.json:brands.fairtex[15]",
+    "mmawarehouse-catalog.json:departments.combat_sports[29]",
+    "mmawarehouse-catalog.json:brands.fairtex[15]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -39,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14-microfiber-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14 Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14-microfiber-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14-microfiber-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[7]",
+    "mma-catalog.json:brands.fairtex[4]",
+    "mmawarehouse-catalog.json:departments.combat_sports[7]",
+    "mmawarehouse-catalog.json:brands.fairtex[4]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14b-boxing-gloves-op-art-prism",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14B 'OP Art Prism 1964' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14b-boxing-gloves-op-art-prism",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14b-boxing-gloves-op-art-prism",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[44]",
+    "mma-catalog.json:brands.fairtex[28]",
+    "mmawarehouse-catalog.json:departments.combat_sports[44]",
+    "mmawarehouse-catalog.json:brands.fairtex[28]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -39,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14p-boxing-gloves-vintage-art-polka",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14P 'Vintage Art Polka' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14p-boxing-gloves-vintage-art-polka",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14p-boxing-gloves-vintage-art-polka",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[37]",
+    "mma-catalog.json:brands.fairtex[22]",
+    "mmawarehouse-catalog.json:departments.combat_sports[37]",
+    "mmawarehouse-catalog.json:brands.fairtex[22]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14r-boxing-gloves-minimalism-art",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14R 'Minimalism Art' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14r-boxing-gloves-minimalism-art",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14r-boxing-gloves-minimalism-art",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[40]",
+    "mma-catalog.json:brands.fairtex[25]",
+    "mmawarehouse-catalog.json:departments.combat_sports[40]",
+    "mmawarehouse-catalog.json:brands.fairtex[25]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.55,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.55,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.15,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.85,
+   "catalogDeltaKg": 0.45,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv14y-gloves-grunge-art",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV14Y 'Grunge Art' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv14y-gloves-grunge-art",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv14y-gloves-grunge-art",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[48]",
+    "mma-catalog.json:brands.fairtex[32]",
+    "mmawarehouse-catalog.json:departments.combat_sports[48]",
+    "mmawarehouse-catalog.json:brands.fairtex[32]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv16-real-leather-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV16 Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv16-real-leather-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv16-real-leather-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[17]",
+    "mma-catalog.json:brands.fairtex[11]",
+    "mmawarehouse-catalog.json:departments.combat_sports[17]",
+    "mmawarehouse-catalog.json:brands.fairtex[11]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv19-deluxe-tight-fit-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV19 Muay Thai Gloves - Deluxe Tight-Fit",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv19-deluxe-tight-fit-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv19-deluxe-tight-fit-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[12]",
+    "mma-catalog.json:brands.fairtex[7]",
+    "mmawarehouse-catalog.json:departments.combat_sports[12]",
+    "mmawarehouse-catalog.json:brands.fairtex[7]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv22-metallic-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV22 'Metallic' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv22-metallic-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv22-metallic-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[15]",
+    "mma-catalog.json:brands.fairtex[10]",
+    "mmawarehouse-catalog.json:departments.combat_sports[15]",
+    "mmawarehouse-catalog.json:brands.fairtex[10]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -39,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv25-f-day-2-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV25 'F-DAY 2' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv25-f-day-2-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv25-f-day-2-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[41]",
+    "mma-catalog.json:brands.fairtex[26]",
+    "mmawarehouse-catalog.json:departments.combat_sports[41]",
+    "mmawarehouse-catalog.json:brands.fairtex[26]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": -39,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv9-mexican-style-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex BGV9 Mexican Style 'Heavy Hitter' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv9-mexican-style-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv9-mexican-style-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[9]",
+    "mma-catalog.json:brands.fairtex[5]",
+    "mmawarehouse-catalog.json:departments.combat_sports[9]",
+    "mmawarehouse-catalog.json:brands.fairtex[5]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-bgv-x-tom-atencio-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex X Tom Atencio 'The Heart of Warrior' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-bgv-x-tom-atencio-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-bgv-x-tom-atencio-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[33]",
+    "mma-catalog.json:brands.fairtex[18]",
+    "mmawarehouse-catalog.json:departments.combat_sports[33]",
+    "mmawarehouse-catalog.json:brands.fairtex[18]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-fighter-ko-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Fighter KO' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-fighter-ko-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-fighter-ko-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[32]",
+    "mma-catalog.json:brands.yokkao[14]",
+    "mmawarehouse-catalog.json:departments.combat_sports[32]",
+    "mmawarehouse-catalog.json:brands.yokkao[14]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-khalifa-kush-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Khalifa Kush' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-khalifa-kush-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-khalifa-kush-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[25]",
+    "mma-catalog.json:brands.yokkao[12]",
+    "mmawarehouse-catalog.json:departments.combat_sports[25]",
+    "mmawarehouse-catalog.json:brands.yokkao[12]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-lettering-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Lettering' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-lettering-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-lettering-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[21]",
+    "mma-catalog.json:brands.yokkao[9]",
+    "mmawarehouse-catalog.json:departments.combat_sports[21]",
+    "mmawarehouse-catalog.json:brands.yokkao[9]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.02,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.02,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 0.26,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 12.74,
+   "catalogDeltaKg": 0.98,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-matrix-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Matrix' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-matrix-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-matrix-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[2]",
+    "mma-catalog.json:brands.yokkao[1]",
+    "mmawarehouse-catalog.json:departments.combat_sports[2]",
+    "mmawarehouse-catalog.json:brands.yokkao[1]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.22,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 2.86,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 10.14,
+   "catalogDeltaKg": 0.78,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-original-gold-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Original' Muay Thai Gloves - Gold",
+   "id": "https://www.mmawarehouse.com/products/yokkao-original-gold-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-original-gold-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[10]",
+    "mma-catalog.json:brands.yokkao[4]",
+    "mmawarehouse-catalog.json:departments.combat_sports[10]",
+    "mmawarehouse-catalog.json:brands.yokkao[4]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-original-silver-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Original' Muay Thai Gloves - Silver",
+   "id": "https://www.mmawarehouse.com/products/yokkao-original-silver-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-original-silver-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[18]",
+    "mma-catalog.json:brands.yokkao[6]",
+    "mmawarehouse-catalog.json:departments.combat_sports[18]",
+    "mmawarehouse-catalog.json:brands.yokkao[6]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-power-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Power' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-power-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-power-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[19]",
+    "mma-catalog.json:brands.yokkao[7]",
+    "mmawarehouse-catalog.json:departments.combat_sports[19]",
+    "mmawarehouse-catalog.json:brands.yokkao[7]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-stadium-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Stadium' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-stadium-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-stadium-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[22]",
+    "mma-catalog.json:brands.yokkao[10]",
+    "mmawarehouse-catalog.json:departments.combat_sports[22]",
+    "mmawarehouse-catalog.json:brands.yokkao[10]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-the-flame-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'The Flame' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-the-flame-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-the-flame-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[6]",
+    "mma-catalog.json:brands.yokkao[2]",
+    "mmawarehouse-catalog.json:departments.combat_sports[6]",
+    "mmawarehouse-catalog.json:brands.yokkao[2]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-wax-boxing-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Wax' Muay Thai Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-wax-boxing-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-wax-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[43]",
+    "mma-catalog.json:brands.yokkao[15]",
+    "mmawarehouse-catalog.json:departments.combat_sports[43]",
+    "mmawarehouse-catalog.json:brands.yokkao[15]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-ivory",
+   "store": "venum",
+   "title": "Venum Adrenaline Boxing Gloves - Black/ Ivory",
+   "id": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-ivory",
+   "url": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-ivory",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[215]",
+    "mma-catalog.json:brands.venum[214]",
+    "venum-catalog.json:departments.combat_sports[215]",
+    "venum-catalog.json:brands.venum[214]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-sand",
+   "store": "venum",
+   "title": "Venum Adrenaline Boxing Gloves - Black/Sand",
+   "id": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-sand",
+   "url": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-sand",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[249]",
+    "mma-catalog.json:brands.venum[248]",
+    "venum-catalog.json:departments.combat_sports[249]",
+    "venum-catalog.json:brands.venum[248]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-silver-grey",
+   "store": "venum",
+   "title": "Venum Adrenaline Boxing Gloves - Black/Silver Grey",
+   "id": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-silver-grey",
+   "url": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-black-silver-grey",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[35]",
+    "mma-catalog.json:brands.venum[35]",
+    "venum-catalog.json:departments.combat_sports[35]",
+    "venum-catalog.json:brands.venum[35]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-adrenaline-boxing-gloves-burgundy-pink",
+   "store": "venum",
+   "title": "Venum Adrenaline Boxing Gloves – Burgundy/Pink",
+   "id": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-burgundy-pink",
+   "url": "https://www.venum.com/products/venum-adrenaline-boxing-gloves-burgundy-pink",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[30]",
+    "mma-catalog.json:brands.venum[30]",
+    "venum-catalog.json:departments.combat_sports[30]",
+    "venum-catalog.json:brands.venum[30]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-amazonia-boxing-gloves-dark-grey",
+   "store": "venum",
+   "title": "Venum Amazonia Boxing Gloves - Dark grey",
+   "id": "https://www.venum.com/products/venum-amazonia-boxing-gloves-dark-grey",
+   "url": "https://www.venum.com/products/venum-amazonia-boxing-gloves-dark-grey",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[26]",
+    "mma-catalog.json:brands.venum[26]",
+    "venum-catalog.json:departments.combat_sports[26]",
+    "venum-catalog.json:brands.venum[26]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-amazonia-boxing-gloves-purple",
+   "store": "venum",
+   "title": "Venum Amazonia Boxing Gloves - Purple",
+   "id": "https://www.venum.com/products/venum-amazonia-boxing-gloves-purple",
+   "url": "https://www.venum.com/products/venum-amazonia-boxing-gloves-purple",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[233]",
+    "mma-catalog.json:brands.venum[232]",
+    "venum-catalog.json:departments.combat_sports[233]",
+    "venum-catalog.json:brands.venum[232]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-amazonia-boxing-gloves-ultramarine-blue",
+   "store": "venum",
+   "title": "VENUM Amazonia Boxing Gloves - Ultramarine Blue",
+   "id": "https://www.venum.com/products/venum-amazonia-boxing-gloves-ultramarine-blue",
+   "url": "https://www.venum.com/products/venum-amazonia-boxing-gloves-ultramarine-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[190]",
+    "mma-catalog.json:brands.venum[190]",
+    "venum-catalog.json:departments.combat_sports[190]",
+    "venum-catalog.json:brands.venum[190]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-black",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Black/Black",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-black",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[3]",
+    "mma-catalog.json:brands.venum[3]",
+    "venum-catalog.json:departments.combat_sports[3]",
+    "venum-catalog.json:brands.venum[3]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-grey",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Black/Grey",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-grey",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-black-grey",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[283]",
+    "mma-catalog.json:brands.venum[282]",
+    "venum-catalog.json:departments.combat_sports[283]",
+    "venum-catalog.json:brands.venum[282]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-blue",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Blue",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-blue",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[145]",
+    "mma-catalog.json:brands.venum[145]",
+    "venum-catalog.json:departments.combat_sports[145]",
+    "venum-catalog.json:brands.venum[145]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-gold",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Gold",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-gold",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[114]",
+    "mma-catalog.json:brands.venum[114]",
+    "venum-catalog.json:departments.combat_sports[114]",
+    "venum-catalog.json:brands.venum[114]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-ice",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Ice",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-ice",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-ice",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[92]",
+    "mma-catalog.json:brands.venum[92]",
+    "venum-catalog.json:departments.combat_sports[92]",
+    "venum-catalog.json:brands.venum[92]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-red",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - Red",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-red",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-red",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[207]",
+    "mma-catalog.json:brands.venum[206]",
+    "venum-catalog.json:departments.combat_sports[207]",
+    "venum-catalog.json:brands.venum[206]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-gold",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - White/Gold",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-gold",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[141]",
+    "mma-catalog.json:brands.venum[141]",
+    "venum-catalog.json:departments.combat_sports[141]",
+    "venum-catalog.json:brands.venum[141]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-silver",
+   "store": "venum",
+   "title": "Venum Challenger 2.0 Boxing Gloves - White/Silver",
+   "id": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-silver",
+   "url": "https://www.venum.com/products/venum-challenger-2-0-boxing-gloves-white-silver",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[6]",
+    "mma-catalog.json:brands.venum[6]",
+    "venum-catalog.json:departments.combat_sports[6]",
+    "venum-catalog.json:brands.venum[6]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-black",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Boxing Gloves - Black/Black",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-black",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[210]",
+    "mma-catalog.json:brands.venum[209]",
+    "venum-catalog.json:departments.combat_sports[210]",
+    "venum-catalog.json:brands.venum[209]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-bronze",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Boxing Gloves - Black/Bronze",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-bronze",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-bronze",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[2]",
+    "mma-catalog.json:brands.venum[2]",
+    "venum-catalog.json:departments.combat_sports[2]",
+    "venum-catalog.json:brands.venum[2]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-white",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Boxing Gloves - Black/White",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-white",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black-white",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[7]",
+    "mma-catalog.json:brands.venum[7]",
+    "venum-catalog.json:departments.combat_sports[7]",
+    "venum-catalog.json:brands.venum[7]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Scales Boxing Gloves - Black",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[408]",
+    "mma-catalog.json:brands.venum[406]",
+    "venum-catalog.json:departments.combat_sports[408]",
+    "venum-catalog.json:brands.venum[406]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-brown-black",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Scales Boxing Gloves - Brown/ Black",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-brown-black",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-brown-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[31]",
+    "mma-catalog.json:brands.venum[31]",
+    "venum-catalog.json:departments.combat_sports[31]",
+    "venum-catalog.json:brands.venum[31]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-midnight-blue",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Scales Boxing Gloves - Midnight Blue",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-midnight-blue",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-midnight-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[206]",
+    "mma-catalog.json:brands.venum[205]",
+    "venum-catalog.json:departments.combat_sports[206]",
+    "venum-catalog.json:brands.venum[205]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-pearly-pink-black",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Scales Boxing Gloves - Pearly Pink/Black",
+   "id": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-pearly-pink-black",
+   "url": "https://www.venum.com/products/venum-challenger-4-0-boxing-gloves-pearly-pink-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[243]",
+    "mma-catalog.json:brands.venum[242]",
+    "venum-catalog.json:departments.combat_sports[243]",
+    "venum-catalog.json:brands.venum[242]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/challenger-4-0-boxing-gloves-silver-black",
+   "store": "venum",
+   "title": "Venum Challenger 4.0 Scales Boxing Gloves -Silver/Black",
+   "id": "https://www.venum.com/products/challenger-4-0-boxing-gloves-silver-black",
+   "url": "https://www.venum.com/products/challenger-4-0-boxing-gloves-silver-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[221]",
+    "mma-catalog.json:brands.venum[220]",
+    "venum-catalog.json:departments.combat_sports[221]",
+    "venum-catalog.json:brands.venum[220]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5-kids-boxing-gloves",
+   "store": "venum",
+   "title": "Venum Contender 1.5 Kids Boxing Gloves",
+   "id": "https://www.venum.com/products/venum-contender-1-5-kids-boxing-gloves",
+   "url": "https://www.venum.com/products/venum-contender-1-5-kids-boxing-gloves",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[333]",
+    "mma-catalog.json:brands.venum[331]",
+    "venum-catalog.json:departments.combat_sports[333]",
+    "venum-catalog.json:brands.venum[331]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5-xt-boxing-gloves-white-blue",
+   "store": "venum",
+   "title": "Venum Contender 1.5 XT Boxing Gloves - White/Blue",
+   "id": "https://www.venum.com/products/venum-contender-1-5-xt-boxing-gloves-white-blue",
+   "url": "https://www.venum.com/products/venum-contender-1-5-xt-boxing-gloves-white-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[182]",
+    "mma-catalog.json:brands.venum[182]",
+    "venum-catalog.json:departments.combat_sports[182]",
+    "venum-catalog.json:brands.venum[182]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream-1",
+   "store": "venum",
+   "title": "Venum Contender 1.5XT Boxing Gloves - Dark Navy/Off White",
+   "id": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream-1",
+   "url": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream-1",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[33]",
+    "mma-catalog.json:brands.venum[33]",
+    "venum-catalog.json:departments.combat_sports[33]",
+    "venum-catalog.json:brands.venum[33]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-glossy-burgundy",
+   "store": "venum",
+   "title": "Venum Contender 1.5XT Boxing Gloves - Glossy Burgundy",
+   "id": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-glossy-burgundy",
+   "url": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-glossy-burgundy",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[123]",
+    "mma-catalog.json:brands.venum[123]",
+    "venum-catalog.json:departments.combat_sports[123]",
+    "venum-catalog.json:brands.venum[123]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream",
+   "store": "venum",
+   "title": "Venum Contender 1.5XT Boxing Gloves - Light Beige/White Cream",
+   "id": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream",
+   "url": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-light-beige-white-cream",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[12]",
+    "mma-catalog.json:brands.venum[12]",
+    "venum-catalog.json:departments.combat_sports[12]",
+    "venum-catalog.json:brands.venum[12]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-navy-blue-sky-blue",
+   "store": "venum",
+   "title": "Venum Contender 1.5XT Boxing Gloves - Navy Blue/Sky Blue",
+   "id": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-navy-blue-sky-blue",
+   "url": "https://www.venum.com/products/venum-contender-1-5xt-boxing-gloves-navy-blue-sky-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[27]",
+    "mma-catalog.json:brands.venum[27]",
+    "venum-catalog.json:departments.combat_sports[27]",
+    "venum-catalog.json:brands.venum[27]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-boxing-gloves-black-black",
+   "store": "venum",
+   "title": "Venum Contender Boxing Gloves - Black/Black",
+   "id": "https://www.venum.com/products/venum-contender-boxing-gloves-black-black",
+   "url": "https://www.venum.com/products/venum-contender-boxing-gloves-black-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[86]",
+    "mma-catalog.json:brands.venum[86]",
+    "venum-catalog.json:departments.combat_sports[86]",
+    "venum-catalog.json:brands.venum[86]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-boxing-gloves-black-gold",
+   "store": "venum",
+   "title": "Venum Contender Boxing Gloves - Black/Gold",
+   "id": "https://www.venum.com/products/venum-contender-boxing-gloves-black-gold",
+   "url": "https://www.venum.com/products/venum-contender-boxing-gloves-black-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[93]",
+    "mma-catalog.json:brands.venum[93]",
+    "venum-catalog.json:departments.combat_sports[93]",
+    "venum-catalog.json:brands.venum[93]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-boxing-gloves-black-red",
+   "store": "venum",
+   "title": "Venum Contender Boxing Gloves - Black/Red",
+   "id": "https://www.venum.com/products/venum-contender-boxing-gloves-black-red",
+   "url": "https://www.venum.com/products/venum-contender-boxing-gloves-black-red",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[43]",
+    "mma-catalog.json:brands.venum[43]",
+    "venum-catalog.json:departments.combat_sports[43]",
+    "venum-catalog.json:brands.venum[43]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-boxing-gloves-blue",
+   "store": "venum",
+   "title": "Venum Contender Boxing Gloves - Blue",
+   "id": "https://www.venum.com/products/venum-contender-boxing-gloves-blue",
+   "url": "https://www.venum.com/products/venum-contender-boxing-gloves-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[133]",
+    "mma-catalog.json:brands.venum[133]",
+    "venum-catalog.json:departments.combat_sports[133]",
+    "venum-catalog.json:brands.venum[133]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-contender-boxing-gloves-black",
+   "store": "venum",
+   "title": "Venum Contender Boxing Gloves - White/Black",
+   "id": "https://www.venum.com/products/venum-contender-boxing-gloves-black",
+   "url": "https://www.venum.com/products/venum-contender-boxing-gloves-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[95]",
+    "mma-catalog.json:brands.venum[95]",
+    "venum-catalog.json:departments.combat_sports[95]",
+    "venum-catalog.json:brands.venum[95]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-elite-evo-boxing-gloves-burgundy-silver",
+   "store": "venum",
+   "title": "Venum Elite Evo Boxing Gloves - Burgundy/Silver",
+   "id": "https://www.venum.com/products/venum-elite-evo-boxing-gloves-burgundy-silver",
+   "url": "https://www.venum.com/products/venum-elite-evo-boxing-gloves-burgundy-silver",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[32]",
+    "mma-catalog.json:brands.venum[32]",
+    "venum-catalog.json:departments.combat_sports[32]",
+    "venum-catalog.json:brands.venum[32]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-hurricane-boxing-gloves-havana-white",
+   "store": "venum",
+   "title": "Venum Hurricane Boxing Gloves - Havana/ White",
+   "id": "https://www.venum.com/products/venum-hurricane-boxing-gloves-havana-white",
+   "url": "https://www.venum.com/products/venum-hurricane-boxing-gloves-havana-white",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[239]",
+    "mma-catalog.json:brands.venum[238]",
+    "venum-catalog.json:departments.combat_sports[239]",
+    "venum-catalog.json:brands.venum[238]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-hurricane-boxing-gloves-midnight-blue-white",
+   "store": "venum",
+   "title": "Venum Hurricane Boxing Gloves - Midnight Blue/ White",
+   "id": "https://www.venum.com/products/venum-hurricane-boxing-gloves-midnight-blue-white",
+   "url": "https://www.venum.com/products/venum-hurricane-boxing-gloves-midnight-blue-white",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[265]",
+    "mma-catalog.json:brands.venum[264]",
+    "venum-catalog.json:departments.combat_sports[265]",
+    "venum-catalog.json:brands.venum[264]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-impact-evo-boxing-gloves-icy-blue",
+   "store": "venum",
+   "title": "Venum Impact Evo Boxing Gloves - Icy Blue",
+   "id": "https://www.venum.com/products/venum-impact-evo-boxing-gloves-icy-blue",
+   "url": "https://www.venum.com/products/venum-impact-evo-boxing-gloves-icy-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[346]",
+    "mma-catalog.json:brands.venum[344]",
+    "venum-catalog.json:departments.combat_sports[346]",
+    "venum-catalog.json:brands.venum[344]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/matupa-boxing-gloves-black-grey-gold",
+   "store": "venum",
+   "title": "Venum Matupa Boxing Gloves - Black/Grey/Gold",
+   "id": "https://www.venum.com/products/matupa-boxing-gloves-black-grey-gold",
+   "url": "https://www.venum.com/products/matupa-boxing-gloves-black-grey-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[13]",
+    "mma-catalog.json:brands.venum[13]",
+    "venum-catalog.json:departments.combat_sports[13]",
+    "venum-catalog.json:brands.venum[13]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/matupa-boxing-gloves-black-red-silver",
+   "store": "venum",
+   "title": "Venum Matupa Boxing Gloves - Black/Red/Silver",
+   "id": "https://www.venum.com/products/matupa-boxing-gloves-black-red-silver",
+   "url": "https://www.venum.com/products/matupa-boxing-gloves-black-red-silver",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[15]",
+    "mma-catalog.json:brands.venum[15]",
+    "venum-catalog.json:departments.combat_sports[15]",
+    "venum-catalog.json:brands.venum[15]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-nexus-boxing-gloves-silver-black",
+   "store": "venum",
+   "title": "Venum Nexus Boxing Gloves - Silver/Black",
+   "id": "https://www.venum.com/products/venum-nexus-boxing-gloves-silver-black",
+   "url": "https://www.venum.com/products/venum-nexus-boxing-gloves-silver-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[84]",
+    "mma-catalog.json:brands.venum[84]",
+    "venum-catalog.json:departments.combat_sports[84]",
+    "venum-catalog.json:brands.venum[84]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-reverso-boxing-gloves-cherry-red-gold",
+   "store": "venum",
+   "title": "Venum Reverso Boxing Gloves - Cherry Red/Gold",
+   "id": "https://www.venum.com/products/venum-reverso-boxing-gloves-cherry-red-gold",
+   "url": "https://www.venum.com/products/venum-reverso-boxing-gloves-cherry-red-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[177]",
+    "mma-catalog.json:brands.venum[177]",
+    "venum-catalog.json:departments.combat_sports[177]",
+    "venum-catalog.json:brands.venum[177]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-reverso-boxing-gloves-chocolate-gold",
+   "store": "venum",
+   "title": "Venum Reverso Boxing Gloves - Chocolate/Gold",
+   "id": "https://www.venum.com/products/venum-reverso-boxing-gloves-chocolate-gold",
+   "url": "https://www.venum.com/products/venum-reverso-boxing-gloves-chocolate-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[181]",
+    "mma-catalog.json:brands.venum[181]",
+    "venum-catalog.json:departments.combat_sports[181]",
+    "venum-catalog.json:brands.venum[181]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-reverso-boxing-gloves-emerald-green-gold",
+   "store": "venum",
+   "title": "Venum Reverso Boxing Gloves - Emerald Green/Gold",
+   "id": "https://www.venum.com/products/venum-reverso-boxing-gloves-emerald-green-gold",
+   "url": "https://www.venum.com/products/venum-reverso-boxing-gloves-emerald-green-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[29]",
+    "mma-catalog.json:brands.venum[29]",
+    "venum-catalog.json:departments.combat_sports[29]",
+    "venum-catalog.json:brands.venum[29]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-spectre-boxing-gloves-black-red",
+   "store": "venum",
+   "title": "Venum Spectre Boxing Gloves - Black/Red",
+   "id": "https://www.venum.com/products/venum-spectre-boxing-gloves-black-red",
+   "url": "https://www.venum.com/products/venum-spectre-boxing-gloves-black-red",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[34]",
+    "mma-catalog.json:brands.venum[34]",
+    "venum-catalog.json:departments.combat_sports[34]",
+    "venum-catalog.json:brands.venum[34]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-stealth-boxing-gloves-black-white",
+   "store": "venum",
+   "title": "Venum Stealth Boxing Gloves - Black/White",
+   "id": "https://www.venum.com/products/venum-stealth-boxing-gloves-black-white",
+   "url": "https://www.venum.com/products/venum-stealth-boxing-gloves-black-white",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[24]",
+    "mma-catalog.json:brands.venum[24]",
+    "venum-catalog.json:departments.combat_sports[24]",
+    "venum-catalog.json:brands.venum[24]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-stealth-boxing-gloves-khaki-dark-green",
+   "store": "venum",
+   "title": "Venum Stealth Boxing Gloves - Khaki/Dark Green",
+   "id": "https://www.venum.com/products/venum-stealth-boxing-gloves-khaki-dark-green",
+   "url": "https://www.venum.com/products/venum-stealth-boxing-gloves-khaki-dark-green",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[14]",
+    "mma-catalog.json:brands.venum[14]",
+    "venum-catalog.json:departments.combat_sports[14]",
+    "venum-catalog.json:brands.venum[14]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-streamline-boxing-gloves-black-gold",
+   "store": "venum",
+   "title": "Venum Streamline Boxing Gloves - Black/Gold",
+   "id": "https://www.venum.com/products/venum-streamline-boxing-gloves-black-gold",
+   "url": "https://www.venum.com/products/venum-streamline-boxing-gloves-black-gold",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[9]",
+    "mma-catalog.json:brands.venum[9]",
+    "venum-catalog.json:departments.combat_sports[9]",
+    "venum-catalog.json:brands.venum[9]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-streamline-boxing-gloves-black-white",
+   "store": "venum",
+   "title": "Venum Streamline Boxing Gloves - Black/White",
+   "id": "https://www.venum.com/products/venum-streamline-boxing-gloves-black-white",
+   "url": "https://www.venum.com/products/venum-streamline-boxing-gloves-black-white",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[76]",
+    "mma-catalog.json:brands.venum[76]",
+    "venum-catalog.json:departments.combat_sports[76]",
+    "venum-catalog.json:brands.venum[76]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-thunder-dragon-boxing-gloves-black-royal-blue",
+   "store": "venum",
+   "title": "Venum Thunder Dragon Boxing Gloves - Black/Royal Blue",
+   "id": "https://www.venum.com/products/venum-thunder-dragon-boxing-gloves-black-royal-blue",
+   "url": "https://www.venum.com/products/venum-thunder-dragon-boxing-gloves-black-royal-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[0]",
+    "mma-catalog.json:brands.venum[0]",
+    "venum-catalog.json:departments.combat_sports[0]",
+    "venum-catalog.json:brands.venum[0]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-kazuya-red-black",
+   "store": "venum",
+   "title": "Venum x TEKKEN 8 Boxing Gloves - Kazuya - Red/Black",
+   "id": "https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-kazuya-red-black",
+   "url": "https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-kazuya-red-black",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[25]",
+    "mma-catalog.json:brands.venum[25]",
+    "venum-catalog.json:departments.combat_sports[25]",
+    "venum-catalog.json:brands.venum[25]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-king-black-yellow",
+   "store": "venum",
+   "title": "Venum x TEKKEN 8 Boxing Gloves - King - Black/Yellow",
+   "id": "https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-king-black-yellow",
+   "url": "https://www.venum.com/products/venum-x-tekken-2-boxing-gloves-king-black-yellow",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[28]",
+    "mma-catalog.json:brands.venum[28]",
+    "venum-catalog.json:departments.combat_sports[28]",
+    "venum-catalog.json:brands.venum[28]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-x-tekken-2-mma-sparring-gloves-king-black-yellow",
+   "store": "venum",
+   "title": "Venum x TEKKEN 8 Sparring Gloves - King - Black/Yellow",
+   "id": "https://www.venum.com/products/venum-x-tekken-2-mma-sparring-gloves-king-black-yellow",
+   "url": "https://www.venum.com/products/venum-x-tekken-2-mma-sparring-gloves-king-black-yellow",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[332]",
+    "mma-catalog.json:brands.venum[330]",
+    "venum-catalog.json:departments.combat_sports[332]",
+    "venum-catalog.json:brands.venum[330]"
+   ],
+   "class": "boxing",
+   "storeType": "SPARRING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-x-top-rank-original-hammer-boxing-gloves-navy-blue",
+   "store": "venum",
+   "title": "Venum x Top Rank Original Hammer Boxing Gloves - Navy Blue",
+   "id": "https://www.venum.com/products/venum-x-top-rank-original-hammer-boxing-gloves-navy-blue",
+   "url": "https://www.venum.com/products/venum-x-top-rank-original-hammer-boxing-gloves-navy-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[389]",
+    "mma-catalog.json:brands.venum[387]",
+    "venum-catalog.json:departments.combat_sports[389]",
+    "venum-catalog.json:brands.venum[387]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "venum|https://www.venum.com/products/venum-x-top-rank-original-impact-boxing-gloves-navy-blue",
+   "store": "venum",
+   "title": "Venum x Top Rank Original Impact Boxing Gloves - Navy Blue",
+   "id": "https://www.venum.com/products/venum-x-top-rank-original-impact-boxing-gloves-navy-blue",
+   "url": "https://www.venum.com/products/venum-x-top-rank-original-impact-boxing-gloves-navy-blue",
+   "served": true,
+   "servedFiles": [
+    "venum-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[214]",
+    "mma-catalog.json:brands.venum[213]",
+    "venum-catalog.json:departments.combat_sports[214]",
+    "venum-catalog.json:brands.venum[213]"
+   ],
+   "class": "boxing",
+   "storeType": "BOXING_GLOVES",
+   "catalogBeforeKg": 0.61,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.61,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 1,
+   "freightBeforeUsd": 7.93,
+   "freightAfterUsd": 13,
+   "freightDeltaUsd": 5.07,
+   "catalogDeltaKg": 0.39,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/adidas-combat-50-grappling-gloves-24adiahybrd150wmnb08/24adiahybrd150wmnb08",
+   "store": "dicks",
+   "title": "adidas Combat 50 Grappling Gloves",
+   "id": "https://www.dickssportinggoods.com/p/adidas-combat-50-grappling-gloves-24adiahybrd150wmnb08/24adiahybrd150wmnb08",
+   "url": "https://www.dickssportinggoods.com/p/adidas-combat-50-grappling-gloves-24adiahybrd150wmnb08/24adiahybrd150wmnb08",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[17]"
+   ],
+   "class": "mma",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 1.16,
+   "quotedBeforeSource": "category",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 15.08,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": -8.58,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "dicks|https://www.dickssportinggoods.com/p/century-brave-mma-competition-glove-25cenaboxidltbrvmmiay/25cenaboxidltbrvmmiay",
+   "store": "dicks",
+   "title": "Century Brave MMA Competition Glove",
+   "id": "https://www.dickssportinggoods.com/p/century-brave-mma-competition-glove-25cenaboxidltbrvmmiay/25cenaboxidltbrvmmiay",
+   "url": "https://www.dickssportinggoods.com/p/century-brave-mma-competition-glove-25cenaboxidltbrvmmiay/25cenaboxidltbrvmmiay",
+   "served": true,
+   "servedFiles": [
+    "dicks-catalog.json"
+   ],
+   "paths": [
+    "dicks-catalog.json:departments.sporting_goods[12]"
+   ],
+   "class": "mma",
+   "storeType": "BoxingMMAKickboxingGloves",
+   "catalogBeforeKg": null,
+   "catalogBeforeField": null,
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 3.9,
+   "catalogDeltaKg": null,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/core-everstrike-mma-gloves",
+   "store": "everlast",
+   "title": "Core Everstrike MMA Gloves",
+   "id": "https://www.everlast.com/products/core-everstrike-mma-gloves",
+   "url": "https://www.everlast.com/products/core-everstrike-mma-gloves",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[23]",
+    "everlast-catalog.json:brands.everlast[23]",
+    "mma-catalog.json:departments.combat_sports[23]",
+    "mma-catalog.json:brands.everlast[23]"
+   ],
+   "class": "mma",
+   "storeType": "FITNESS_TRAINING",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/core-everstrike-mma-gloves-red",
+   "store": "everlast",
+   "title": "Core Everstrike MMA Gloves Red",
+   "id": "https://www.everlast.com/products/core-everstrike-mma-gloves-red",
+   "url": "https://www.everlast.com/products/core-everstrike-mma-gloves-red",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[89]",
+    "everlast-catalog.json:brands.everlast[89]",
+    "mma-catalog.json:departments.combat_sports[89]",
+    "mma-catalog.json:brands.everlast[89]"
+   ],
+   "class": "mma",
+   "storeType": "FITNESS_TRAINING",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/pro-style-muay-thai-glove",
+   "store": "everlast",
+   "title": "MMA Pro Style Gloves",
+   "id": "https://www.everlast.com/products/pro-style-muay-thai-glove",
+   "url": "https://www.everlast.com/products/pro-style-muay-thai-glove",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[36]",
+    "everlast-catalog.json:brands.everlast[36]",
+    "mma-catalog.json:departments.combat_sports[36]",
+    "mma-catalog.json:brands.everlast[36]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/titan-hybrid-glove",
+   "store": "everlast",
+   "title": "Titan Hybrid Glove",
+   "id": "https://www.everlast.com/products/titan-hybrid-glove",
+   "url": "https://www.everlast.com/products/titan-hybrid-glove",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[60]",
+    "everlast-catalog.json:brands.everlast[60]",
+    "mma-catalog.json:departments.combat_sports[60]",
+    "mma-catalog.json:brands.everlast[60]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/titan-mma-grappling-glove",
+   "store": "everlast",
+   "title": "Titan MMA Grappling Glove",
+   "id": "https://www.everlast.com/products/titan-mma-grappling-glove",
+   "url": "https://www.everlast.com/products/titan-mma-grappling-glove",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[70]",
+    "everlast-catalog.json:brands.everlast[70]",
+    "mma-catalog.json:departments.combat_sports[70]",
+    "mma-catalog.json:brands.everlast[70]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "everlast|https://www.everlast.com/products/titan-pro-mma-glove-1",
+   "store": "everlast",
+   "title": "Titan Pro MMA Glove",
+   "id": "https://www.everlast.com/products/titan-pro-mma-glove-1",
+   "url": "https://www.everlast.com/products/titan-pro-mma-glove-1",
+   "served": true,
+   "servedFiles": [
+    "everlast-catalog.json"
+   ],
+   "paths": [
+    "everlast-catalog.json:departments.combat_sports[85]",
+    "everlast-catalog.json:brands.everlast[85]",
+    "mma-catalog.json:departments.combat_sports[85]",
+    "mma-catalog.json:brands.everlast[85]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "fuji|https://www.fujisports.com/products/fuji-ultimate-hybrid-gloves",
+   "store": "fuji",
+   "title": "FUJI Ultimate Hybrid Gloves",
+   "id": "https://www.fujisports.com/products/fuji-ultimate-hybrid-gloves",
+   "url": "https://www.fujisports.com/products/fuji-ultimate-hybrid-gloves",
+   "served": true,
+   "servedFiles": [
+    "fuji-catalog.json"
+   ],
+   "paths": [
+    "fuji-catalog.json:departments.combat_sports[2]",
+    "fuji-catalog.json:brands.blowout[2]",
+    "mma-catalog.json:departments.combat_sports[2]",
+    "mma-catalog.json:brands.blowout[2]"
+   ],
+   "class": "mma",
+   "storeType": "HYBRID_MMA_GLOVES",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.22,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 2.86,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 3.64,
+   "catalogDeltaKg": 0.28,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/berea-mma-gloves-without-thumb-red-black",
+   "store": "gorillawear",
+   "title": "Berea MMA Gloves (Without Thumb) - Black/White",
+   "id": "9991190111",
+   "url": "https://usa.gorillawear.com/products/berea-mma-gloves-without-thumb-red-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[67]"
+   ],
+   "class": "mma",
+   "storeType": "gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 3.9,
+   "catalogDeltaKg": 0.28,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/ely-mma-sparring-gloves-red-black",
+   "store": "gorillawear",
+   "title": "Ely MMA Sparring Gloves - Black/White",
+   "id": "9991090111",
+   "url": "https://usa.gorillawear.com/products/ely-mma-sparring-gloves-red-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[68]"
+   ],
+   "class": "mma",
+   "storeType": "gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 3.9,
+   "catalogDeltaKg": 0.28,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "gorillawear|https://usa.gorillawear.com/products/manton-mma-gloves-with-thumb-red-black",
+   "store": "gorillawear",
+   "title": "Manton MMA Gloves (With Thumb) - Black/White",
+   "id": "9991290111",
+   "url": "https://usa.gorillawear.com/products/manton-mma-gloves-with-thumb-red-black",
+   "served": true,
+   "servedFiles": [
+    "gym-brands-catalog.json"
+   ],
+   "paths": [
+    "gym-brands-catalog.json:departments.combat_sports[66]"
+   ],
+   "class": "mma",
+   "storeType": "gloves",
+   "catalogBeforeKg": 0.22,
+   "catalogBeforeField": "weightKg",
+   "quotedBeforeKg": 0.2,
+   "quotedBeforeSource": "category",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 2.6,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 3.9,
+   "catalogDeltaKg": 0.28,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-fgv17-mma-training-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex FGV17 MMA Training Gloves - Split Knuckles",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fgv17-mma-training-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-fgv17-mma-training-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[11]",
+    "mma-catalog.json:brands.fairtex[6]",
+    "mmawarehouse-catalog.json:departments.combat_sports[11]",
+    "mmawarehouse-catalog.json:brands.fairtex[6]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/fairtex-fgv18-mma-grappling-sparring-gloves",
+   "store": "mmawarehouse",
+   "title": "Fairtex FGV18 'Super Sparring' MMA/Grappling Gloves",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fgv18-mma-grappling-sparring-gloves",
+   "url": "https://www.mmawarehouse.com/products/fairtex-fgv18-mma-grappling-sparring-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[4]",
+    "mma-catalog.json:brands.fairtex[2]",
+    "mmawarehouse-catalog.json:departments.combat_sports[4]",
+    "mmawarehouse-catalog.json:brands.fairtex[2]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.02,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 4,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 52,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": -45.5,
+   "catalogDeltaKg": 0.48,
+   "alreadyAtFlat": {
+    "quoted": true,
+    "catalog": false
+   }
+  },
+  {
+   "key": "mmawarehouse|https://www.mmawarehouse.com/products/yokkao-ground-mma-pro-gloves",
+   "store": "mmawarehouse",
+   "title": "YOKKAO 'Ground' MMA Pro Gloves",
+   "id": "https://www.mmawarehouse.com/products/yokkao-ground-mma-pro-gloves",
+   "url": "https://www.mmawarehouse.com/products/yokkao-ground-mma-pro-gloves",
+   "served": true,
+   "servedFiles": [
+    "mmawarehouse-catalog.json"
+   ],
+   "paths": [
+    "mma-catalog.json:departments.combat_sports[24]",
+    "mma-catalog.json:brands.yokkao[11]",
+    "mmawarehouse-catalog.json:departments.combat_sports[24]",
+    "mmawarehouse-catalog.json:brands.yokkao[11]"
+   ],
+   "class": "mma",
+   "storeType": "MMA_GLOVES",
+   "catalogBeforeKg": 0.33,
+   "catalogBeforeField": "specWeightKg",
+   "quotedBeforeKg": 0.33,
+   "quotedBeforeSource": "catalog",
+   "afterKg": 0.5,
+   "freightBeforeUsd": 4.29,
+   "freightAfterUsd": 6.5,
+   "freightDeltaUsd": 2.21,
+   "catalogDeltaKg": 0.17,
+   "alreadyAtFlat": {
+    "quoted": false,
+    "catalog": false
+   }
+  }
+ ],
+ "excludedNearMisses": [
+  {
+   "store": "snipes",
+   "title": "Real Ones Boxing Gloves Tee",
+   "id": "1000135824",
+   "type": "TEE",
+   "file": "snipes-catalog.json",
+   "reason": "apparel-print",
+   "vetoedBy": null,
+   "kg": 1.1
+  },
+  {
+   "store": "everlast",
+   "title": "Powerlock OG Laced Training Gloves and 1910 Hand Wraps",
+   "id": "https://www.everlast.com/products/powerlock-og-and-handwrap",
+   "type": "GEAR",
+   "file": "everlast-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "everlast",
+   "title": "Black Elite Boxing Shoe, Glove and Hand Wrap Bundle",
+   "id": "https://www.everlast.com/products/black-elite-bundle",
+   "type": "GEAR",
+   "file": "everlast-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "everlast",
+   "title": "Red Elite Boxing Shoe, Glove and Hand Wrap Bundle",
+   "id": "https://www.everlast.com/products/red-elite-boxing-shoe-glove-and-hand-wrap-bundle",
+   "type": "GEAR",
+   "file": "everlast-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "everlast",
+   "title": "Blue Elite Boxing Shoe, Glove and Hand Wrap Bundle",
+   "id": "https://www.everlast.com/products/blue-elite-boxing-shoe-glove-and-hand-wrap-bundle",
+   "type": "GEAR",
+   "file": "everlast-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "everlast",
+   "title": "White Elite Boxing Shoe, Glove and Hand Wrap Bundle",
+   "id": "https://www.everlast.com/products/white-elite-boxing-shoe-glove-and-hand-wrap-bundle",
+   "type": "GEAR",
+   "file": "everlast-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "gorillawear",
+   "title": "Dallas Wrist Wraps Gloves 2.0 - Black/Red",
+   "id": "9923690501",
+   "type": "workout_gloves",
+   "file": "gym-brands-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": 0.22
+  },
+  {
+   "store": "gorillawear",
+   "title": "Dallas Wrist Wraps Gloves 2.0 - Black/Gray",
+   "id": "9923690801",
+   "type": "workout_gloves",
+   "file": "gym-brands-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": 0.22
+  },
+  {
+   "store": "gorillawear",
+   "title": "Gel Glove Wraps - Black/White",
+   "id": "9917590011",
+   "type": "gloves",
+   "file": "gym-brands-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": 0.22
+  },
+  {
+   "store": "gorillawear",
+   "title": "Dallas Wrist Wrap Gloves - Black",
+   "id": "9914490001",
+   "type": "workout_gloves",
+   "file": "gym-brands-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": 0.22
+  },
+  {
+   "store": "ryderwear",
+   "title": "Wrap Lifting Gloves - Black",
+   "id": "6796093653074",
+   "type": "accessories",
+   "file": "gym-brands-catalog.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": 0.33
+  },
+  {
+   "store": "walmart",
+   "title": "Reebok Delta Performance Wrist Wrap Fitness Gloves l/xl, Black",
+   "id": "https://www.walmart.com/ip/Reebok-Delta-Performance-Wrist-Wrap-Fitness-Gloves-L-L-XL-Black/5378440903?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Weight Lifting Gym Gloves Training Fitness Wrist Wrap Workout Exercise Sports, Must Have Household Items",
+   "id": "https://www.walmart.com/ip/Weight-Lifting-Gym-Gloves-Training-Fitness-Wrist-Wrap-Workout-Exercise-Sports-Clearance-Sales/5294538532?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "cyrico workout Gloves for Men and Women, Breathable Weight Lifting Gloves with Wrist Wrap Support, Full Palm Protection Gym Gloves for Fitness Training, Cycling, Pull Ups, Exercise and Hanging",
+   "id": "https://www.walmart.com/ip/cyrico-workout-Gloves-Men-Women-Breathable-Weight-Lifting-Gloves-Wrist-Wrap-Support-Full-Palm-Protection-Gym-Gloves-Fitness-Training-Cycling-Pull-Ups/13574120211?classType=VARIANT&athbdg=L1400",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Athletic Works Classic Wrist Wrap Gloves, M/L",
+   "id": "https://www.walmart.com/ip/AW-WEIGHT-GLV-M-L/19675856453?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Windfall Gym Gloves Half Finger Gloves with Wrist Wrap Durable Breathable Non-Slip Half-Finger Gloves for Weight Lifting Training Fitness Gym Workout Crossfit Sports Men & Women",
+   "id": "https://www.walmart.com/ip/Windfall-Gym-Gloves-Half-Finger-Gloves-Wrist-Wrap-Durable-Breathable-Non-Slip-Half-Finger-Gloves-Weight-Lifting-Training-Fitness-Gym-Workout-Crossfit/979017630?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Pototlls Sports Gloves with Wrist Wrap Support for Men Women, Full Palm Protection Fitness Gloves for Weightlifting Training Pull Ups Gym Workout",
+   "id": "https://www.walmart.com/ip/Sports-Gloves-with-Wrist-Wrap-Support-for-Men-Women-Full-Palm-Protection-Fitness-Gloves-for-Weightlifting-Training-Pull-Ups-Gym-Workout/20329264649?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Workout Gloves for Men and Women, Breathable Weight Lifting Gloves with Wrist Wrap Support, Full Palm Protection Gym Gloves for Fitness Training, Cycling, Pull Ups, Exercise and Hanging",
+   "id": "https://www.walmart.com/ip/Workout-Gloves-Men-Women-Breathable-Weight-Lifting-Gloves-Wrist-Wrap-Support-Full-Palm-Protection-Gym-Gloves-Fitness-Training-Cycling-Pull-Ups-Exerci/19995853306?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Athletic Works Classic Wrist Wrap Weight Lifting Gloves, L/XL",
+   "id": "https://www.walmart.com/ip/Athletic-Works-Classic-Wrist-Wrap-Weight-Lifting-Gloves-L-XL/560892682?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "FitRx Grip Wraps, 12 Nylon Workout Gloves with Weightlifting Wrist Wraps, Gym Gloves, One Pair",
+   "id": "https://www.walmart.com/ip/FitRx-Grip-Wraps-12-Nylon-Workout-Gloves-with-Weightlifting-Wrist-Wraps-Gym-Gloves-One-Pair/3289812794?classType=REGULAR",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "Latest 2022 Workout Gloves Weight Lifting Gym Exercise Fitness Gloves for Men Women with Wrist Wrap Support Full Palm Protection, for Weightlifting, Training, , Hanging, Pull ups …",
+   "id": "https://www.walmart.com/ip/Latest-2022-Workout-Gloves-Weight-Lifting-Gym-Exercise-Fitness-Gloves-Men-Women-Wrist-Wrap-Support-Full-Palm-Protection-Weightlifting-Training-Hangin/557893352?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "TERGAYEE Workout Gloves for Men and Women,Half-Finger Exercise Gloves,Fitness Gloves,Outdoor Sports Training Gloves,Wrist Wrap Gloves for Sport Daily Use",
+   "id": "https://www.walmart.com/ip/TERGAYEE-Workout-Gloves-Men-Women-Half-Finger-Exercise-Gloves-Fitness-Gloves-Outdoor-Sports-Training-Gloves-Wrist-Wrap-Gloves-Sport-Daily-Use/5147821215?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "walmart",
+   "title": "qinhaie Exercise Gloves for Weight Lifting, Cycling, Gym: Breathable Snug Fit Half Finger Workout Gloves – Wrist Wraps for Hand Protection & Performance Boost, Grey",
+   "id": "https://www.walmart.com/ip/qinhaie-Exercise-Gloves-Weight-Lifting-Cycling-Gym-Breathable-Snug-Fit-Half-Finger-Workout-Gloves-Wrist-Wraps-Hand-Protection-Performance-Boost-Grey/20218220187?classType=VARIANT",
+   "type": null,
+   "file": "department-cache-walmart.json",
+   "reason": "hand-wraps",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "dicks",
+   "title": "Tapout 4 PC Boxing Gloves Pad Kit",
+   "id": "https://www.dickssportinggoods.com/p/tapout-4-pc-boxing-gloves-pad-kit-24ituustrnprlvcpblp11/24ituustrnprlvcpblp11",
+   "type": "HeadProtectiveGear",
+   "file": "dicks-catalog.json",
+   "reason": "mitts-pads",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "dicks",
+   "title": "adidas Combat 50 Focus Mitts",
+   "id": "https://www.dickssportinggoods.com/p/adidas-combat-50-focus-mitts-24adiahybrd150wmnb16/24adiahybrd150wmnb16",
+   "type": "BoxingMMAKickboxingGloves",
+   "file": "dicks-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "everlast",
+   "title": "Elite Curved Focus Mitts",
+   "id": "https://www.everlast.com/products/elite-curved-focus-mitts",
+   "type": "BOXING_TRAINING",
+   "file": "everlast-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "mmawarehouse",
+   "title": "Fairtex FMV9 Contoured Focus Mitts",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fmv9-contoured-focus-mitts",
+   "type": "FOCUS_MITTS",
+   "file": "mma-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "mmawarehouse",
+   "title": "Fairtex FMV13 Maximized Focus Mitts",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fmv13-maximized-focus-mitts",
+   "type": "FOCUS_MITTS",
+   "file": "mma-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "mmawarehouse",
+   "title": "Fairtex FMV10 Classic Pro Focus Mitts",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fmv10-focus-mitts",
+   "type": "FOCUS_MITTS",
+   "file": "mma-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "mmawarehouse",
+   "title": "Fairtex FMV11 Aero Focus Mitts",
+   "id": "https://www.mmawarehouse.com/products/fairtex-fmv11-focus-mitts",
+   "type": "FOCUS_MITTS",
+   "file": "mma-catalog.json",
+   "reason": "no-glove",
+   "vetoedBy": null,
+   "kg": null
+  },
+  {
+   "store": "prosoccer",
+   "title": "adidas Predator GL Pro Hybrid PC Goalkeeper Gloves",
+   "id": "https://prosoccer.com/products/adidas-predator-gl-pro-hybrid-pc-goalkeeper-gloves",
+   "type": "Guantes de arquero",
+   "file": "soccer-catalog.json",
+   "reason": "non-combat",
+   "vetoedBy": null,
+   "kg": 0.5
+  },
+  {
+   "store": "walmart",
+   "title": "Barbie Boxer Brunette Doll With Boxing Outfit And Pink Boxing Gloves",
+   "id": "https://www.walmart.com/ip/Barbie-Mattel-Barbie-Boxer-Doll/868801813?classType=REGULAR",
+   "type": null,
+   "file": "juguetes-catalog.json",
+   "reason": "toy-novelty",
+   "vetoedBy": null,
+   "kg": null
+  }
+ ],
+ "edgeCases": [
+  {
+   "title": "Everlast Pro Style Bag Mitts",
+   "class": "boxing",
+   "why": "a bag mitt is a bag glove: a pair worn on the hands",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "Century Brave Grip Bag Gloves",
+   "class": "boxing",
+   "why": "bag gloves are boxing gloves",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "Fairtex FMV9 Contoured Focus Mitts",
+   "class": null,
+   "why": "focus mitts are a pad the coach holds",
+   "ruleAnswer": null
+  },
+  {
+   "title": "adidas Combat 50 Focus Mitts",
+   "class": null,
+   "why": "focus mitts are a pad the coach holds",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Venum Gel Kontact Quick Wraps - Black/Red",
+   "class": null,
+   "why": "quick wraps are hand wraps",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Gel Glove Wraps - Black/White",
+   "class": null,
+   "why": "glove wraps are hand wraps",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Everlast Inner Gloves",
+   "class": null,
+   "why": "inner gloves are worn under the glove",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Tapout 4 PC Boxing Gloves Pad Kit",
+   "class": null,
+   "why": "a kit is not one glove pair: it ships heavier",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Powerlock OG Laced Training Gloves and 1910 Hand Wraps",
+   "class": null,
+   "why": "gloves sold with hand wraps are a bundle",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Black Elite Boxing Shoe, Glove and Hand Wrap Bundle",
+   "class": null,
+   "why": "a bundle",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Ringside Single Boxing Glove - Left Hand Only",
+   "class": null,
+   "why": "a glove sold singly",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Barbie Boxer Brunette Doll With Boxing Outfit And Pink Boxing Gloves",
+   "class": null,
+   "why": "a toy",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Everlast X Hoonigan Rear View Mirror Gloves",
+   "class": null,
+   "why": "a mirror hanger",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Real Ones Boxing Gloves Tee",
+   "class": null,
+   "why": "a T-shirt printed with the word",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Venum HyperLift 2.0 Weightlifting Gloves",
+   "class": null,
+   "why": "lifting gloves: no combat word",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Mitchell Training Gloves 2.0 - Black/Gray",
+   "class": null,
+   "why": "a plain training glove is a gym glove",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Black Open Fingered Gloves",
+   "class": null,
+   "why": "open fingered with no MMA word: fashion stores sell these too",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Century Youth Brave Open Palm Gloves",
+   "class": null,
+   "why": "open palm with no MMA word (flagged in the report)",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Venum Contender 1.5 Kids Boxing Gloves",
+   "class": "boxing",
+   "why": "a real pair for a child is a boxing pair",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "Kickboxing Gloves Pink",
+   "class": "boxing",
+   "why": "the title outranks the store's MMA_GLOVES aisle",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "adidas Youth Hybrid 25 Boxing Gloves",
+   "class": "boxing",
+   "why": "hybrid is a model name here",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "FUJI Ultimate Hybrid Gloves",
+   "class": "mma",
+   "why": "hybrid gloves are the MMA hybrid",
+   "ruleAnswer": "mma"
+  },
+  {
+   "title": "Titan Pro MMA Glove",
+   "class": "mma",
+   "why": "a pair named in the singular",
+   "ruleAnswer": "mma"
+  },
+  {
+   "title": "Ely MMA Sparring Gloves - Black/White",
+   "class": "mma",
+   "why": "MMA words win over sparring",
+   "ruleAnswer": "mma"
+  },
+  {
+   "title": "Ringside Pro Style Training Gloves",
+   "class": "boxing",
+   "why": "pro style is a boxing glove",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "Guantes de boxeo profesionales",
+   "class": "boxing",
+   "why": "Spanish: guantes de boxeo",
+   "ruleAnswer": "boxing"
+  },
+  {
+   "title": "Guantes de MMA de entrenamiento",
+   "class": "mma",
+   "why": "Spanish: guantes de MMA",
+   "ruleAnswer": "mma"
+  },
+  {
+   "title": "Glove Box Mount",
+   "class": null,
+   "why": "a car's glove box",
+   "ruleAnswer": null
+  },
+  {
+   "title": "adidas Predator GL Pro Hybrid PC Goalkeeper Gloves",
+   "class": null,
+   "why": "goalkeeper gloves",
+   "ruleAnswer": null
+  },
+  {
+   "title": "Body Glove Men's Pro 3 2mm Spring Wetsuit",
+   "class": null,
+   "why": "Body Glove is a surf brand",
+   "ruleAnswer": null
+  }
+ ],
+ "shinGuards": {
+  "rule": "#443 c.6649706410: only the 2 records the audit proved are single-guard weights (Gorilla Wear, 0.33 kg) are doubled to 0.66 kg; the records on the unverified 0.50 stamp are not doubled, they are flagged below.",
+  "doubled": [
+   {
+    "key": "shin|gorillawear|https://usa.gorillawear.com/products/mosby-shin-guards-black",
+    "store": "gorillawear",
+    "title": "Mosby Shin Guards - Black",
+    "id": "9990690002",
+    "file": "gym-brands-catalog.json",
+    "path": "departments.combat_sports[9]",
+    "served": true,
+    "beforeKg": 0.33,
+    "afterKg": 0.66,
+    "freightDeltaUsd": 4.29
+   },
+   {
+    "key": "shin|gorillawear|https://usa.gorillawear.com/products/jefferson-shin-guards-black",
+    "store": "gorillawear",
+    "title": "Jefferson Shin Guards - Black",
+    "id": "9991590002",
+    "file": "gym-brands-catalog.json",
+    "path": "departments.combat_sports[31]",
+    "served": true,
+    "beforeKg": 0.33,
+    "afterKg": 0.66,
+    "freightDeltaUsd": 4.29
+   }
+  ],
+  "unverifiedHalfKgStamp": [
+   {
+    "store": "everlast",
+    "title": "Titan Pro Instep Shin Guards",
+    "id": "https://www.everlast.com/products/titan-pro-striking-shin-guards",
+    "type": "PROTECTIVE_GEAR",
+    "file": "everlast-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Elite Shin Guards - White Camo",
+    "id": "https://www.venum.com/products/venum-elite-shin-guards-white-camo",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Kontact Shin Guards - Black/Black",
+    "id": "https://www.venum.com/products/venum-kontact-shin-guards-black-black-2",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Shin Guards Kontact - Black/White",
+    "id": "https://www.venum.com/products/venum-shin-guards-kontact-black-white",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "venum",
+    "title": "Venum Kontact Shin Guards Without Foot - Black/Black",
+    "id": "https://www.venum.com/products/venum-kontact-shin-guards-without-foot-black-black",
+    "type": "SHIN_GUARDS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Matrix' Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-matrix-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP5 Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp5-muay-thai-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP3 Muay Thai Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp3-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'The Flame' Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-the-flame-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Original' Shin Guards - Gold",
+    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-gold",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Original' Shin Guards - Silver",
+    "id": "https://www.mmawarehouse.com/products/yokkao-original-shin-guards-silver",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "Fairtex SP6 MMA Style Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/fairtex-sp6-mma-style-shin-pads",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   },
+   {
+    "store": "mmawarehouse",
+    "title": "YOKKAO 'Stadium' Shin Guards",
+    "id": "https://www.mmawarehouse.com/products/yokkao-stadium-shin-guards",
+    "type": "SHIN_PADS",
+    "file": "mma-catalog.json",
+    "served": false,
+    "kg": 0.5,
+    "kgField": "specWeightKg",
+    "weightEstimated": true,
+    "sizes": [],
+    "records": 4
+   }
+  ],
+  "unverifiedHalfKgRecords": 52,
+  "publishedHalfKg": [
+   {
+    "store": "prosoccer",
+    "title": "Nike Mercurial Lite Shinguards",
+    "id": "https://prosoccer.com/products/nike-mercurial-lite-shinguards-6",
+    "type": "Accesorios de fútbol",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Puma Ultra Flex Sleeve Shin Guards",
+    "id": "https://prosoccer.com/products/puma-ultra-flex-sleeve-shin-guards-3",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Nike Mercurial Lite Shinguards",
+    "id": "https://prosoccer.com/products/nike-mercurial-lite-shinguards-5",
+    "type": "Accesorios de fútbol",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Nike Mercurial Lite KM Dream Speed Shinguards",
+    "id": "https://prosoccer.com/products/nike-mercurial-lite-km-dream-speed-shinguards",
+    "type": "Accesorios de fútbol",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro League Shin Guards",
+    "id": "https://prosoccer.com/products/adidas-tiro-league-shin-guards-5",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Nike Mercurial Lite Shinguards",
+    "id": "https://prosoccer.com/products/nike-mercurial-lite-shinguards-3",
+    "type": "Accesorios de fútbol",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Puma Ultra Flex Sleeve Shin Guards",
+    "id": "https://prosoccer.com/products/puma-ultra-flex-sleeve-shin-guards-2",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro League Shin Guards",
+    "id": "https://prosoccer.com/products/adidas-tiro-league-shin-guards-4",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Puma Ultra Flex Sleeve Shin Guards",
+    "id": "https://prosoccer.com/products/puma-ultra-flex-sleeve-shin-guards-1",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "Nike Youth Charge Shin Guard",
+    "id": "https://prosoccer.com/products/nike-youth-charge-shin-guard",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro Club Shin Guard",
+    "id": "https://prosoccer.com/products/adidas-tiro-club-shin-guard",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro League Shin Guards",
+    "id": "https://prosoccer.com/products/adidas-tiro-league-shin-guards-2",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro League Shin Guards",
+    "id": "https://prosoccer.com/products/adidas-tiro-league-shin-guards-1",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Tiro Competition Shin Guard",
+    "id": "https://prosoccer.com/products/adidas-tiro-competition-shin-guard",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 0.5,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   }
+  ],
+  "otherShinGuards": [
+   {
+    "store": "prosoccer",
+    "title": "Nike Socks/Shin Guards/Ball Bundle",
+    "id": "https://prosoccer.com/products/nike-socks-shin-guards-ball-bundle",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 2,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Kid's Goletto IX FG/Shin Guards/Ball Bundle",
+    "id": "https://prosoccer.com/products/adidas-kids-goletto-ix-fgshin-guardsball-bundle",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 2.49,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Kid's Goletto IX Laceless FG/Shin Guards/Ball Bundle",
+    "id": "https://prosoccer.com/products/adidas-kids-goletto-ix-laceless-fgshin-guardsball-bundle",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 2.49,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Kids Goletto IX FG/Shin Guards/Ball Bundle",
+    "id": "https://prosoccer.com/products/adidas-kids-goletto-ix-fg-shin-guards-ball-bundle-2",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 2.49,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   },
+   {
+    "store": "prosoccer",
+    "title": "adidas Kids Goletto IX FG/Shin Guards/Ball Bundle",
+    "id": "https://prosoccer.com/products/adidas-kids-goletto-ix-fg-shin-guards-ball-bundle",
+    "type": "Canilleras",
+    "file": "soccer-catalog.json",
+    "served": true,
+    "kg": 2.49,
+    "kgField": "weightKg",
+    "weightEstimated": false,
+    "sizes": [],
+    "records": 1
+   }
+  ]
+ }
+}

@@ -22725,6 +22725,9 @@ function contentLabelFor(title){
 }
 
 function weightLabelHTML(title, cls, color = '#7A8296'){
+  /* A glove pair says its flat weight, per pair (#443 c.6648728121). */
+  const glove = gloveFlatOfTitle(title);
+  if (glove) return `<div class="${cls}" style="color:${color}">${glove.kg >= 1 ? `${Math.round(glove.kg * 100) / 100} kg` : `${Math.round(glove.kg * 1000)} g`} el par</div>`;
   const label = contentLabelFor(title);
   if (label) return `<div class="${cls}" style="color:${color}">${escapeHtml(label)}</div>`;
   /* Fallback: the cart freights on estimateRetailWeightKg, so the card must
@@ -24520,6 +24523,58 @@ function freightSharePct(weightKg, priceUsd){
    estimate and the card has to say so. Mirrors estimateWeightDetail() in
    scripts/lib/sales-sources.js. */
 /* ============================================================
+   COMBAT GLOVES, FLAT BY THE PAIR (#443 c.6648881889, corrected by
+   c.6648728121 -- Danny's flat billing rule, which supersedes the
+   per-ounce math): a BOXING glove pair weighs 1.00 kg, an MMA glove
+   pair 0.50 kg, whatever the store or the title's ounces say.
+
+   MIRROR of gloveClassOfTitle() in scripts/lib/glove-weights.js -- the
+   rule, its order and its edge cases are documented there. The card's
+   weight line, its freight line and the cart read this copy; the
+   product page and checkout read the module through the resolver.
+   scripts/test/glove-weights-tests.mjs compares the two over every
+   title in every committed catalogue, so they cannot drift.
+   ============================================================ */
+const GLOVE_FLAT_KG = { boxing: 1.0, mma: 0.5 };
+const GLOVE_NAMES_RX = /\b(gloves?|guantes?)\b|\bbag\s*mitts?\b/;
+const GLOVE_EXCLUSIONS = [
+  ['hand-wraps', /\bwraps?\b|\bvendas?\b|\bvendajes?\b/],
+  ['inner-gloves', /\binner\s*gloves?\b|\bunder\s*-?\s*gloves?\b|\bglove\s*liners?\b|\bliners?\b|\bguantes?\s+interiores?\b/],
+  ['mitts-pads', /\b(?:focus|punch(?:ing)?|target|coach(?:ing)?|thai|kick|strike|speed|hook\s*(?:and|&)\s*jab)\s*mitts?\b|\bmitts?\b(?<!\bbag\s*mitts?)|\bpads?\b|\bmanoplas?\b|\bpaos?\b|\bescudos?\b/],
+  ['bundle', /\b(?:bundles?|kits?|sets?|combos?|packs?|pairs?\s+of\s+\d|\d+\s*-?\s*(?:pc|pcs|pieces?|piezas?)|\d+\s*-?\s*pk)\b|\b(?:and|with|\+|&|y)\s+(?:\w+\s+){0,3}(?:hand\s*wraps?|wraps?|shoes?|headgear|head\s*guard|mouth\s*guard|bag|zapatillas?)\b|\bshoe\b/],
+  ['single', /\bsingle\b|\bsold\s+(?:individually|separately|singly|as\s+(?:a\s+)?single)\b|\b(?:left|right)\s*-?\s*hand(?:ed)?\s+only\b|\bone\s+glove\b|\b(?:each|per\s+glove|unidad)\b|\(1\)/],
+  ['toy-novelty', /\b(?:toys?|juguetes?|dolls?|munecas?|barbie|plush|peluche|inflatable|costumes?|disfra(?:z|ces)|novelty|mini|miniatures?|keychains?|key\s*chains?|key\s*rings?|llaveros?|ornaments?|charms?|earrings?|necklaces?|pendants?|figures?|figurines?|(?:rear\s*view\s*)?mirror)\b/],
+  ['apparel-print', /\b(?:t\s*-?\s*shirts?|tees?|shirts?|hoodies?|sweatshirts?|tank\s*tops?|hats?|caps?|beanies?|socks?|posters?|stickers?|decals?|mugs?|polos?|camisetas?|poleras?)\b/],
+  ['accessory', /\bgloves?\s+(?:bags?|backpacks?|deodori[sz]ers?|dryers?|fresheners?|inserts?|sprays?|hangers?|holders?|racks?|cleaners?|covers?|cases?|tape|laces|boxes?|box|cubby|mounts?|compartments?|clips?)\b|\b(?:bags?|backpacks?|duffels?)\s+for\s+(?:\w+\s+){0,2}gloves?\b/],
+  ['non-combat', /\b(?:garden(?:ing)?|jardin(?:eria)?|work|trabajo|nitrile|nitrilo|exam|latex|disposable|desechables?|cleaning|dish(?:washing)?|kitchen|oven|bbq|grill|cycling|bike|bicycle|mtb|ciclismo|winter|invierno|ski|snow|thermal|touch\s*screen|driving|dress|fashion|evening|opera|bridal|batting|baseball|softball|beisbol|goal\s*keeper|goalkeeper|goalie|arquero|portero|golf|motorcycle|moto|motocross|dirt\s*bike|racing|wetsuit|neopreno|neoprene|surf|dive|diving|buceo|reef|body\s*glove|football|receiver|lacrosse|hockey|racquetball|archery|hunting|fishing|tactical|rowing|sailing|equestrian|riding)\b/],
+];
+const GLOVE_MMA_RX = /\bmma\b|\bgrappling\b|\bufc\b|\bguantes?\s+(?:de\s+)?mma\b/;
+const GLOVE_MMA_WEAK_RX = /\bfight\s*gloves?\b|\bhybrid\s*gloves?\b/;
+const GLOVE_BOXING_RX = /\bboxing\b|\bboxeo\b|\bbox\s+gloves?\b|\bguantes?\s+de\s+box\b|\bmuay\s*thai\b|\bkick\s*-?\s*boxing\b|\bsparring\b|\bbag\s*(?:gloves?|mitts?)\b|\bpro\s*-?\s*style\b|\blace\s*-?\s*up\b|\blaced\b/;
+function gloveText(s){
+  return String(s ?? '')
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .replace(/[‘’‛′]/g, "'").replace(/[“”″]/g, '"')
+    .replace(/[_/]+/g, ' ')
+    .toLowerCase();
+}
+/** { cls: 'boxing'|'mma', kg } for a glove pair, else null. */
+function gloveFlatOfTitle(title){
+  const t = gloveText(title);
+  if (!GLOVE_NAMES_RX.test(t)) return null;
+  for (const [, rx] of GLOVE_EXCLUSIONS) if (rx.test(t)) return null;
+  const cls = GLOVE_MMA_RX.test(t) ? 'mma' : GLOVE_BOXING_RX.test(t) ? 'boxing' : GLOVE_MMA_WEAK_RX.test(t) ? 'mma' : null;
+  return cls ? { cls, kg: GLOVE_FLAT_KG[cls] } : null;
+}
+/* The flat weight as a weight detail. Billed, not band-checked: the
+   rule is the number. Never "por confirmar". */
+function gloveFlatDetail(title){
+  const g = gloveFlatOfTitle(title);
+  if (!g) return null;
+  return { kg: g.kg, source: 'gloveFlat', estimated: true, reviewKind: null, needsReview: false, flagged: false, reason: null, bound: null, gloveClass: g.cls };
+}
+
+/* ============================================================
    A WEIGHT THE CATALOGUE SUPPLIED (2026-09-22)
 
    beauty-catalog.json ships a `specWeightKg` on all 197 products, and
@@ -24552,6 +24607,10 @@ function catalogWeightDetail(item, title, hints = {}){
      figure" — it is USED here, not refused: estimated is false only
      then, true for every estimate. */
   if (!item) return null;
+  /* A glove pair is billed flat (#443 c.6648728121): its catalogue
+     figure (the stamp) is the same number, and the rule decides. */
+  const glove = gloveFlatDetail(title || '');
+  if (glove) return glove;
   const kg = Number(item.weightKg ?? item.specWeightKg);
   if (!(Number.isFinite(kg) && kg > 0)) return null;
   // The moms catalogue's flat 4/12/25 kg stamps are not weights (#449).
@@ -24572,6 +24631,10 @@ function catalogWeightDetail(item, title, hints = {}){
 
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
+  /* A glove pair, flat (#443 c.6648728121), ahead of everything: a
+     "16 oz" in a glove's title is its padding, not its weight. */
+  const glove = gloveFlatDetail(t);
+  if (glove) return glove;
   const beauty = beautyWeightDetail(t, hints || {});
   /* CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is wax
      weight, not parcel weight — the glass jar is another half kilo.

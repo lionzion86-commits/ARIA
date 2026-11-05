@@ -734,6 +734,8 @@ function weightUnknown(it){
   return !!it.needsReview || it.source === "department" || it.source === "fallback";
 }
 function weightLabel(it){
+  /* A combat glove pair is billed flat (#443 c.6648728121). */
+  if (it && it.source === "gloveFlat") return 'peso fijo por par';
   if (it && it.estimated === false) return 'publicado por la tienda';
   if (it && it.source === "comparables") return 'estimado por productos similares';
   if (it && it.source === "web") return 'estimado con el peso publicado';
