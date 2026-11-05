@@ -46,6 +46,8 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isGymApparel } from "./lib/gym-apparel.js";
 import { joyasTypeAllowed } from "./lib/section-allowlist.js";
+import { isAdultInKids, kidProof, STYLE_TRAP_RX } from "./lib/kids-truth.js";
+import { foreignFamily, storeTypeFamily, deptSells, slipType, ONE_FAMILY_DEPTS, FASHION_DEPT_EXTRA, BABY_DEPT } from "./lib/type-family.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { isDroneProduct, isNotElectronics } from "./lib/tech-aisle.js";
 import "../not-sold.js";
@@ -398,7 +400,13 @@ export function isClothingType(type) {
   if (!clothingTypeMemo.has(k)) clothingTypeMemo.set(k, CLOTHING_TYPE_LABELS.has(typeKeyOf({ type: k }).label));
   return clothingTypeMemo.get(k);
 }
+/* A «dress shirt» is a shirt (Kohl's types its men's dress shirts
+   «Vestido», Macy's DRESS, Surf Station «Vestidos y faldas»): the Hombre
+   flyout listed «Vestidos» (#443 c.6634907518). */
+const DRESS_TYPE_LABELS = new Set(["Vestidos", "Vestidos y faldas", "Faldas"]);
+const DRESS_SHIRT_RX = /\bdress\s+shirts?\b/i;
 export function trueType(p) {
+  if (p && DRESS_SHIRT_RX.test(String(p.title || "")) && DRESS_TYPE_LABELS.has(typeKeyOf(p).label)) return "Camisas";
   if (!p || !isClothingType(p.type)) return p ? p.type : "";
   const fam = productClass(p);
   if (!Object.prototype.hasOwnProperty.call(FAMILY_TYPE, fam)) return p.type;
@@ -454,6 +462,7 @@ export function loadRefiles(root = ROOT) {
   try { return JSON.parse(readFileSync(join(root, "scripts/data/reroute-refiles.json"), "utf8")); } catch { return {}; }
 }
 export const DEPT_HELD = new Set(["sephora"]);
+const KID_BUCKETS = new Set(["kids", "apparel_kids"]);
 export function loadAllItems(root = ROOT) {
   const AriaSale = loadSaleRule(root);
   const REFILES = loadRefiles(root);
@@ -484,7 +493,9 @@ export function loadAllItems(root = ROOT) {
           /* Pills and food are not sold (/not-sold.js): never a card. */
           if (isNotSold(p)) continue;
           const rf = REFILES[rk] && REFILES[rk][p.title];
-          if (rf && rf[0] === bk) p.bucket = rf[1];
+          /* A re-file into kids needs the product's own proof (#443
+             c.6635747308): the audit filed AE's «Cropped Baby Tee» there. */
+          if (rf && rf[0] === bk && !(KID_BUCKETS.has(rf[1]) && !kidProof(p.title))) p.bucket = rf[1];
           /* A clothing type on what is not clothing takes its own (#443 c.6585323562). */
           const storeType = p.type;
           p.type = trueType(p);
@@ -581,9 +592,74 @@ export function isWomensScent(p) {
   if (FRAGRANCE_BODY_CARE_RX.test(t) || /\blotions?\b|\bcreams?\b|\bwash\b/i.test(t)) return false;
   return TRUE_FRAGRANCE_RX.test(t) || SCENT_RX.test(t) || productClass(p) === "perfumes";
 }
+/* CATEGORY IS THE PRODUCT'S REAL TYPE (#443 c.6634907518, Danny's mom:
+   «CARTERAS shows PAÑALES»). A fashion department takes a store's whole
+   aisle (bucket) or a name's word; the store's own type then says what
+   the product really is: JuJuBe's PAÑALES clutches are diaper bags, a
+   surf shop's «Tablas de surf» bag is a board bag, Bentgo's lunch boxes
+   sat in Niños, Assouline's Chanel books in Diseñador. Such a product
+   leaves the fashion department (scripts/lib/type-family.js) -- unless
+   its own name names a thing that department sells (earrings typed
+   «Belleza» stay earrings). Baby goods go to Mama's Fashion, beauty to
+   Aria Beauty, where their type is at home; sunglasses a dive shop typed
+   «Pesca submarina» stay in Lentes de Sol as «Lentes de sol». A baby
+   store's catch-all type («RETAIL») is the store's family: baby. */
+const SKU_CATCHALL_RX = /^(?=[a-z_ ]{0,6}\d)[a-z0-9_ ]+$|^(?:general|retail|sample|wholesale|accessory|accessories|accesorios|gear|)$/i;
+const storeFamily = (r) => { try { return PT.classify({ name: "", type: "", retailer: r }); } catch { return ""; } };
+export function misfiledFamily(key, p) {
+  const f = foreignFamily(key, { storeType: p.storeType || p.type, type: typeKeyOf(p).label }, nameFamily(p));
+  if (f) return f;
+  if (FASHION_DEPT_EXTRA[key] && SKU_CATCHALL_RX.test(String(p.type || "").trim()) && storeFamily(p.retailer) === "bebe") return "bebe";
+  return "";
+}
+/* Where a family a fashion aisle carried is at home. */
+export const REROUTE = { bebe: BABY_DEPT, belleza: BEAUTY_DEPT };
+let rerouteMemo = null;
+function reroutedTo(all, key) {
+  if (!rerouteMemo || rerouteMemo.all !== all) {
+    const by = new Map(), seen = new Set();
+    for (const k of Object.keys(FASHION_DEPT_EXTRA)) {
+      const rule = resolveRule(DEPT_RULES[k], all);
+      for (const p of all) {
+        if (seen.has(p) || !belongsToDept(rule, p)) continue;
+        const to = REROUTE[misfiledFamily(k, p)];
+        if (!to) continue;
+        seen.add(p);
+        (by.get(to) || by.set(to, []).get(to)).push(p);
+      }
+    }
+    rerouteMemo = { all, by };
+  }
+  return rerouteMemo.by.get(key) || [];
+}
 export function deptItems(all, key) {
   const rule = resolveRule(DEPT_RULES[key], all);
   let list = all.filter((p) => belongsToDept(rule, p));
+  /* NIÑOS IS ONLY FOR KIDS (#443 c.6635747308): an adult's piece a
+     store's kids aisle carries («Juniors' Baby Tee», «Women's ... Baby
+     T-Shirt») leaves it (scripts/lib/kids-truth.js). */
+  if (key === "kids") list = list.filter((p) => !isAdultInKids(p));
+  if (FASHION_DEPT_EXTRA[key] || key === BEAUTY_DEPT) {
+    list = list.flatMap((p) => {
+      const f = misfiledFamily(key, p);
+      if (!f) {
+        /* Kept by its own name (earrings typed «Belleza», cufflinks typed
+           «Manta»): its type is what the name names, never the aisle's. */
+        const g = storeTypeFamily(typeKeyOf(p).label) || storeTypeFamily(p.type);
+        if (!g || deptSells(key, g)) return [p];
+        const nf = nameFamily(p);
+        const type = nf === "zapatos" ? footwearClass({ title: p.title, type: "" }, p.retailer) : FAMILY_TYPE[nf] || "";
+        return [{ ...p, storeType: p.storeType || p.type, type }];
+      }
+      if (key === "sunglasses" && f !== "juguetes" && f !== "fiesta") return [{ ...p, storeType: p.storeType || p.type, type: "Lentes de sol" }];
+      return [];
+    });
+  }
+  if (ONE_FAMILY_DEPTS[key]) list = list.map((p) => { const t = slipType(key, typeKeyOf(p).label, p.type); return t ? { ...p, storeType: p.storeType || p.type, type: t } : p; });
+  if (REROUTE.bebe === key || REROUTE.belleza === key) {
+    const have = new Set(list);
+    list = list.concat(reroutedTo(all, key).filter((p) => !have.has(p)));
+  }
   /* Perfumes: each bottle's door is the catalogue's own department
      (mujer / hombre / unisex / minis / sets / testers ...), carried as `a`. */
   /* ...and another store's bottle takes the door its own words or the
@@ -678,9 +754,31 @@ export const ALL_LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entrie
 /* u: who each product is for (#443 header): a shoe by footwear.js's
    rule, anything else by its own words, then its store when that store
    sells to one adult audience (offer-category.js). Never guessed. */
+/* AUDIENCE-TRUE (#443 c.6634907518, Danny's mom: «HOMBRE contains
+   ARETES»). Earrings, heels, dresses, skirts, bras and lingerie are hers
+   unless the product's own words say otherwise: a store's men's aisle
+   (SSENSE files Justine Clenquet's earrings under men) or a shoe rule's
+   «unisex» for a pump that names no wearer does not make one his. Such a
+   product is hers when it was «unisex», and nobody's (it leaves the
+   Hombre switch and column) when only the store's aisle said «men». */
+export const WOMENS_TYPE_RX = /\b(earrings?|aretes?|ear\s+(?:cuffs?|climbers?|crawlers?)|heels?|tacones|pumps?|dress(?:es)?|vestidos?|skirts?|faldas?|bras?|bralettes?|sost[eé]n(?:es)?|lencer[ií]a|lingerie)\b/i;
+export const HIS_WORDS_RX = /\b(men|mens|men's|man|male|hombres?|him|homme|uomo|caballeros?|unisex|boys?|guys?)\b/i;
+const NOT_A_DRESS_RX = /\bdress\s+(?:shirts?|pants|trousers|shoes?|socks?|belts?|boots?|watch(?:es)?)\b/i;
+export function audienceTrue(p, u) {
+  /* Kids only when the product proves it: an adult cut or an adult's
+     word is the adult's, else nobody's. */
+  if (u === "kids" && isAdultInKids(p)) {
+    const t = String(p.title || "");
+    return /\b(women['’]?s?|womens|woman|ladies|juniors?['’]?s?|maternity)(?![a-z])/i.test(t) || STYLE_TRAP_RX.test(t) ? "women" : /\b(men['’]?s?|mens)(?![a-z])/i.test(t) ? "men" : "";
+  }
+  if (u !== "men" && u !== "unisex") return u;
+  const what = typeKeyOf(p).label + " " + String(p.type || "") + " " + String(p.storeType || "");
+  if (!WOMENS_TYPE_RX.test(what) || HIS_WORDS_RX.test(String(p.title || "")) || NOT_A_DRESS_RX.test(String(p.title || ""))) return u;
+  return u === "unisex" ? "women" : "";
+}
 export function audienceTagger(all) {
   const storeAud = storeAudiences(all, (p) => { try { return productClass(p); } catch { return ""; } });
-  return (p) => isFootwear({ title: p.title, name: p.title, type: p.type }, p.retailer) ? shoeGender(p, p.bucket) : (garmentAudience(p, storeAud) || "");
+  return (p) => audienceTrue(p, isFootwear({ title: p.title, name: p.title, type: p.type }, p.retailer) ? shoeGender(p, p.bucket) : (garmentAudience(p, storeAud) || ""));
 }
 /* The header's part of head.json: the hero's stats chips, and the
    audience switch where the data says who the department is for

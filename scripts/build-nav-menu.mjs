@@ -62,6 +62,7 @@ import "../sale-rule.js";
 import { loadDept, typeKeyOf, inAudience, AUD, PERFUME_DOORS, filterList } from "../netlify/functions/_department-core.js";
 import { factKey, FACTS_FILE, U_CODES } from "../netlify/functions/_nav-filter-core.js";
 import { CAROUSELS } from "./build-home-category-pills.mjs";
+import { storeTypeFamily, deptSells } from "./lib/type-family.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const MENU_FILE = "assets/data/nav-menu.json";
@@ -82,8 +83,12 @@ export const BRANDS_DIR = "assets/data/nav-brands";
 const OWNED = {
   shoes: ["zapatos", "zapatillas", "sandalias", "tacones", "botas-y-botines", "mocasines-y-pantuflas", "chimpunes", "calzado"],
   purses: ["carteras", "bolso", "bolsos"],
-  sunglasses: ["lentes-de-sol"],
-  joyas_accesorios: ["joyas", "joyeria", "aretes", "collares-y-dijes", "anillos", "pulseras-y-tobilleras", "charms"],
+  /* «Lentes» is eyewear, never «Ropa» (it sat in Mujer's and Hombre's
+     Ropa columns), and a fashion department's «Accesorios» is the
+     accessories section's, not a garment (#443 c.6634907518). */
+  sunglasses: ["lentes-de-sol", "lentes"],
+  joyas_accesorios: ["joyas", "joyeria", "aretes", "collares-y-dijes", "anillos", "pulseras-y-tobilleras", "charms", "accesorios",
+    "billeteras", "correas", "guantes", "bufandas", "corbatas", "llaveros", "relojes", "accesorios-para-el-pelo", "broches-y-pines"],
   perfumes: ["fragancia", "perfumes"],
   lenceria: ["lenceria", "fajas-y-shapewear", "ropa-interior"],
 };
@@ -92,6 +97,8 @@ const OWNED_IN = new Set(["women", "men", "kids", "beauty"]);
 const ownerOf = (dept, tk, u) => {
   /* A fragrance is Aria Perfumes' wherever it is sold (Diseñador too). */
   if (tk === "fragancia" && dept !== "perfumes") return "perfumes";
+  /* His underwear in Tallas Plus is Ropa Interior Hombre's, never «Lencería». */
+  if (dept === "curvy" && u === "men" && (tk === "lenceria" || tk === "ropa-interior")) return "interior_hombre";
   if (!OWNED_IN.has(dept)) return "";
   const o = OWNER_OF.get(tk) || "";
   return o === "lenceria" && (u === "men" || dept === "men") ? "interior_hombre" : o;
@@ -154,14 +161,14 @@ export const TABS = [
   { k: "hombre", label: "Hombre", dept: "men", cols: [["types", "men", "Ropa"], ["types", "shoes", "Zapatos", "men"], ["types", "joyas_accesorios", "Accesorios", "men"], ["brands", "men"]], sections: ["interior_hombre", "shoes_men", "mens_grooming", "perfumes", "sunglasses", "purses", "joyas_accesorios", "luxury", "gym_rat"] },
   { k: "ninos", label: "Niños", dept: "kids", cols: [["types", "kids", "Ropa"], ["types", "shoes", "Zapatos", "kids"], ["brands", "kids"]], sections: ["toys", "moms", "party"] },
   { k: "zapatos", label: "Zapatos", dept: "shoes", cols: [["aud", "shoes"], ["brands", "shoes"]], sections: ["shoes_women", "shoes_men", "soccer"] },
-  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
+  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["types", "cabello", "Cabello"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
   { k: "accesorios", label: "Accesorios", dept: "joyas_accesorios", cols: [["aud", "joyas_accesorios"], ["types", "purses", "Carteras"], ["types", "sunglasses", "Lentes de Sol"], ["brands", "joyas_accesorios"]], sections: ["joyas_accesorios", "purses", "sunglasses"] },
   { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["latinos", "designers"], ["latinos", "types"], ["brands", "luxury"]], sections: ["luxury", "latinos", "perfumes", "joyas_accesorios"] },
   { k: "deportes", label: "Deportes", dept: "sporting_goods", cols: [["aud", "sporting_goods"], ["brands", "sporting_goods"]], sections: ["gym_rat", "soccer", "tennis", "combat_sports", "surf_skate", "spearfishing", "sporting_goods"] },
   { k: "tallas-plus", label: "Tallas Plus", dept: "curvy", cols: [["aud", "curvy"], ["brands", "curvy"]], sections: ["curvy"] },
   { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["ri", "mujer", "Lencería"], ["ri", "hombre", "Ropa Interior Hombre"], ["ri-brands", "mujer", "Marcas de lencería"]], sections: ["lenceria", "interior_hombre"] },
   { k: "hogar", label: "Hogar", dept: "home_goods", cols: [["types", "home_goods", "Casa Aria"], ["types", "home_decor", "Decoración"], ["brands", "home_goods"]], sections: ["home_goods", "home_decor", "books", "party", "candy_chocolate"] },
-  { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
+  { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["types", "reacondicionados", "Reacondicionados"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
   { k: "juguetes", label: "Juguetes", dept: "toys", cols: [["aud", "toys"], ["brands", "toys"]], sections: ["toys", "party", "moms"] },
   { k: "auto-motos", label: "Auto y Motos", page: "motos", cols: [["page", "aria_auto"], ["page", "motos"]], sections: ["auto_parts", "motos"] },
   { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "cats", "Ofertas por categoría"]], sections: [] },
@@ -231,6 +238,7 @@ export function buildMenu(root = ROOT) {
   const dept = (k) => { if (!cache.has(k)) { const d = loadDept(k, [root]); cache.set(k, d ? { ...d, list: d.list.filter((p) => p.image) } : null); } return cache.get(k); };
   const size = (k) => (dept(k) ? dept(k).list.length : 0);
   const notes = [];
+  const misfiled = [];
   const riCache = {};
   /* The products a department link renders (its own filter), as keys; null for any other page. */
   const setOf = (h) => {
@@ -263,6 +271,10 @@ export function buildMenu(root = ROOT) {
       if (u && !inAudience(p, u)) continue;
       const t = typeKeyOf(p);
       if (t.k === "otros") continue;
+      /* A type the department does not sell is never its leaf (the
+         classifier keeps such products out; this is the backstop). */
+      const fam = storeTypeFamily(t.label);
+      if (fam && !deptSells(k, fam)) { misfiled.push(`${k} → ${t.label}`); continue; }
       const own = ownerOf(k, t.k, u);
       if (own) { const o = away.get(t.k) || [t.label, own, 0]; o[2]++; away.set(t.k, o); continue; }
       const o = n.get(t.k) || [t.label, deptHref(k, { t: t.k, para: u }), 0];
@@ -271,7 +283,7 @@ export function buildMenu(root = ROOT) {
     if (moved) moved.push(...[...away.values()].sort((a, b) => b[2] - a[2]));
     /* The count is what the page's own type view finds (its filter also
        reads the garment kind a store's type leaves out). */
-    for (const [tk, o] of n) o[2] = filterList(d.list, { t: tk, u }).length;
+    for (const [tk, o] of n) o[2] = filterList(d.list, { t: tk, u, dept: k }).length;
     return [...n.values()].sort((a, b) => (b[2] - a[2]) || (a[0] < b[0] ? -1 : 1));
   };
   const brandLinks = (k, u) => {
@@ -330,7 +342,13 @@ export function buildMenu(root = ROOT) {
       } else if (kind === "types") {
         const u = c[3] || "";
         const mv = [];
-        const links = typeLinks(k, u, mv);
+        /* CABELLO IS NEVER EMPTY (#443 c.6634907518, Danny's mom): Belleza's
+           Cabello and Electrónica's Reacondicionados are columns of their
+           own department's real types (Keratina y alisados, Mascarillas ...).
+           Another department's column lists only what the tab sells: a
+           refurbished stroller («Coche») is not an Electrónica leaf. */
+        const tabFams = spec.dept && spec.dept !== k ? new Set(["", ...typeLinks(spec.dept, "").map((l) => storeTypeFamily(l[0]))]) : null;
+        const links = typeLinks(k, u, mv).filter((l) => !tabFams || tabFams.has(storeTypeFamily(l[0])));
         push(c[2] || reg[k].name, deptHref(k, { para: u }), links, links.reduce((s, l) => s + l[2], 0) || size(k), k + "-tipos" + (u ? "-" + u : ""), mv);
       } else if (kind === "brands") {
         push("Marcas", deptHref(k), brandLinks(k, c[2] || ""), size(k), k + "-marcas");
@@ -392,7 +410,7 @@ export function buildMenu(root = ROOT) {
   const placed = new Set(TABS.flatMap((t) => [t.dept, ...t.sections, ...t.cols.map((c) => c[1])]).filter(Boolean));
   const unplaced = Object.keys(reg).filter((k) => !reg[k].door && size(k) > 0 && !placed.has(k));
   const homeCarousels = CAROUSELS.map((c) => c.title);
-  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg, files };
+  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg, files, misfiled: [...new Set(misfiled)] };
 }
 
 /* ---------- the facts of every department product, for the other listings ----------
