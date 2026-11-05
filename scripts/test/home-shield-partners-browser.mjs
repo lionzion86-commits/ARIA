@@ -42,6 +42,15 @@ const store = await import(join(FN, "_hs-store.js"));
 const STORES = {};
 store.__setStoreFactory((n) => (STORES[n] ||= memStore()));
 store.__setMailer(async () => ({ sent: false, error: "test" }));
+/* Storm data from the labelled FIXTURES (this sandbox cannot reach NOAA). */
+const W = await import(join(FN, "_hs-storm.js"));
+const FX = join(ROOT, "scripts/test/fixtures/hs-storm");
+W.__setFetch(async (url) => {
+  const f = url.includes("alerts/active?area=FL") ? "nws-alerts-FL.json" : url.includes("today_filtered") ? "spc-today.csv" : url.includes("yesterday_filtered") ? "spc-yesterday.csv" : null;
+  if (!f) return { ok: false, status: 404 };
+  const body = readFileSync(join(FX, f), "utf8");
+  return { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
+});
 process.env.ADMIN_EMAILS = "danny@correo.test";
 const handlers = {};
 async function fn(name) { return (handlers[name] ||= (await import(join(FN, name + ".js"))).handler); }
@@ -112,6 +121,20 @@ try {
   await page.click("#ol");
   await page.waitForSelector(".radar.on");
   ok("desk opens; radar online");
+  await page.waitForSelector("#storm svg circle[fill='#E07A6E']");
+  assert.equal(await page.evaluate(() => document.querySelector("#app").firstElementChild.id), "storm", "storm panel is first");
+  const box = await page.locator("#storm").boundingBox();
+  assert.ok(box.y < 140, "storm panel at the top of the screen");
+  const stxt = await page.textContent("#storm");
+  assert.ok(/Hurricane Warning/.test(stxt) && /Moving northwest 12 mph/.test(stxt) && /NOAA \/ NWS \/ SPC/.test(stxt));
+  assert.ok(!/ORLANDO|VALDOSTA|CLEARWATER/.test(stxt), "reports outside the radius are not listed");
+  ok("storm panel renders first: alerts, movement, reports in radius, attribution");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot("0-storm");
+  await page.click('[data-lang="es"]');
+  assert.match(await page.textContent("#storm"), /Daños por tormenta de hoy/);
+  await shot("0b-storm-es");
+  await page.click('[data-lang="en"]');
   const c = await mkCase("33135");
   await page.waitForSelector(".case.ring", { timeout: 15000 });
   await page.waitForSelector(".toast");

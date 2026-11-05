@@ -9,6 +9,11 @@
   var API = "/.netlify/functions/";
   var I18N = {
     en: {
+      stormTitle: "Today's storm damage", stormSrc: "Data: NOAA / NWS / SPC", stormStale: "Showing the last good update", stormNone: "No active wind, tropical, hail or flood alerts in your state.",
+      stormNoReports: "No wind, hail or tornado reports within your radius today or yesterday.", alertsIn: "Active alerts", reportsNear: "Storm reports in your radius",
+      expires: "Until", movingToward: "Moving", mph: "mph", st_wind: "Wind", st_hail: "Hail", st_tornado: "Tornado", today: "Today", yesterday: "Yesterday", milesAway: "mi",
+      stormLoading: "Loading today's storm data...", stormDown: "Storm data is unavailable right now.",
+      dir_north: "north", dir_northeast: "northeast", dir_east: "east", dir_southeast: "southeast", dir_south: "south", dir_southwest: "southwest", dir_west: "west", dir_northwest: "northwest",
       partner: "PARTNER", foot: "Payments go to ARIA SHOP LLC. Partners never hold homeowner money. A credit is used only when a homeowner verifies your claim.",
       signin: "Sign in", enroll: "Open a desk", email: "Email", password: "Password", passwordNew: "Password (10+ characters)", name: "Full name", company: "Company",
       phone: "Phone", desk: "Your desk", licenseType: "License type", licenseNumber: "License number", licenseState: "License state", centerZip: "ZIP you work from",
@@ -41,6 +46,11 @@
       toastRing: "A lead is ringing your desk", err: "Something went wrong. Please try again.",
     },
     es: {
+      stormTitle: "Daños por tormenta de hoy", stormSrc: "Datos: NOAA / NWS / SPC", stormStale: "Mostrando la última actualización válida", stormNone: "No hay alertas activas de viento, tropicales, granizo o inundación en tu estado.",
+      stormNoReports: "No hay reportes de viento, granizo o tornado dentro de tu radio hoy ni ayer.", alertsIn: "Alertas activas", reportsNear: "Reportes de tormenta en tu radio",
+      expires: "Hasta", movingToward: "Se mueve hacia el", mph: "mph", st_wind: "Viento", st_hail: "Granizo", st_tornado: "Tornado", today: "Hoy", yesterday: "Ayer", milesAway: "mi",
+      stormLoading: "Cargando los datos de tormenta de hoy...", stormDown: "Los datos de tormenta no están disponibles en este momento.",
+      dir_north: "norte", dir_northeast: "noreste", dir_east: "este", dir_southeast: "sureste", dir_south: "sur", dir_southwest: "suroeste", dir_west: "oeste", dir_northwest: "noroeste",
       partner: "SOCIO", foot: "Los pagos van a ARIA SHOP LLC. Los socios nunca guardan dinero de los dueños de casa. Un crédito se usa solo cuando el dueño de casa verifica tu reclamo.",
       signin: "Entrar", enroll: "Abrir un escritorio", email: "Correo", password: "Contraseña", passwordNew: "Contraseña (10 caracteres o más)", name: "Nombre completo", company: "Empresa",
       phone: "Teléfono", desk: "Tu escritorio", licenseType: "Tipo de licencia", licenseNumber: "Número de licencia", licenseState: "Estado de la licencia", centerZip: "ZIP desde donde trabajas",
@@ -161,8 +171,37 @@
       S.st = r.body; S.view = "desk";
       if (fresh.length && !first) { ping(); toast(t("toastRing")); }
       if (!S.typing) render();
-      if (!S.timer) S.timer = setInterval(load, 8000);
+      if (!S.timer) { S.timer = setInterval(load, 8000); loadStorm(); setInterval(loadStorm, 5 * 60000); }
     });
+  }
+  function loadStorm() {
+    return api("hs-storm").then(function (r) { S.storm = r.ok ? r.body : { failed: true }; if (S.view === "desk" && !S.typing) render(); }).catch(function () { S.storm = { failed: true }; });
+  }
+  var COL = { wind: "#C9A24A", hail: "#E8E3D6", tornado: "#E07A6E" };
+  function dirText(d) { return String(d).split("-").map(function (x) { return t("dir_" + x); }).join("-"); }
+  function stormPanel() {
+    var w = S.storm;
+    if (!w) return '<section class="card storm"><p class="muted small">' + esc(t("stormLoading")) + "</p></section>";
+    if (w.failed) return '<section class="card storm"><p class="muted small">' + esc(t("stormDown")) + "</p></section>";
+    var c = w.center, R = w.radiusMiles || 50, pts = "";
+    if (c) (w.reports || []).forEach(function (r) {
+      var dx = (r.lon - c.lon) * 69.17 * Math.cos(c.lat * Math.PI / 180), dy = (r.lat - c.lat) * 69.17;
+      pts += '<circle cx="' + (100 + dx / R * 88).toFixed(1) + '" cy="' + (100 - dy / R * 88).toFixed(1) + '" r="' + (r.day === "today" ? 4.5 : 3) + '" fill="' + COL[r.type] + '" fill-opacity="' + (r.day === "today" ? 1 : 0.5) + '"><title>' + esc(t("st_" + r.type) + " " + r.location) + "</title></circle>";
+    });
+    var plot = c ? '<svg viewBox="0 0 200 200" width="132" height="132" role="img" aria-label="' + esc(t("reportsNear")) + '" style="flex:0 0 auto"><circle cx="100" cy="100" r="88" fill="#111113" stroke="#3A3A40"/><circle cx="100" cy="100" r="44" fill="none" stroke="#2A2A2E" stroke-dasharray="3 4"/><text x="100" y="26" fill="#8A857B" font-size="12" text-anchor="middle">N</text><circle cx="100" cy="100" r="3" fill="#F5F1E8"/>' + pts + "</svg>" : "";
+    var k = w.counts || {};
+    var counts = ["wind", "hail", "tornado"].map(function (x) { return '<span class="tag" style="border-color:' + COL[x] + ";color:" + COL[x] + '">' + esc(t("st_" + x)) + " " + (k[x] || 0) + "</span>"; }).join(" ");
+    var alerts = (w.alerts || []).length ? '<ul class="list">' + w.alerts.slice(0, 6).map(function (a) {
+      return '<li style="display:block"><b>' + esc(a.event) + '</b> <span class="tag ' + (a.severity === "Extreme" || a.severity === "Severe" ? "bad" : "") + '">' + esc(a.severity || "") + '</span><div class="tiny">' + esc(a.areas) + "</div>" +
+        (a.moving ? '<div class="small" style="color:var(--gold-2)">' + esc(t("movingToward")) + " " + esc(dirText(a.moving.toward)) + (a.moving.mph ? " " + esc(a.moving.mph) + " " + esc(t("mph")) : "") + "</div>" : "") +
+        (a.expires ? '<div class="tiny">' + esc(t("expires")) + " " + esc(new Date(a.expires).toLocaleString(S.lang === "es" ? "es-US" : "en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })) + "</div>" : "") + "</li>";
+    }).join("") + "</ul>" : '<p class="muted small">' + esc(t("stormNone")) + "</p>";
+    var reps = (w.reports || []).length ? '<ul class="list">' + w.reports.slice(0, 8).map(function (r) {
+      return '<li><span><span style="color:' + COL[r.type] + '">' + esc(t("st_" + r.type)) + "</span> " + esc(r.location) + (r.magnitude ? " &middot; " + esc(r.magnitude) : "") + '<div class="tiny">' + esc(r.day === "today" ? t("today") : t("yesterday")) + " " + esc(r.time.slice(0, 2) + ":" + r.time.slice(2)) + ' UTC</div></span><span class="tiny">' + esc(r.miles) + " " + esc(t("milesAway")) + "</span></li>";
+    }).join("") + "</ul>" : '<p class="muted small">' + esc(t("stormNoReports")) + "</p>";
+    return '<section class="card storm" id="storm"><p class="eyebrow">' + esc(t("stormTitle")) + " &middot; " + esc(w.state) + '</p><div style="display:flex;gap:14px;align-items:center">' + plot + '<div><div style="display:flex;flex-wrap:wrap;gap:6px">' + counts + '</div><p class="tiny" style="margin:8px 0 0">' + esc(t("reportsNear")) + " &middot; " + esc(R) + " " + esc(t("milesAway")) + "</p></div></div>" +
+      '<h3 style="margin-top:14px;font-size:16px">' + esc(t("alertsIn")) + "</h3>" + alerts + '<h3 style="margin-top:12px;font-size:16px">' + esc(t("reportsNear")) + "</h3>" + reps +
+      '<p class="tiny" style="margin-top:10px">' + esc(t("stormSrc")) + (w.stale ? " &middot; " + esc(t("stormStale")) + (w.fetchedAt ? " (" + esc(w.fetchedAt.slice(0, 16).replace("T", " ")) + " UTC)" : "") : "") + "</p></section>";
   }
   setInterval(function () { $$("[data-exp]").forEach(function (el) { var s = Math.max(0, Math.round((Date.parse(el.dataset.exp) - Date.now()) / 1000)); el.textContent = s + t("seconds"); var bar = el.parentNode.parentNode.querySelector(".bar i"); if (bar) bar.style.width = Math.min(100, s / ((S.st && S.st.settings.ringSeconds) || 90) * 100) + "%"; }); }, 1000);
 
@@ -212,8 +251,8 @@
       var has = docs.some(function (d) { return d.kind === k; });
       return '<label class="btn' + (has ? "" : " gold") + '" style="width:100%">' + esc(has ? t("uploaded") + ": " + t("up_" + k).replace(/^\S+\s/, "") : t("up_" + k)) + '<input type="file" accept="application/pdf,image/jpeg,image/png" data-up="' + k + '" hidden></label>';
     }).join("") + "</div>";
-    app.innerHTML =
-      '<div class="hello"><div><p class="eyebrow">' + esc(t("d_" + s.desk)) + (p.company ? " &middot; " + esc(p.company) : "") + "</p><h2>" + esc(p.name) + '</h2></div><button class="btn" id="out" style="min-height:40px">' + esc(t("signout")) + "</button></div>" +
+    app.innerHTML = stormPanel() +
+      '<div class="hello" style="margin-top:18px"><div><p class="eyebrow">' + esc(t("d_" + s.desk)) + (p.company ? " &middot; " + esc(p.company) : "") + "</p><h2>" + esc(p.name) + '</h2></div><button class="btn" id="out" style="min-height:40px">' + esc(t("signout")) + "</button></div>" +
       '<div class="card" style="margin-top:14px"><div class="pack"><span class="radar' + (on ? " on" : "") + '"><i></i><b style="font-size:16px;font-family:var(--sans)">' + esc(on ? t("online") : t("offline")) + '</b></span><button class="btn ' + (on ? "" : "gold") + '" id="ol">' + esc(on ? t("goOffline") : t("goOnline")) + "</button></div>" +
       '<div class="bal"><div><b>' + esc(b.credits) + "</b><span>" + esc(t("credits")) + "</span></div><div><b>" + esc(b.held) + "</b><span>" + esc(t("held")) + "</span></div><div><b>" + esc(b.available) + "</b><span>" + esc(t("available")) + "</span></div></div>" +
       (b.sampleAvailable ? '<p class="small" style="color:var(--gold-2);margin:10px 0 0">' + esc(t("sampleFree")) + "</p>" : "") +

@@ -18,7 +18,7 @@ let passed = 0;
 const failures = [];
 async function test(name, fn) {
   try { await fn(); passed++; console.log("    ok   " + name); }
-  catch (e) { failures.push(`${name}\n         ${String(e.stack).split("\n").slice(0, 3).join(" | ")}`); console.log("    FAIL " + name); }
+  catch (e) { failures.push(`${name}\n         ${String(e.message).slice(0, 600)} ${String(e.stack).split("\n").find((l) => l.includes("partners-tests")) || ""}`); console.log("    FAIL " + name); }
 }
 function memStore() {
   const m = new Map();
@@ -43,7 +43,7 @@ STORES.sessions = memStore();
 await STORES.sessions.setJSON("adm", { email: "danny@correo.test", createdAt: new Date().toISOString() });
 const ADMIN = "aria_session=adm";
 const H = {};
-for (const n of ["hs-pro-signup", "hs-partner", "hs-partner-admin", "hs-case-create", "hs-case-status", "hs-offer-respond", "hs-pro-feed", "hs-pro-case", "hs-pro-offer", "hs-stripe-webhook", "hs-admin-verify"]) H[n] = (await import(FN + n + ".js")).handler;
+for (const n of ["hs-storm", "hs-pro-signup", "hs-partner", "hs-partner-admin", "hs-case-create", "hs-case-status", "hs-offer-respond", "hs-pro-feed", "hs-pro-case", "hs-pro-offer", "hs-stripe-webhook", "hs-admin-verify"]) H[n] = (await import(FN + n + ".js")).handler;
 let ip = 0;
 async function call(n, { method = "POST", body, query, cookie, headers = {}, raw } = {}) {
   const r = await H[n]({ httpMethod: method, headers: { "x-nf-client-connection-ip": `10.9.${ip >> 8 & 255}.${ip++ & 255}`, cookie: cookie || "", ...headers }, queryStringParameters: query || {}, body: raw ?? (body ? JSON.stringify(body) : undefined) });
@@ -289,6 +289,47 @@ await test("admin view: partners with balances, ledger is append-only (no edit/d
   assert.ok(g.body.ledger.length >= 4);
   assert.equal((await admin({ action: "delete", id: g.body.ledger[0].id })).body.code, "bad_action");
   noPII(JSON.stringify(g.body.partners), "admin partners");
+});
+
+await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC reports by radius, 15-min cache, stale fallback", async () => {
+  const W = await import(FN + "_hs-storm.js");
+  const fx = (f) => readFileSync(new URL("./fixtures/hs-storm/" + f, import.meta.url), "utf8");
+  const seen = [];
+  let down = false;
+  W.__setFetch(async (url, o) => {
+    seen.push([url, o.headers["User-Agent"]]);
+    if (down) throw new Error("network unreachable");
+    const body = url.includes("alerts/active?area=FL") ? fx("nws-alerts-FL.json") : url.includes("today_filtered") ? fx("spc-today.csv") : url.includes("yesterday_filtered") ? fx("spc-yesterday.csv") : null;
+    return body == null ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
+  });
+  const r = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.state, "FL"); assert.equal(r.body.source, "NOAA / NWS / SPC"); assert.equal(r.body.stale, false);
+  assert.deepEqual(r.body.alerts.map((a) => a.event), ["Hurricane Warning", "Flash Flood Warning", "Tornado Watch"], "rip current filtered out");
+  assert.deepEqual(r.body.alerts[0].moving, { toward: "northwest", mph: 12 });
+  assert.deepEqual(r.body.alerts[2].moving, { toward: "northeast", mph: 30 });
+  assert.equal(r.body.alerts[1].moving, null);
+  assert.deepEqual(r.body.counts, { wind: 3, hail: 1, tornado: 1 });
+  const locs = r.body.reports.map((x) => x.location);
+  for (const far of ["2 S CLEARWATER", "4 E VALDOSTA", "ORLANDO"]) assert.ok(!locs.includes(far), "outside radius: " + far);
+  assert.ok(r.body.reports.every((x) => x.miles <= 50));
+  assert.equal(r.body.reports[0].day, "today"); assert.equal(r.body.reports.at(-1).location, "FORT LAUDERDALE", "yesterday last");
+  assert.equal(r.body.reports.find((x) => x.type === "hail").magnitude, "1.75 in");
+  assert.ok(seen.every(([, ua]) => ua === "AriaHomeShield (contact via site)"));
+  /* Cached for 15 minutes: no new upstream calls. */
+  const n = seen.length;
+  await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+  assert.equal(seen.length, n);
+  /* Upstream down after the TTL: last good copy, stale:true, its time. */
+  down = true;
+  const S = store.openStores({});
+  const st = await W.stormFor(S, { state: "FL", center: { lat: 25.77, lon: -80.21 }, radiusMiles: 50 }, Date.now() + 16 * 60000);
+  assert.equal(st.stale, true); assert.ok(st.fetchedAt); assert.deepEqual(st.counts, { wind: 3, hail: 1, tornado: 1 }); assert.ok(st.errors.length);
+  /* No good copy ever: empty, stale, honest error -- nothing invented. */
+  const none = await W.stormFor(S, { state: "GA", center: { lat: 33.75, lon: -84.39 }, radiusMiles: 50 }, Date.now() + 16 * 60000);
+  assert.deepEqual(none.alerts, []); assert.equal(none.stale, true); assert.ok(none.errors[0].includes("unreachable"));
+  assert.equal((await call("hs-storm", { method: "GET" })).status, 401);
+  W.__setFetch(null);
 });
 
 await test("EN/ES parity: every dashboard string exists in both languages", async () => {

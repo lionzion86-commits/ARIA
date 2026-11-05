@@ -27,7 +27,7 @@ import { sendMail } from "./_order-email.js";
 export const STORE_NAMES = {
   cases: "hs-cases", pros: "hs-pros", offers: "hs-offers", docs: "hs-docs", events: "hs-events",
   sessions: "hs-sessions", messages: "hs-messages", rate: "hs-rate",
-  settings: "hs-settings", ledger: "hs-ledger", teams: "hs-teams", // partner desks (_hs-partners.js)
+  settings: "hs-settings", ledger: "hs-ledger", teams: "hs-teams", storm: "hs-storm", // partner desks (_hs-partners.js)
   shopSessions: "sessions", // the shop's own login (admin gate, same as admin.html)
 };
 
