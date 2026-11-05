@@ -221,6 +221,20 @@ await check("the committed product records: every Shopify shoe store's shoe that
   const sts = (n) => [...shoes.values()].find((s) => s.retailer === "silviatcherassi" && s.name === n);
   assert.ok(sts("Mele Heels") && sts("Mele Heels").sized, "Silvia Tcherassi Mele Heels is «Tallas por confirmar» again");
 });
+await check("the app's product view takes the card's own listing among a title's records (its photo), so a colour shows its own run", async () => {
+  const { liftDeclarations } = await import("../lib/page-lift.mjs");
+  const bundle = /<script src="\/build\/(app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(read("index.html"))[1];
+  const { ownSizeRecord } = liftDeclarations(read("build/" + bundle), ["ownSizeRecord"]);
+  const cands = [
+    { retailer: "johannaortiz", image: "https://cdn.shopify.com/a/camel.jpg?v=1", sizes: ["37", "38"] },
+    { retailer: "johannaortiz", image: "https://cdn.shopify.com/a/black.jpg?v=2", sizes: ["36", "41"] },
+    { retailer: "farmrio", image: "https://cdn.shopify.com/a/black.jpg?v=2", sizes: ["5"] },
+  ];
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "https://cdn.shopify.com/a/black.jpg?v=9").sizes, ["36", "41"]);
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "https://img.test/other.jpg").sizes, ["37", "38"], "no photo match: the first, as before");
+  assert.deepEqual(ownSizeRecord(cands, "johannaortiz", "").sizes, ["37", "38"]);
+  assert.equal(ownSizeRecord(cands, "zumiez", "https://cdn.shopify.com/a/black.jpg"), undefined, "another store's record is never this one's");
+});
 const cat = (k) => Object.values(JSON.parse(read(k + "-catalog.json")).retailers[k].departments).flatMap((d) => d.items);
 await check("the committed SNIPES catalogue: the Air DT Max '96 sells its one in-stock size and shows the other 12 sold out (the store's own run)", () => {
   const items = cat("snipes");
