@@ -381,12 +381,12 @@
   var lastFocus = null;
   function openSheet() {
     if (!sheet) return;
-    if (sheet.hidden) { lastFocus = doc.activeElement; sheet.hidden = false; doc.body.style.overflow = "hidden"; }
+    if (sheet.hidden) { lastFocus = doc.activeElement; sheet.hidden = false; doc.body.style.overflow = "hidden"; doc.body.classList.add("hs-sheet-open"); }
   }
   function closeSheet() {
     convo.stop(); abortTurn();
     if (!sheet) return;
-    sheet.hidden = true; doc.body.style.overflow = "";
+    sheet.hidden = true; doc.body.style.overflow = ""; doc.body.classList.remove("hs-sheet-open");
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
 

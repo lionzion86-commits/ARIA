@@ -925,6 +925,87 @@ if (pw) {
     await c.close();
   });
 
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: Aria floats bottom-right at the top, middle and bottom of the page; never over body text`, async () => {
+      reset();
+      const c = await ctx(390); const page = await c.newPage();
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      const f = page.locator("#hsFloat");
+      assert.equal(await f.evaluate((e) => getComputedStyle(e).position), "fixed");
+      assert.equal(await f.getAttribute("aria-label"), I18N[L]["star.aria"]);
+      const H = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+      for (const [name, y] of [["top", 0], ["mid", Math.round(H / 2)], ["bottom", H]]) {
+        await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), y);
+        await page.waitForTimeout(80);
+        const b = await f.boundingBox();
+        assert.ok(b && b.width >= 84 && b.width <= 96, "size " + JSON.stringify(b));
+        assert.ok(b.x + b.width <= 390 && b.x + b.width >= 360 && b.y + b.height <= 844 && b.y + b.height >= 800, name + " " + JSON.stringify(b));
+        assert.ok(await f.isVisible(), name);
+        if (L === "en") await shot(page, "float-" + name);
+      }
+      // At the bottom, no text sits under her.
+      const hits = await page.evaluate(() => {
+        const r = document.getElementById("hsFloat").getBoundingClientRect();
+        const out = [];
+        for (const el of document.querySelectorAll("main p, main h1, main h2, main h3, main li, main summary, main a, main button, footer p, footer a")) {
+          if (el.closest("#hsFloat")) continue;
+          const q = el.getBoundingClientRect();
+          if (!q.width || !q.height) continue;
+          if (q.right > r.left + 4 && q.left < r.right && q.bottom > r.top + 4 && q.top < r.bottom) out.push(el.textContent.trim().slice(0, 40));
+        }
+        return out;
+      });
+      assert.deepEqual(hits, [], "text under the launcher at the bottom");
+      await c.close();
+    });
+  }
+
+  await check("browser 390: her frames are cut out (transparent corners, solid body), used by the launcher and the chat", async () => {
+    reset();
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    const r = await page.evaluate(async () => {
+      const out = {};
+      for (const f of ["open", "blink", "talk1", "talk2"]) {
+        const img = new Image(); img.src = "/home-shield/img/aria-" + f + "-cut-400.webp"; await img.decode();
+        const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+        const x = cv.getContext("2d"); x.drawImage(img, 0, 0);
+        const a = (px, py) => x.getImageData(px, py, 1, 1).data[3];
+        out[f] = { w: img.width, corners: [a(0, 0), a(img.width - 1, 0), a(0, img.height - 1), a(img.width - 1, img.height - 1)], centre: a(img.width / 2, img.height / 2) };
+      }
+      out.uses = [...document.querySelectorAll("#hsFloat img, .hs-star-mini img")].every((i) => /-cut-400\.webp$/.test(i.src || i.dataset.src));
+      return out;
+    });
+    for (const f of ["open", "blink", "talk1", "talk2"]) { assert.deepEqual(r[f].corners, [0, 0, 0, 0], f); assert.equal(r[f].centre, 255, f); assert.equal(r[f].w, 400); }
+    assert.ok(r.uses, "launcher and chat use the cut frames");
+    await c.close();
+  });
+
+  for (const L of ["en", "es"]) {
+    await check(`browser 390 ${L}: tap the floating Aria mid-page -> the voice loop starts; she stays at the top of the open chat (not a close icon)`, async () => {
+      reset();
+      stub["hs-stt"] = () => ({ json: { text: L === "es" ? "Se me filtra el techo." : "My roof is leaking." } });
+      stub["hs-chat"] = () => ({ json: { reply: L === "es" ? "Lo siento. ¿Está entrando agua ahora?" : "I'm sorry. Is water coming in right now?", caseDraft: { issue: "roof" }, ready: false } });
+      const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight / 2, behavior: "instant" }));
+      await page.click("#hsFloat");
+      await page.waitForSelector("#hsSheet:not([hidden])");
+      await page.waitForFunction(() => document.querySelectorAll("#hsMsgs .hs-msg-a").length >= 2, null, { timeout: 15000 });
+      assert.equal(log.find((x) => x.fn === "hs-stt").body.lang, L);
+      assert.ok(ttsTexts()[0].startsWith(L === "es" ? "Hola, soy Aria" : "Hey, I'm Aria"));
+      const mini = page.locator(".hs-star-mini");
+      assert.ok(await mini.isVisible(), "Aria at the top of the chat");
+      assert.equal(await mini.locator("img.f-open").getAttribute("src"), "/home-shield/img/aria-open-cut-400.webp");
+      assert.ok(await page.locator("#hsClose").isVisible(), "a separate close button");
+      assert.notEqual(await mini.getAttribute("id"), "hsClose");
+      if (L === "en") await shot(page, "float-chat");
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+
   await check("browser 390: Listen on the intro speaks the intro through hs-tts; again in Español; one voice at a time", async () => {
     reset();
     const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
