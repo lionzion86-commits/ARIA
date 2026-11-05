@@ -12,10 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/home-shield/hs.css">
 <script>
-/* Language before first paint: ?lang= wins, then the remembered choice. */
-(function(){var l="en";try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{var s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s}}catch(e){}
-var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},1500)}})();
+/* Language before first paint: ?lang= wins, then the remembered choice,
+   then the browser's language (Spanish browsers open in Spanish). */
+(function(){var l="en",s=null;try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s;else if(/^es\b/i.test(navigator.language||""))l="es"}}catch(e){if(/^es\b/i.test(navigator.language||""))l="es"}
+var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},2500)}})();
 </script>
+<script src="/home-shield/hs-i18n.js"></script>
 <script defer src="/home-shield/hs.js"></script>
 <script type="application/json" id="hs-assets">/*HS-ASSETS:START*/{"photos":{},"badge":null}/*HS-ASSETS:END*/</script>
 </head>
@@ -36,9 +38,10 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
 <main id="main">
 <section class="hs-hero" id="hero">
   <div class="hs-hero-copy">
-    <p class="hs-eyebrow" data-i18n="hero.eyebrow">Free for Florida homeowners</p>
-    <h1 class="hs-h1" data-i18n="hero.title">Your home. Your claim. Someone finally on your side.</h1>
-    <p class="hs-lede" data-i18n="hero.sub">Aria knows insurance the way a lawyer, a public adjuster, a roofer and an agent do, all at once. She explains your options in plain words, builds your case, and connects you only with the licensed local pros you choose.</p>
+    <p class="hs-eyebrow" data-i18n="hero.eyebrow">English · Español — free for Florida homeowners</p>
+    <h1 class="hs-h1" data-i18n="hero.title">Your policy, your claim, your denial letter — explained in your language.</h1>
+    <p class="hs-promise" data-i18n="hero.promise">Every line, until you understand what you actually have.</p>
+    <p class="hs-lede" data-i18n="hero.sub">Someone finally on your side. Aria knows insurance the way a lawyer, a public adjuster, a roofer and an agent do, all at once. She reads it all, tells you where you stand, and connects you only with the licensed local pros you choose.</p>
     <div class="hs-ctas">
       <button class="hs-btn hs-btn-gold" type="button" data-action="talk" data-i18n="hero.cta">Talk to Aria — free</button>
       <button class="hs-btn hs-btn-ghost" type="button" data-action="upload" data-i18n="hero.cta2">Upload my policy for a free review</button>
@@ -68,6 +71,29 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
       <button class="hs-listen" type="button" data-listen="#intro"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
   </blockquote>
   <figure class="hs-photo hs-photo-hero" data-photo="hero" hidden></figure>
+</section>
+
+<section class="hs-sec hs-barrier" id="barrier" aria-labelledby="barrierTitle">
+  <div class="hs-barrier-grid">
+    <div class="hs-barrier-col" lang="es" data-say-lang="es">
+      <p class="hs-eyebrow" data-i18n="barrier.eyebrow" data-i18n-lang="es">La barrera del idioma</p>
+      <h2 id="barrierTitle" class="hs-h2 hs-say" data-i18n="barrier.title" data-i18n-lang="es">En tu idioma. Cada línea.</h2>
+      <p class="hs-say" data-i18n="barrier.p1" data-i18n-lang="es">Tomar una decisión tan importante ya es difícil. Tomarla en un segundo idioma, con una póliza de 60 páginas llena de trampas, es más difícil todavía.</p>
+      <p class="hs-say" data-i18n="barrier.p2" data-i18n-lang="es">Mereces entenderlo todo: en qué te metiste, qué cobertura tienes de verdad y cuál no. Si el idioma es la barrera, para eso exactamente está Aria.</p>
+      <p class="hs-say" data-i18n="barrier.p3" data-i18n-lang="es">Ella lee tu póliza completa y te la explica en tu idioma, línea por línea, hasta que la entiendas. Sin prisa. Sin letra chiquita sin explicar.</p>
+    </div>
+    <div class="hs-barrier-col hs-barrier-mirror" lang="en" data-say-lang="en">
+      <p class="hs-eyebrow" data-i18n="barrier.eyebrow" data-i18n-lang="en">The language barrier</p>
+      <h2 class="hs-h2 hs-say" data-i18n="barrier.title" data-i18n-lang="en">In your language. Every line.</h2>
+      <p class="hs-say" data-i18n="barrier.p1" data-i18n-lang="en">Making a decision this important is hard enough. Making it in a second language, with a 60-page policy full of traps, is harder.</p>
+      <p class="hs-say" data-i18n="barrier.p2" data-i18n-lang="en">You deserve to understand all of it: what you signed up for, what coverage you actually have, and what you don't. If language is the barrier, that is exactly what Aria is here for.</p>
+      <p class="hs-say" data-i18n="barrier.p3" data-i18n-lang="en">She reads your whole policy and explains it in your language, every line, until you understand it. No rush. No fine print left unexplained.</p>
+    </div>
+  </div>
+  <div class="hs-door-actions hs-barrier-actions">
+    <button class="hs-btn hs-btn-gold" type="button" data-action="upload" data-i18n="barrier.cta">Upload my policy</button>
+    <button class="hs-listen" type="button" data-listen="#barrier"><span class="hs-listen-ic" aria-hidden="true"></span><span data-i18n="listen">Listen</span></button>
+  </div>
 </section>
 
 <section class="hs-sec" id="doors" aria-labelledby="doorsTitle">
@@ -252,5 +278,6 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
 </div>
 <input type="file" id="hsFile" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif" hidden>
 <audio id="hsAudio" preload="none"></audio>
+<script>if(document.documentElement.lang==="es"&&window.HS_APPLY_LANG)HS_APPLY_LANG("es");</script>
 </body>
 </html>

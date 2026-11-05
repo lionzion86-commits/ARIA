@@ -13,9 +13,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/home-shield/hs.css">
 <script>
-(function(){var l="en";try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{var s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s}}catch(e){}
-var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},1500)}})();
+/* Language before first paint: ?lang= wins, then the remembered choice,
+   then the browser's language (Spanish browsers open in Spanish). */
+(function(){var l="en",s=null;try{var q=new URLSearchParams(location.search).get("lang");if(q==="es"||q==="en"){l=q}else{s=localStorage.getItem("hs_lang");if(s==="es"||s==="en")l=s;else if(/^es\b/i.test(navigator.language||""))l="es"}}catch(e){if(/^es\b/i.test(navigator.language||""))l="es"}
+var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";setTimeout(function(){d.classList.remove("hs-pending")},2500)}})();
 </script>
+<script src="/home-shield/hs-i18n.js"></script>
 <script defer src="/home-shield/hs.js"></script>
 </head>
 <body data-page="caso">
@@ -42,5 +45,6 @@ var d=document.documentElement;d.lang=l;if(l==="es"){d.className+=" hs-pending";
   <p class="hs-disclaimer" data-i18n="footer.disclaimer">Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.</p>
   <p data-i18n="footer.emergency">If anyone is in danger, call 911.</p>
 </footer>
+<script>if(document.documentElement.lang==="es"&&window.HS_APPLY_LANG)HS_APPLY_LANG("es");</script>
 </body>
 </html>
