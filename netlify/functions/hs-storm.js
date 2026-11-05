@@ -9,6 +9,7 @@ import { endpoint, reply, fail, normZip } from "./_hs-store.js";
 import { proFromEvent, adminFromEvent } from "./_hs-auth.js";
 import { zip3Info } from "./_hs-zip3.js";
 import { stormFor, stormAt, geocode } from "./_hs-storm.js";
+import { coverageOf } from "./_hs-profiles.js";
 import { str, rateOk } from "./_hs-store.js";
 
 export default endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) => {
@@ -17,7 +18,13 @@ export default endpoint({ methods: ["GET"] }, async ({ event, S, query, now }) =
   if (query.state && (await adminFromEvent(event, S))) {
     state = String(query.state).toUpperCase().slice(0, 2); zip = normZip(query.zip); radius = Math.min(250, Math.max(5, Number(query.radius) || 50));
   } else if (pro && pro.verified) {
-    state = pro.licenseState; zip = (pro.serviceArea && pro.serviceArea.centerZip) || null; radius = (pro.serviceArea && pro.serviceArea.radiusMiles) || 50;
+    /* Coverage (#683): license states + the pro's own range. A radius desk centres on its base ZIP
+       (radius capped at 250 for the storm panel); a statewide desk falls back to its old service-area
+       centre if it has one, else the whole state, labelled so. */
+    const cov = coverageOf(pro);
+    state = cov.licenseStates[0] || pro.licenseState;
+    if (cov.range.mode === "radius") { zip = cov.range.baseZip || null; radius = Math.min(250, Number(cov.range.miles) || 50); }
+    else { zip = (pro.serviceArea && pro.serviceArea.centerZip) || null; radius = Math.min(250, (pro.serviceArea && pro.serviceArea.radiusMiles) || 50); }
   } else return fail(pro ? 403 : 401, pro ? "pending_verification" : "signin", "Sign in with a verified desk");
   if (!/^[A-Z]{2}$/.test(state || "")) return fail(400, "bad_state", "No state");
   /* Search: a ZIP, city or address typed by the pro. */

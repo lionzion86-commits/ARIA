@@ -16,6 +16,7 @@
       dir_north: "north", dir_northeast: "northeast", dir_east: "east", dir_southeast: "southeast", dir_south: "south", dir_southwest: "southwest", dir_west: "west", dir_northwest: "northwest",
       stormSearchPh: "ZIP, city or street address", stormSearch: "Search", resultsFor: "Results for:", approxLoc: "approximate location", myArea: "My area",
       wholeState: "whole state (your area could not be located)", notFoundPlace: "We could not find that place. Try a ZIP or a full address.",
+      myProfile: "My profile", backToDesk: "Back to my desk",
       partner: "PARTNER", foot: "Payments go to ARIA SHOP LLC. Partners never hold homeowner money. A credit is used only when a homeowner verifies your claim.",
       signin: "Sign in", enroll: "Open a desk", email: "Email", password: "Password", passwordNew: "Password (10+ characters)", name: "Full name", company: "Company",
       phone: "Phone", desk: "Your desk", licenseType: "License type", licenseNumber: "License number", licenseState: "License state", centerZip: "ZIP you work from",
@@ -59,6 +60,7 @@
       dir_north: "norte", dir_northeast: "noreste", dir_east: "este", dir_southeast: "sureste", dir_south: "sur", dir_southwest: "suroeste", dir_west: "oeste", dir_northwest: "noroeste",
       stormSearchPh: "ZIP, ciudad o dirección", stormSearch: "Buscar", resultsFor: "Resultados para:", approxLoc: "ubicación aproximada", myArea: "Mi zona",
       wholeState: "estado completo (no se pudo ubicar tu zona)", notFoundPlace: "No encontramos ese lugar. Prueba un ZIP o una dirección completa.",
+      myProfile: "Mi perfil", backToDesk: "Volver a mi escritorio",
       partner: "SOCIO", foot: "Los pagos van a ARIA SHOP LLC. Los socios nunca guardan dinero de los dueños de casa. Un crédito se usa solo cuando el dueño de casa verifica tu reclamo.",
       signin: "Entrar", enroll: "Abrir un escritorio", email: "Correo", password: "Contraseña", passwordNew: "Contraseña (10 caracteres o más)", name: "Nombre completo", company: "Empresa",
       phone: "Teléfono", desk: "Tu escritorio", licenseType: "Tipo de licencia", licenseNumber: "Número de licencia", licenseState: "Estado de la licencia", centerZip: "ZIP desde donde trabajas",
@@ -145,6 +147,12 @@
     if (S.view === "loading") { app.innerHTML = '<p class="muted">' + esc(t("working")) + "</p>"; return; }
     if (S.view === "auth") return renderAuth(app);
     if (S.view === "pending") { app.innerHTML = '<div class="card"><h2>' + esc(t("pending")) + '</h2><div class="actions"><button class="btn gold" id="re">' + esc(t("recheck")) + '</button><button class="btn" id="out">' + esc(t("signout")) + "</button></div></div>"; $("#re").onclick = load; $("#out").onclick = signOut; return; }
+    if (S.showProfile) {
+      app.innerHTML = '<div class="actions" style="margin:0 0 12px"><button class="btn" id="backDesk">' + esc(t("backToDesk")) + '</button></div><div id="peMount"></div>';
+      $("#backDesk").onclick = function () { S.showProfile = false; render(); };
+      if (window.HSProfileEditor) window.HSProfileEditor.mount($("#peMount"), S.lang);
+      return;
+    }
     renderDesk(app);
   }
   function input(n, label, type, extra) { return '<label class="f"><span>' + esc(label) + '</span><input class="in" name="' + n + '" type="' + (type || "text") + '"' + (extra || "") + "></label>"; }
@@ -183,7 +191,7 @@
       var first = !S.st;
       S.st = r.body; S.view = "desk";
       if (fresh.length && !first) { ping(); toast(t("toastRing")); }
-      if (!S.typing) render();
+      if (!S.typing && !S.showProfile) render();
       if (!S.timer) { S.timer = setInterval(load, 8000); loadStorm(); setInterval(loadStorm, 5 * 60000); }
     });
   }
@@ -278,7 +286,7 @@
       return '<label class="btn' + (has ? "" : " gold") + '" style="width:100%">' + esc(has ? t("uploaded") + ": " + t("up_" + k).replace(/^\S+\s/, "") : t("up_" + k)) + '<input type="file" accept="application/pdf,image/jpeg,image/png" data-up="' + k + '" hidden></label>';
     }).join("") + "</div>";
     app.innerHTML = stormPanel() +
-      '<div class="hello" style="margin-top:18px"><div><p class="eyebrow">' + esc(t("d_" + s.desk)) + (p.company ? " &middot; " + esc(p.company) : "") + "</p><h2>" + esc(p.name) + '</h2></div><button class="btn" id="out" style="min-height:40px">' + esc(t("signout")) + "</button></div>" +
+      '<div class="hello" style="margin-top:18px"><div><p class="eyebrow">' + esc(t("d_" + s.desk)) + (p.company ? " &middot; " + esc(p.company) : "") + "</p><h2>" + esc(p.name) + '</h2></div><div class="actions" style="margin-top:0"><button class="btn gold" id="myProfile" style="min-height:40px">' + esc(t("myProfile")) + '</button><button class="btn" id="out" style="min-height:40px">' + esc(t("signout")) + "</button></div></div>" +
       '<div class="card" style="margin-top:14px"><div class="pack"><span class="radar' + (on ? " on" : "") + '"><i></i><b style="font-size:16px;font-family:var(--sans)">' + esc(on ? t("online") : t("offline")) + '</b></span><button class="btn ' + (on ? "" : "gold") + '" id="ol">' + esc(on ? t("goOffline") : t("goOnline")) + "</button></div>" +
       '<div class="bal"><div><b>' + esc(b.credits) + "</b><span>" + esc(t("credits")) + "</span></div><div><b>" + esc(b.held) + "</b><span>" + esc(t("held")) + "</span></div><div><b>" + esc(b.available) + "</b><span>" + esc(t("available")) + "</span></div></div>" +
       (b.sampleAvailable ? '<p class="small" style="color:var(--gold-2);margin:10px 0 0">' + esc(t("sampleFree")) + "</p>" : "") +
@@ -299,6 +307,7 @@
     if (sf) sf.onsubmit = function (e) { e.preventDefault(); S.typing = false; S.stormQ = sf.q.value.trim(); S.storm = null; render(); loadStorm(); };
     var mine = $("#stormMine");
     if (mine) mine.onclick = function () { S.stormQ = ""; S.storm = null; render(); loadStorm(); };
+    var mp = $("#myProfile"); if (mp) mp.onclick = function () { S.showProfile = true; render(); window.scrollTo(0, 0); };
     $("#ol").onclick = function () { act({ action: "setonline", online: !S.st.pro.online }).then(load); };
     $$("[data-answer]", app).forEach(function (b) { b.onclick = function () { act({ action: S.st.kind === "packet" ? "claimpacket" : "answerlead", caseId: b.dataset.answer }).then(load); }; });
     $$("[data-pass]", app).forEach(function (b) { b.onclick = function () { act({ action: S.st.kind === "packet" ? "passpacket" : "passlead", caseId: b.dataset.pass }).then(load); }; });

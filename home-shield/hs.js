@@ -490,6 +490,8 @@
       chat.messages.push({ role: "assistant", content: reply });
       if (final && final.caseDraft) chat.draft = mergeDraft(chat.draft, final.caseDraft);
       if (final && final.ready && !chat.caseId) showCaseCard("case");
+      else if (final && final.ready && chat.caseState === "draft" && chat.cardMode !== "case") showCaseCard("case"); // a draft never meets a pro: contact + consent first
+      else if (final && final.ready && chat.caseState === "open") showOptions();
       else if (chat.cardMode === "case" && !chat.edited) showCaseCard("case");
       return q.done;
     }).then(function (r) {
@@ -889,6 +891,7 @@
         store("hs_case", chat.link);
         showMyCase();
         renderSent();
+        showOptions();
       })
       .catch(function (e) {
         btn.disabled = false; btn.textContent = t(mode === "file" ? "case.sendFile" : "case.send");
@@ -914,6 +917,36 @@
     else msgs.appendChild(done);
     cardEl = null; chat.cardMode = "sent";
     scrollDown();
+  }
+
+  /* «Your options» inside the chat (#683): the same carousel as caso.html, loaded only when the case
+     is OPEN (contact + consent given). A draft case never reaches this: it gets the contact card first. */
+  var prosLib = null;
+  function loadPros() {
+    if (window.HSPros && window.HSPros.mountOptions) return Promise.resolve(window.HSPros);
+    if (prosLib) return prosLib;
+    prosLib = new Promise(function (res, rej) {
+      var sc = doc.createElement("script"); sc.src = "/home-shield/hs-pros.js"; sc.defer = true;
+      sc.onload = function () { res(window.HSPros); }; sc.onerror = function () { prosLib = null; rej(new Error("load")); };
+      doc.head.appendChild(sc);
+    });
+    return prosLib;
+  }
+  function showOptions() {
+    if (chat.caseState !== "open" || !chat.caseId || !chat.token || chat.optionsShown || !msgs) return;
+    chat.optionsShown = true;
+    var box = h("section", { class: "hs-card hs-options", id: "hsOptions" });
+    loadPros().then(function (P) {
+      msgs.appendChild(box);
+      return P.mountOptions(box, chat.caseId, chat.token, { inChat: true, onPicked: function () { scrollDown(); } }).then(function (r) {
+        if (!r.shown) { box.remove(); chat.optionsShown = false; return; }
+        var line = P.t(r.pros ? "chatLine" : "chatEmpty");
+        addMsg("assistant", line);
+        msgs.appendChild(box);
+        scrollDown();
+        sayReply(line);
+      });
+    }).catch(function () { chat.optionsShown = false; });
   }
 
   function showMyCase() {

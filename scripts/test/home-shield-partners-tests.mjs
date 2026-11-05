@@ -354,6 +354,29 @@ await test("storm data (FIXTURES): NWS alerts filtered to damage events, SPC rep
   W.__setFetch(null);
 });
 
+await test("storm panel follows #683 coverage: a radius desk centres on its base ZIP even with no serviceArea", async () => {
+  const W = await import(FN + "_hs-storm.js");
+  W.__setFetch(async (url) => { const body = stormFixture(url); return body == null ? { ok: false, status: 404 } : { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body }; });
+  const key = R.a.id;
+  const before = STORES["hs-pros"].m.get(key);
+  const pro = JSON.parse(before);
+  delete pro.serviceArea; delete pro.centerGeo;
+  pro.licenseStates = ["FL"]; pro.range = { mode: "radius", baseZip: "33130", miles: 50 };
+  STORES["hs-pros"].m.set(key, JSON.stringify(pro));
+  try {
+    const r = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.scope, "area", "not the whole-state fallback");
+    assert.equal(r.body.center && r.body.center.zip, "33130");
+    assert.ok(!r.body.alerts.some((a) => a.event === "Tornado Watch"), "Miami desk still sees no Tampa watch");
+    /* Statewide desk with no old centre: the whole state, labelled. */
+    pro.range = { mode: "statewide" }; delete pro.centerGeo;
+    STORES["hs-pros"].m.set(key, JSON.stringify(pro));
+    const s2 = await call("hs-storm", { method: "GET", cookie: R.a.cookie });
+    assert.equal(s2.status, 200); assert.equal(s2.body.scope, "state"); assert.equal(s2.body.state, "FL");
+  } finally { STORES["hs-pros"].m.set(key, before); W.__setFetch(null); }
+});
+
 await test("storm search (FIXTURES): address, ZIP and city geocode; point alerts; state fallback labelled", async () => {
   const W = await import(FN + "_hs-storm.js");
   W.__setFetch(async (url) => { const b = stormFixture(url); return b == null ? { ok: false, status: 503 } : { ok: true, status: 200, json: async () => JSON.parse(b), text: async () => b }; });
