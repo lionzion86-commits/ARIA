@@ -43,6 +43,10 @@ import { loadItems as loadBrandItems, filterByBrand, brandKeyOf } from "../../ne
 import { navFilter, normSize, readFilters, answerNav } from "../../netlify/functions/_nav-filter-core.js";
 import { loadDept, filterList, answer as deptAnswer } from "../../netlify/functions/_department-core.js";
 import { SHOE_CLASSES, isGarmentTail } from "../lib/footwear.js";
+import { storeTypeFamily, foreignFamily, slipType, FASHION_DEPT_EXTRA } from "../lib/type-family.js";
+import { misfiledFamily, audienceTrue, trueType, nameFamily } from "../build-department-slices.mjs";
+import { typeKeyOf } from "../../netlify/functions/_department-core.js";
+import { isAdultInKids, kidProof } from "../lib/kids-truth.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.chdir(ROOT);
@@ -117,6 +121,116 @@ await check("no dead ends: a tab without columns is a plain link (no sheet); no 
   const js = read("assets/js/nav-menu.js");
   assert.ok(!/para ver todo/.test(js), "nav-menu.js still paints the placeholder sheet");
   assert.match(js, /data-nm-direct/);
+});
+/* ---------- CATEGORY TRUTH (#443 c.6634907518, Danny's mom on a Mac) ---------- */
+const ALL_COLS = () => B.menu.tabs.flatMap((t) => t.cols.map((c) => [t, c]));
+const deptOf = (href) => (/[?&]dept=([a-z_]+)/.exec(href || "") || [])[1] || "";
+const fullList = (c) => (c.more ? JSON.parse(read(c.more.slice(1))) : c.links);
+await check("CARTERAS shows no PAÑALES: JuJuBe's PAÑALES bags are Mama's Fashion's, no baby, sport or tech type is a Carteras leaf", () => {
+  const acc = B.menu.tabs.find((t) => t.k === "accesorios");
+  const col = acc.cols.find((c) => c.h === "Carteras");
+  assert.ok(col, "Accesorios has no Carteras column");
+  for (const l of fullList(col)) assert.equal(storeTypeFamily(l[0]), "", `Carteras lists «${l[0]}» (${storeTypeFamily(l[0])})`);
+  const purses = loadDept("purses", [ROOT]).list;
+  assert.equal(purses.filter((p) => /pa[ñn]al/i.test(p.type || "") || /pa[ñn]ales/.test(typeKeyOf(p).k)).length, 0, "a PAÑALES row is still in Carteras");
+  const moms = loadDept("moms", [ROOT]).list;
+  assert.ok(moms.some((p) => p.retailer === "jujube" && /tokidoki Be Quick Clutch/.test(p.title)), "JuJuBe's diaper clutch did not reach Mama's Fashion");
+});
+await check("the sweep: no fashion department (Mujer, Hombre, Niños, Tallas Plus, Ropa, Diseñador, Carteras, Joyas, Lentes de Sol) or Aria Beauty holds a product its store's type files elsewhere", () => {
+  const bad = [];
+  for (const k of [...Object.keys(FASHION_DEPT_EXTRA), "beauty"]) for (const p of loadDept(k, [ROOT]).list) { const f = misfiledFamily(k, p); if (f) bad.push(`${k}: ${p.title} (${p.type} → ${f})`); }
+  assert.deepEqual(bad.slice(0, 8), [], bad.length + " mis-filed");
+  assert.deepEqual(B.misfiled, [], "the generator's backstop dropped leaves: " + B.misfiled.join(", "));
+  for (const [t, c] of ALL_COLS()) for (const l of fullList(c)) {
+    const d = deptOf(l[1]);
+    if (!/[?&]t=/.test(l[1]) || !d) continue;
+    assert.equal(foreignFamily(d, { type: l[0] }), "", `${t.label} > ${c.h} > ${l[0]}: a ${storeTypeFamily(l[0])} type in ${d}`);
+  }
+});
+await check("the classifier's rules: a store's type names the family; a name that names a thing of its own wins; a container name does not", () => {
+  assert.equal(storeTypeFamily("PANALES"), "bebe");
+  assert.equal(storeTypeFamily("Baño del bebé"), "bebe");
+  assert.equal(storeTypeFamily("Tablas de surf"), "deportes");
+  assert.equal(storeTypeFamily("Trípode"), "electronica");
+  assert.equal(storeTypeFamily("Ropa de bebé"), "", "baby clothing is clothing");
+  assert.equal(storeTypeFamily("Accesorios"), "", "a catch-all names nothing");
+  assert.equal(foreignFamily("purses", { type: "PANALES" }, "carteras"), "bebe", "a diaper clutch is baby");
+  assert.equal(foreignFamily("joyas_accesorios", { type: "Belleza" }, "joyas"), "", "Hoop Earrings typed Belleza are earrings");
+  assert.equal(foreignFamily("joyas_accesorios", { type: "Manta" }, "accesorios"), "", "cufflinks typed «Manta» are cufflinks");
+  assert.equal(foreignFamily("joyas_accesorios", { type: "CHUPETES" }, "accesorios"), "bebe", "a pacifier clip is baby");
+  assert.equal(foreignFamily("luxury", { type: "COFFEE_TABLE_BOOK" }, ""), "libros", "a Chanel book is not Diseñador's");
+  assert.equal(foreignFamily("luxury", { type: "Fragancia" }, ""), "", "a designer fragrance is Diseñador's");
+  assert.equal(foreignFamily("sporting_goods", { type: "PANALES" }, ""), "", "only fashion departments and Aria Beauty are swept");
+  assert.equal(misfiledFamily("kids", { title: "BLW Readiness Bundle", type: "RETAIL", retailer: "ezpz" }), "bebe", "a baby store's catch-all is baby");
+  assert.equal(slipType("beauty", "Ropa", "APPAREL"), "Belleza", "Macy's APPAREL gift set in Aria Beauty");
+  assert.equal(slipType("toys", "Bolso", "Bolso"), "Juguetes", "a Funko blind bag in Juguetes");
+  assert.equal(slipType("toys", "Figura Coleccionable", "Figura coleccionable"), "");
+  assert.equal(trueType({ title: "Men's Apt. 9® Premier Flex Slim-Fit Dress Shirt", type: "Vestido", retailer: "kohls" }), "Camisas");
+  assert.equal(trueType({ title: "Floral Midi Dress", type: "Vestido", retailer: "kohls" }), "Vestido");
+  assert.equal(nameFamily({ title: "tokidoki Be Quick Clutch - Cosmic Desert" }), "carteras");
+});
+await check("HOMBRE is audience-true: no Aretes, Tacones, Vestidos or Lencería leaf for him unless every product behind it says it is his", () => {
+  const HERS = /^(Aretes|Tacones|Vestidos|Faldas|Lencería|Sostenes)$/;
+  for (const [t, c] of ALL_COLS()) for (const l of fullList(c)) {
+    if (!/[?&]para=men\b/.test(l[1]) || !HERS.test(l[0])) continue;
+    const q = Object.fromEntries(new URL(l[1], "http://x").searchParams);
+    const items = filterList(loadDept(q.dept, [ROOT]).list.filter((p) => p.image), { t: q.t, u: "men", dept: q.dept });
+    const notHis = items.filter((p) => !/\b(men|mens|men's|man|male|hombres?|him|homme|uomo|unisex|boys?)\b/i.test(p.title));
+    assert.deepEqual(notHis.slice(0, 5).map((p) => p.title), [], `${t.label} > ${c.h} > ${l[0]} (${l[2]}): ${notHis.length} products that do not say they are his`);
+  }
+  assert.equal(audienceTrue({ title: "Daria Earrings", type: "EARRINGS" }, "men"), "", "SSENSE's men's aisle does not make earrings his");
+  assert.equal(audienceTrue({ title: "Man. Marinetta Single Stud Earring", type: "EARRINGS" }, "men"), "men", "Vivienne Westwood's Man line is his");
+  assert.equal(audienceTrue({ title: "Nine West Fallah Pump", type: "Tacones" }, "unisex"), "women", "a pump that names nobody is hers");
+  assert.equal(audienceTrue({ title: "Men's Slim Dress Shirt", type: "Camisas" }, "men"), "men");
+  /* The page's filter: a sneaker is never earrings, a doll's dress is no Vestidos. */
+  const studs = { title: "Chuck Taylor All Star Bows And Studs", type: "SNEAKERS", image: "x", u: "unisex" };
+  assert.equal(filterList([studs], { t: "aretes" }).length, 0, "Converse «Studs» sneakers counted as Aretes");
+  const doll = { title: "Barbie Fashionistas Doll #246 in Pink Leopard Print Strapless Dress", type: "", image: "x" };
+  assert.equal(filterList([doll], { t: "vestidos", dept: "toys" }).length, 0, "a Barbie counted as Vestidos in Juguetes");
+  const shirt = { title: "Men's Regular Fit Performance Dress Shirt", type: "Camisas", image: "x" };
+  assert.equal(filterList([shirt], { t: "vestidos" }).length, 0, "a dress shirt counted as Vestidos");
+});
+await check("CABELLO is never empty: Belleza's Cabello column lists the Cabello department's real aisles; no column anywhere renders a heading with nothing under it", () => {
+  const bel = B.menu.tabs.find((t) => t.k === "belleza");
+  const cab = bel.cols.find((c) => c.h === "Cabello");
+  assert.ok(cab && cab.links.length >= 4, "Belleza > Cabello has " + (cab ? cab.links.length : 0) + " leaves");
+  const list = loadDept("cabello", [ROOT]).list.filter((p) => p.image);
+  for (const l of cab.links) assert.match(l[1], /^\/departamento\.html\?dept=cabello&t=/, l[0]);
+  assert.ok(cab.links.some((l) => /Keratina/i.test(l[0])), "no Keratina leaf");
+  assert.equal(cab.links.reduce((s, l) => s + l[2], 0) <= list.length, true);
+  for (const [t, c] of ALL_COLS()) assert.ok(c.links.length > 0, `${t.label} > ${c.h}: an empty column`);
+  const ele = B.menu.tabs.find((t) => t.k === "electronica").cols.find((c) => c.h === "Reacondicionados");
+  assert.ok(ele && ele.links.length >= 2 && !fullList(ele).some((l) => storeTypeFamily(l[0]) === "bebe"), "Reacondicionados is not a column of electronics types");
+});
+await check("NIÑOS IS ONLY FOR KIDS, both ways (#443 c.6635747308): no adult piece in the kids department or under any para=kids; every child's piece stays", () => {
+  /* One way: nothing in Niños is an adult's. */
+  const bad = [];
+  for (const f of readdirSync(join(ROOT, "assets/sections/departamento/_fn")).filter((f) => /^[a-z_]+\.json$/.test(f))) {
+    const k = f.slice(0, -5), d = loadDept(k, [ROOT]);
+    if (d) for (const p of d.list) if ((k === "kids" || p.u === "kids") && isAdultInKids(p)) bad.push(`${k}: ${p.retailer} ${p.title}`);
+  }
+  assert.deepEqual(bad.slice(0, 8), [], bad.length + " adult pieces in Niños");
+  const kids = loadDept("kids", [ROOT]).list, women = loadDept("women", [ROOT]).list;
+  for (const t of ["AE Wisconsin Badgers Graphic Cropped Baby Tee", "AE Oklahoma Sooners Graphic Cropped Baby Tee"]) {
+    assert.ok(!kids.some((p) => p.title === t), t + " is in Niños");
+    assert.ok(women.some((p) => p.title === t && p.u === "women"), t + " is not Mujer's");
+  }
+  /* The other way: a child's piece the product itself proves stays. */
+  assert.ok(kids.length > 1500, "Niños kept " + kids.length);
+  assert.ok(kids.some((p) => /^Girls 7-20 /.test(p.title)), "Kohl's «Girls 7-20» re-files left Niños");
+  for (const t of ["Girls 7-20 SO® Oversized Boxy Graphic Tee in Regular & Plus Size", "Toddler Boys' Jumping Beans® Graphic Tee", "Island Water Sports Script DFB Baby Onesie",
+    "Nike Junior Superfly 10 Club Turf Soccer Shoes", "JBL Junior 470NC, Wireless over-ear noise cancelling kids headphones", "Kids' Classic Clog", "Baby Girls 0-3 Months Bodysuit", "Mommy and Me Women's & Girls' Matching Dress"])
+    assert.equal(isAdultInKids({ title: t }), false, "a child's piece read as adult: " + t);
+  for (const t of ["AE Wisconsin Badgers Graphic Cropped Baby Tee", "Juniors' SO® Slim Fit Baby Tee", "Floral Sling Mini Dress - Baby Blue", "Lace Babydoll Chemise", "Taupe Baby Alpaca Cardigan Women's",
+    "Women's Bad Girl Wool Blend Moto Coat", "STRETCH LACE DIPPED THONG | BABY PINK Women's", "Men's Delray D Width Tennis Shoes Apollo Gold and Boysenberry"])
+    assert.equal(isAdultInKids({ title: t }), true, "an adult piece read as a child's: " + t);
+  /* A style word never proves a child; the audit's re-file needs proof. */
+  assert.equal(kidProof("Cotton Baby Tee"), false);
+  assert.equal(kidProof("Spice Girls Graphic Tee"), false);
+  assert.equal(kidProof("Girls 6-20 SO® Squareneck Tank Top"), true);
+  assert.equal(audienceTrue({ title: "AE Oklahoma Sooners Graphic Cropped Baby Tee", type: "TSHIRT" }, "kids"), "women");
+  assert.equal(audienceTrue({ title: "Men's Child's Play Chucky Graphic Tee", type: "TSHIRT" }, "kids"), "men");
+  assert.equal(audienceTrue({ title: "Toddler Boys' Graphic Tee", type: "TSHIRT" }, "kids"), "kids");
 });
 await check("Ofertas lists every category of ofertas.html's own Por categoría view (N >= 8), each on ofertas.html?vista=categoria&cat=<k> with its count > 0, then «Ver todas las ofertas»", () => {
   const t = B.menu.tabs.find((x) => x.k === "ofertas");
@@ -197,7 +311,7 @@ await check("every department leaf finds exactly its count with the department's
     if (u.pathname !== "/departamento.html") continue;
     const q = Object.fromEntries(u.searchParams);
     if (!q.b && !q.t && !q.a) continue;
-    const got = filterList(listOf(q.dept), { b: q.b || "", t: q.t || "", a: q.a || "", u: q.para || "" }).length;
+    const got = filterList(listOf(q.dept), { b: q.b || "", t: q.t || "", a: q.a || "", u: q.para || "", dept: q.dept }).length;
     assert.equal(got, count, `${where}: the menu says ${count}, the page finds ${got} (${href})`);
     n++;
   }

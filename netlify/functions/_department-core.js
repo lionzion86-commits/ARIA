@@ -1803,7 +1803,33 @@ export function ofType(list, rule) {
 
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
-export function filterList(list, { r = "", q = "", b = "", a = "", t = "", u = "" } = {}) {
+/* THE GARMENT-KIND FALLBACK READS A FASHION PRODUCT ONLY (#443
+   c.6634907518). A type view (t=) also finds the garment or gear kind a
+   store's type leaves out, read off the title -- in a clothing or a sport
+   department. In Juguetes, Hogar or Electrónica a title's word is a
+   theme: «Barbie Doll Wearing Dress» is no dress, a Pokémon «Elite
+   Trainer Box» is no sneaker. And the store's own footwear type is never
+   another kind: Converse «Bows And Studs» sneakers are not earrings. */
+export const NO_KIND_DEPTS = new Set(["toys", "party", "home_goods", "home_decor", "electronics", "reacondicionados", "books", "candy_chocolate", "moms", "perfumes", "beauty", "cabello", "auto_parts"]);
+const SHOE_KINDS = new Set(["zapatos", "zapatillas", "sandalias", "tacones", "botas-y-botines", "mocasines-y-pantuflas", "chimpunes", "calzado"]);
+const JEWEL_KINDS = new Set(["aretes", "anillos"]);
+const GENERIC_OWN_TYPES = new Set(["otros", "ropa", "ropa-deportiva", "conjuntos", "accesorios", "accesorio", "prenda"]);
+const JEWEL_HOST_TYPES = new Set(["otros", "accesorios", "accesorio", "joyas", "joyeria", "bisuteria"]);
+function kindMatches(p, t, dept) {
+  if (dept && NO_KIND_DEPTS.has(dept)) return false;
+  const g = gearType(p), k = g || modaType(p);
+  if (k !== t) return false;
+  const own = typeKeyOf(p);
+  /* A garment kind read off the title never overrides the store's own
+     garment type: «Men's Dress Shirt» typed Camisas is no «Vestidos». */
+  if (!g && !GENERIC_OWN_TYPES.has(own.k)) return false;
+  if (own.k !== "otros" && SHOE_CLASS_LABELS.has(own.label.toLowerCase()) !== SHOE_KINDS.has(t)) return false;
+  /* A «Stud Belt» typed BELTS is a belt: a jewel kind read off the title
+     needs a type that names no other thing. */
+  if (JEWEL_KINDS.has(t) && !JEWEL_HOST_TYPES.has(own.k)) return false;
+  return true;
+}
+export function filterList(list, { r = "", q = "", b = "", a = "", t = "", u = "", dept = "" } = {}) {
   const words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   /* b: one brand (a brand pill), a: one door (Perfumes' Mujer / Hombre ...). */
   const bk = String(b || "").trim().toLowerCase();
@@ -1814,7 +1840,7 @@ export function filterList(list, { r = "", q = "", b = "", a = "", t = "", u = "
     /* u: one audience (the header's switch). */
     if (u && !inAudience(p, u)) return false;
     /* t: the rail's type key -- the feed's own type, or the gear/garment kind a brand room rails by. */
-    if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t && lensSlug(typeLabel(String(p.type || "").trim().toLowerCase())) !== t) return false;
+    if (t && String(p.type || "").trim().toLowerCase() !== t && !kindMatches(p, t, dept) && lensSlug(typeLabel(String(p.type || "").trim().toLowerCase())) !== t) return false;
     if (words.length) {
       const hay = (p.title + " " + (p.brand || "")).toLowerCase();
       for (const w of words) if (hay.indexOf(w) === -1) return false;
@@ -1871,7 +1897,7 @@ export function answer(qs, roots) {
      narrows the set after it is chosen: «tienda:walmart» stays Walmart's. */
   const ver = String(qs.ver || "").trim().slice(0, 80);
   if (ver) {
-    const base = q.trim() || b || a || t || u ? filterList(d.list, { q, b, a, t, u }) : d.list;
+    const base = q.trim() || b || a || t || u ? filterList(d.list, { q, b, a, t, u, dept: d.key }) : d.list;
     const rule = typeRuleOf(qs.pt);
     const set = rule ? { items: ofType(base, rule), title: rule.label } : landingSet(base, ver, d.key);
     const store = r && r !== "all" ? r : "";
@@ -1891,7 +1917,7 @@ export function answer(qs, roots) {
     }
     return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(rule ? { pt: rule.id, ptl: rule.label } : {}), ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
   }
-  const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u }) : d.list;
+  const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u, dept: d.key }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next
      grouping is the brand -- or the store, where brands are thin. */
   let sections = t && !b ? typeViewSections(list, d.key) : buildSections(list, sectionOpts(d.key));
