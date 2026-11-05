@@ -6,7 +6,7 @@
 // The shop's stripe-webhook.js is untouched.
 import { reply, fail, openStores, getJSON } from "./_hs-store.js";
 import { verifyStripeSignature, rawBodyOf } from "./_stripe-verify.js";
-import { PACKS, appendLedger } from "./_hs-partners.js";
+import { PACKS, appendLedger, packWithPrice, readSettings } from "./_hs-partners.js";
 
 export async function applyPackEvent(S, ev, now = Date.now()) {
   const type = String(ev && ev.type || "");
@@ -15,10 +15,10 @@ export async function applyPackEvent(S, ev, now = Date.now()) {
   const md = s.metadata || {};
   if (md.hs !== "pack") return { ignored: "not_home_shield" };
   if (s.payment_status !== "paid") return { ignored: "unpaid" };
-  const pack = PACKS[md.packId];
+  const pack = PACKS[md.packId] && packWithPrice(PACKS[md.packId], await readSettings(S));
   const pro = md.proId && await getJSON(S.pros, md.proId);
   if (!pack || !pro) return { ignored: "unknown_pack_or_partner" };
-  if (Number(s.amount_total) !== pack.usd * 100 || String(s.currency).toLowerCase() !== "usd") return { ignored: "amount_mismatch" };
+  if (pack.usd == null || Number(s.amount_total) !== pack.usd * 100 || String(s.currency).toLowerCase() !== "usd") return { ignored: "amount_mismatch" };
   const r = await appendLedger(S, { proId: pro.id, type: "purchase", credits: pack.credits, usd: pack.usd, packId: pack.id,
     stripeSession: s.id, livemode: !!ev.livemode, by: "stripe", ref: `stripe/${s.id}` }, now);
   return { credited: !r.duplicate, entry: r.entry };

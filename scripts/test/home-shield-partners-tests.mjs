@@ -84,7 +84,7 @@ const R = {};
 await test("settings defaults: free enrollment, payments off, roofer on, PA + attorney pending legal review", async () => {
   const s = await P.readSettings(store.openStores({}));
   assert.deepEqual([s.membershipRequired, s.membershipMonthlyUsd, s.paymentsLive, s.ringSeconds], [false, null, false, 90]);
-  assert.deepEqual(s.perLeadEnabled, { roofer: true, public_adjuster: false, attorney: false });
+  assert.deepEqual(s.perLeadEnabled, { roofer: true, public_adjuster: false, attorney: false, insurance_agent: false });
   assert.equal((await call("hs-partner-admin", { method: "GET" })).status, 403);
   assert.equal((await admin({ action: "settings", patch: { membershipMonthlyUsd: "99" } })).status, 400);
 });
@@ -378,6 +378,51 @@ await test("storm search (FIXTURES): address, ZIP and city geocode; point alerts
   assert.equal(f.scope, "state"); assert.equal(f.alerts.length, 3);
   pointDown = false;
   W.__setFetch(null);
+});
+
+await test("insurance agent desk: pending review by default, pricing coming soon until admin sets it, weak policies reach it", async () => {
+  const S = store.openStores({});
+  assert.equal((await P.readSettings(S)).perLeadEnabled.insurance_agent, false);
+  assert.equal((await P.readSettings(S)).packPrices.agent10, null);
+  const ag = await desk("agent1@correo.test", "insurance_agent");
+  let st = await state(ag);
+  assert.equal(st.body.block, "legal_review");
+  assert.deepEqual(st.body.packs.map((k) => [k.id, k.credits, k.usd]), [["agent10", 10, null]]);
+  assert.equal(st.body.balance.sampleAvailable, false, "no free sample on the agent desk");
+  await admin({ action: "settings", patch: { perLeadEnabled: { insurance_agent: true } } });
+  assert.equal((await call("hs-partner", { cookie: ag.cookie, body: { action: "buypack", packId: "agent10" } })).body.code, "pricing_soon");
+  assert.equal((await admin({ action: "settings", patch: { packPrices: { agent10: -5 } } })).status, 400);
+  assert.equal((await admin({ action: "settings", patch: { packPrices: { agent10: 2500 } } })).status, 200);
+  assert.equal((await state(ag)).body.packs[0].usd, 2500);
+  assert.equal((await call("hs-partner", { cookie: ag.cookie, body: { action: "buypack", packId: "agent10" } })).body.code, "payments_off");
+  /* A case with the agent trade rings the agent desk; claim + homeowner share = one debit at pack price / 10. */
+  await admin({ action: "grant", proId: ag.id, credits: 1 });
+  const c = await newCase({ issue: "policy_review", trades: ["insurance_agent"], zip: "33131" });
+  st = await state(ag);
+  assert.ok(st.body.rings.some((r) => r.caseId === c.caseId && r.kind === "lead"));
+  const a = await call("hs-partner", { cookie: ag.cookie, body: { action: "answerlead", caseId: c.caseId } });
+  await call("hs-offer-respond", { body: { caseId: c.caseId, token: c.token, offerId: a.body.offer.id, action: "accept" } });
+  const d = ledgerOf(ag.id).filter((e) => e.type === "claim_debit");
+  assert.equal(d.length, 1); assert.equal(d[0].credits, -1); assert.equal(d[0].usd, 250);
+  /* hs-policy-review marks a weak policy and adds the agent trade (source check; the PDF path is covered in home-shield-tests). */
+  assert.match(readFileSync(new URL("../../netlify/functions/hs-policy-review.js", import.meta.url), "utf8"), /policyWeak = true[\s\S]*"insurance_agent"/);
+  await admin({ action: "settings", patch: { perLeadEnabled: { insurance_agent: false }, packPrices: { agent10: null } } });
+});
+
+await test("wording: displayed text never says roofer / techero / techador / contratista de techos", async () => {
+  const FORBID = /\broofers?\b|techero|techador|contratista de techos/i;
+  for (const f of ["home-shield/partners/partners.js", "home-shield/partners/admin.html", "home-shield/partners/index.html", "home-shield/pro/pro.js", "home-shield/pro/index.html", "home-shield/admin.html"]) {
+    const src = readFileSync(new URL("../../" + f, import.meta.url), "utf8");
+    const strings = [...src.matchAll(/"((?:[^"\\\n]|\\.){3,})"/g)].map((m) => m[1]).filter((x) => /\s/.test(x) || /^[A-ZÁÉÍÓÚ]/.test(x));
+    const html = !f.endsWith(".html") ? "" : src.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ");
+    for (const x of [...strings, html]) assert.ok(!FORBID.test(x), `${f}: "${String(x).match(FORBID)}" in "${String(x).slice(0, 80)}"`);
+  }
+  /* Backend-generated copy (emails, area labels) too. */
+  for (const f of ["hs-offer-respond.js", "hs-pro-offer.js", "_hs-zip3.js", "_hs-policy.js", "hs-partner.js"]) {
+    const src = readFileSync(new URL("../../netlify/functions/" + f, import.meta.url), "utf8").replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, "");
+    const strings = [...src.matchAll(/["`]((?:[^"`\\\n]|\\.){6,})["`]/g)].map((m) => m[1]).filter((x) => /\s/.test(x));
+    for (const x of strings) assert.ok(!FORBID.test(x), `${f}: "${x.slice(0, 80)}"`);
+  }
 });
 
 await test("EN/ES parity: every dashboard string exists in both languages", async () => {

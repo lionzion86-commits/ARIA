@@ -22,7 +22,11 @@
       radius: "Service radius (miles)", attest: "My license is active and the information is accurate.", go: "Continue", working: "One moment...",
       authTitle: "The partner desk for homeowners who want a pro in their corner.",
       authLede: "Bilingual homeowners, qualified by Aria, ringing your desk live. You pay only for claims the homeowner verifies.",
-      d_roofer: "Roofer", d_public_adjuster: "Public adjuster", d_attorney: "Attorney",
+      d_roofer: "Contractor", d_public_adjuster: "Public adjuster", d_attorney: "Attorney", d_insurance_agent: "Insurance agent",
+      dd_roofer: "Roof, water and storm repairs. Qualified calls ring your desk.", dd_public_adjuster: "Claim valuation and negotiation for the homeowner.",
+      dd_attorney: "Denied and disputed claims. Case packets ring your firm.", dd_insurance_agent: "Homeowners whose policy came back weak and want a better one.",
+      agent10: "10 insurance agent leads", perLead: "Price per verified lead set by Aria Home Shield", pricingSoon: "Pricing coming soon", b_pricing_soon: "Pricing coming soon",
+      ringLead: "Homeowner wants a better policy",
       pending: "We are verifying your license. Your desk opens as soon as it is confirmed.", recheck: "Check again", signout: "Sign out",
       online: "Online", offline: "Offline", goOnline: "Go online", goOffline: "Go offline",
       credits: "Credits", held: "Held", available: "Available", sampleFree: "Your first call is free.",
@@ -41,7 +45,7 @@
       l_purchase: "Pack purchase", l_grant: "Credit grant", l_claim_debit: "Verified claim", l_refund: "Refund",
       team: "Team", teamName: "Team name", createTeam: "Create team", inviteEmail: "Invite by email", role: "Role", invite: "Invite", inviteCode: "Invite code",
       joinCode: "Have an invite code?", join: "Join", chatPh: "Message your team", send: "Send", noTeam: "You are not on a team yet.",
-      r_member: "Member", r_roofer: "Roofer", r_public_adjuster: "Public adjuster", r_attorney: "Attorney", r_insurance_agent: "Insurance agent", r_office: "Office",
+      r_member: "Member", r_roofer: "Contractor", r_public_adjuster: "Public adjuster", r_attorney: "Attorney", r_insurance_agent: "Insurance agent", r_office: "Office",
       uploads: "Desk documents", up_license: "Upload license", up_insurance_certificate: "Upload insurance certificate", uploaded: "Uploaded",
       i_denied_claim: "Denied claim", i_underpaid_claim: "Underpaid claim", i_roof: "Roof damage", i_leak_water: "Leak / water damage", i_policy_review: "Policy review",
       i_inspection: "Inspection", i_other: "Home insurance question", u_emergency: "Emergency", u_soon: "Soon", u_planning: "Planning",
@@ -61,7 +65,11 @@
       radius: "Radio de servicio (millas)", attest: "Mi licencia está activa y la información es correcta.", go: "Continuar", working: "Un momento...",
       authTitle: "El escritorio de socios para dueños de casa que quieren a un profesional de su lado.",
       authLede: "Dueños de casa bilingües, calificados por Aria, timbrando en tu escritorio en vivo. Pagas solo por los reclamos que el dueño de casa verifica.",
-      d_roofer: "Techador", d_public_adjuster: "Ajustador público", d_attorney: "Abogado",
+      d_roofer: "Contratista", d_public_adjuster: "Ajustador público", d_attorney: "Abogado", d_insurance_agent: "Agente de seguros",
+      dd_roofer: "Reparaciones de techo, agua y tormenta. Las llamadas calificadas timbran en tu escritorio.", dd_public_adjuster: "Valoración y negociación del reclamo a favor del dueño de casa.",
+      dd_attorney: "Reclamos negados y en disputa. Los paquetes de caso timbran en tu firma.", dd_insurance_agent: "Dueños de casa cuya póliza salió débil y quieren una mejor.",
+      agent10: "10 clientes para agente de seguros", perLead: "Precio por cliente verificado definido por Aria Home Shield", pricingSoon: "Precio próximamente", b_pricing_soon: "Precio próximamente",
+      ringLead: "Dueño de casa busca una mejor póliza",
       pending: "Estamos verificando tu licencia. Tu escritorio se abre en cuanto se confirme.", recheck: "Revisar de nuevo", signout: "Salir",
       online: "En línea", offline: "Fuera de línea", goOnline: "Ponerme en línea", goOffline: "Salir de línea",
       credits: "Créditos", held: "Reservados", available: "Disponibles", sampleFree: "Tu primera llamada es gratis.",
@@ -80,15 +88,15 @@
       l_purchase: "Compra de paquete", l_grant: "Créditos otorgados", l_claim_debit: "Reclamo verificado", l_refund: "Reembolso",
       team: "Equipo", teamName: "Nombre del equipo", createTeam: "Crear equipo", inviteEmail: "Invitar por correo", role: "Rol", invite: "Invitar", inviteCode: "Código de invitación",
       joinCode: "¿Tienes un código de invitación?", join: "Unirme", chatPh: "Escribe a tu equipo", send: "Enviar", noTeam: "Todavía no estás en un equipo.",
-      r_member: "Miembro", r_roofer: "Techador", r_public_adjuster: "Ajustador público", r_attorney: "Abogado", r_insurance_agent: "Agente de seguros", r_office: "Oficina",
+      r_member: "Miembro", r_roofer: "Contratista", r_public_adjuster: "Ajustador público", r_attorney: "Abogado", r_insurance_agent: "Agente de seguros", r_office: "Oficina",
       uploads: "Documentos del escritorio", up_license: "Subir licencia", up_insurance_certificate: "Subir certificado de seguro", uploaded: "Subido",
       i_denied_claim: "Reclamo negado", i_underpaid_claim: "Reclamo mal pagado", i_roof: "Daño en el techo", i_leak_water: "Filtración / daño por agua", i_policy_review: "Revisión de póliza",
       i_inspection: "Inspección", i_other: "Consulta de seguro de casa", u_emergency: "Emergencia", u_soon: "Pronto", u_planning: "Planificando",
       toastRing: "Un cliente está timbrando en tu escritorio", err: "Algo salió mal. Inténtalo de nuevo.",
     },
   };
-  var DESKS = ["roofer", "public_adjuster", "attorney"];
-  var LIC = { roofer: "roofing_contractor", public_adjuster: "public_adjuster", attorney: "attorney" };
+  var DESKS = ["roofer", "public_adjuster", "attorney", "insurance_agent"];
+  var LIC = { roofer: "roofing_contractor", public_adjuster: "public_adjuster", attorney: "attorney", insurance_agent: "insurance_agent" };
   var ROLES = ["member", "roofer", "public_adjuster", "attorney", "insurance_agent", "office"];
   var qs = new URLSearchParams(location.search);
   var S = { lang: "en", view: "loading", tab: qs.get("signup") === "1" ? "enroll" : "signin", st: null, seenRings: {}, timer: null, typing: false };
@@ -145,7 +153,7 @@
     app.innerHTML = '<p class="eyebrow">' + esc(en ? t("enroll") : t("signin")) + "</p><h1>" + esc(t("authTitle")) + '</h1><p class="lede">' + esc(t("authLede")) + "</p>" +
       '<div class="seg" role="tablist"><button type="button" data-tab="signin" aria-selected="' + !en + '">' + esc(t("signin")) + '</button><button type="button" data-tab="enroll" aria-selected="' + en + '">' + esc(t("enroll")) + "</button></div>" +
       '<form class="card stack" id="af">' +
-      (en ? '<label class="f"><span>' + esc(t("desk")) + '</span><select class="in" name="desk">' + DESKS.map(function (d) { return '<option value="' + d + '">' + esc(t("d_" + d)) + "</option>"; }).join("") + "</select></label>" +
+      (en ? '<fieldset class="desks" style="border:0;padding:0;margin:0"><legend class="small muted" style="font-weight:700;margin-bottom:8px">' + esc(t("desk")) + "</legend>" + DESKS.map(function (d, i) { return '<label class="deskopt"><input type="radio" name="desk" value="' + d + '"' + (i === 0 ? " checked" : "") + '><span><b>' + esc(t("d_" + d)) + "</b><small>" + esc(t("dd_" + d)) + "</small></span></label>"; }).join("") + "</fieldset>" +
         input("name", t("name")) + input("company", t("company")) + '<div class="row2">' + input("email", t("email"), "email") + input("phone", t("phone"), "tel") + "</div>" +
         input("password", t("passwordNew"), "password") + '<div class="row2">' + input("licenseNumber", t("licenseNumber")) + input("licenseState", t("licenseState"), "text", ' value="FL" maxlength="2"') + "</div>" +
         '<div class="row2">' + input("centerZip", t("centerZip"), "text", ' inputmode="numeric" maxlength="5"') + input("radiusMiles", t("radius"), "number", ' value="50"') + "</div>" +
@@ -155,8 +163,9 @@
     $$("[data-tab]", app).forEach(function (b) { b.onclick = function () { S.tab = b.dataset.tab; render(); }; });
     $("#af").onsubmit = function (e) {
       e.preventDefault(); var f = e.target;
-      var p = en ? api("hs-pro-signup", { desk: f.desk.value, name: f.name.value, company: f.company.value, email: f.email.value, phone: f.phone.value, password: f.password.value,
-        licenseType: LIC[f.desk.value], licenseNumber: f.licenseNumber.value, licenseState: f.licenseState.value.toUpperCase(), attest: f.attest.checked, lang: S.lang,
+      var deskV = en ? ($("input[name=desk]:checked", f) || {}).value : null;
+      var p = en ? api("hs-pro-signup", { desk: deskV, name: f.name.value, company: f.company.value, email: f.email.value, phone: f.phone.value, password: f.password.value,
+        licenseType: LIC[deskV], licenseNumber: f.licenseNumber.value, licenseState: f.licenseState.value.toUpperCase(), attest: f.attest.checked, lang: S.lang,
         serviceArea: { centerZip: f.centerZip.value.trim(), radiusMiles: Number(f.radiusMiles.value) } })
         : api("hs-pro-login", { email: f.email.value, password: f.password.value });
       p.then(function (r) { if (!r.ok) { $("#ae").textContent = errOf(r.body); return; } load(); });
@@ -236,7 +245,7 @@
     if (s.block && s.block !== "no_credits") notes += '<p class="note">' + esc(t("b_" + s.block)) + "</p>";
     else if (s.block === "no_credits") notes += '<p class="note">' + esc(t("b_no_credits")) + "</p>";
     var rings = (s.rings || []).map(function (r) {
-      return '<article class="card case ring"><div class="row2" style="align-items:center"><p class="eyebrow" style="margin:0">' + esc(kind === "packet" ? t("ringPacket") : t("ringCall")) + '</p><div style="text-align:right"><span class="count" data-exp="' + esc(r.expiresAt) + '"></span></div></div>' +
+      return '<article class="card case ring"><div class="row2" style="align-items:center"><p class="eyebrow" style="margin:0">' + esc(kind === "packet" ? t("ringPacket") : kind === "lead" ? t("ringLead") : t("ringCall")) + '</p><div style="text-align:right"><span class="count" data-exp="' + esc(r.expiresAt) + '"></span></div></div>' +
         '<div class="bar"><i style="width:100%"></i></div><div style="margin-top:12px">' + caseLine(r.case) + "</div>" +
         '<p class="tiny" style="margin-top:10px">' + esc(t("ringNote")) + '</p><div class="actions"><button class="btn gold" data-answer="' + esc(r.caseId) + '">' + esc(kind === "packet" ? t("claim") : t("answer")) + '</button><button class="btn" data-pass="' + esc(r.caseId) + '">' + esc(t("pass")) + "</button></div></article>";
     }).join("");
@@ -246,8 +255,8 @@
     }).join("") : '<p class="muted small">' + esc(t("queueEmpty")) + "</p>";
     var legal = !s.settings.perLeadEnabled[s.desk];
     var packs = s.packs.map(function (k) {
-      return '<div class="card pack"><div><b>' + esc(t(k.id)) + '</b><div class="small muted">' + esc(money(k.usd)) + " &middot; " + esc(kind === "packet" ? t("perPacket") : t("perCall")) + "</div></div>" +
-        (legal ? '<span class="tag warn">' + esc(t("b_legal_review").split(":")[0]) + "</span>" : s.settings.paymentsLive ? '<button class="btn gold" data-buy="' + esc(k.id) + '">' + esc(t("buy")) + "</button>" : '<span class="tag">' + esc(t("paymentsOff")) + "</span>") + "</div>";
+      return '<div class="card pack"><div><b>' + esc(t(k.id)) + '</b><div class="small muted">' + (k.usd == null ? esc(t("pricingSoon")) : esc(money(k.usd)) + " &middot; " + esc(kind === "packet" ? t("perPacket") : kind === "lead" ? t("perLead") : t("perCall"))) + "</div></div>" +
+        (k.usd == null ? '<span class="tag">' + esc(t("pricingSoon")) + "</span>" : legal ? '<span class="tag warn">' + esc(t("b_legal_review").split(":")[0]) + "</span>" : s.settings.paymentsLive ? '<button class="btn gold" data-buy="' + esc(k.id) + '">' + esc(t("buy")) + "</button>" : '<span class="tag">' + esc(t("paymentsOff")) + "</span>") + "</div>";
     }).join("");
     var claims = s.claims.length ? s.claims.map(function (c) {
       var ct = c.contactShared && c.case.contact;

@@ -31,22 +31,31 @@
 import { randomBytes } from "node:crypto";
 import { getJSON, loadAll, listKeys, caseMatchesPro, anonymizeCase, pushEvent, newId } from "./_hs-store.js";
 
-export const DESKS = ["roofer", "public_adjuster", "attorney"];
-export const DESK_KIND = { roofer: "call", public_adjuster: "call", attorney: "packet" };
+/* "roofer" is the internal key of the Contractor desk (displayed "Contractor / Contratista"). */
+export const DESKS = ["roofer", "public_adjuster", "attorney", "insurance_agent"];
+export const DESK_KIND = { roofer: "call", public_adjuster: "call", attorney: "packet", insurance_agent: "lead" };
 export const PACKS = {
   calls10: { id: "calls10", kind: "call", desks: ["roofer", "public_adjuster"], credits: 10, usd: 7500 },
   packets5: { id: "packets5", kind: "packet", desks: ["attorney"], credits: 5, usd: 5000 },
   packets10: { id: "packets10", kind: "packet", desks: ["attorney"], credits: 10, usd: 10000 },
+  /* Insurance agent desk: Danny has not set a price -> null until admin sets settings.packPrices.agent10. */
+  agent10: { id: "agent10", kind: "lead", desks: ["insurance_agent"], credits: 10, usd: null },
 };
+/** A pack with the admin-set price applied (packPrices overrides; null = pricing coming soon). */
+export function packWithPrice(pack, settings) {
+  const o = settings && settings.packPrices && Object.prototype.hasOwnProperty.call(settings.packPrices, pack.id) ? settings.packPrices[pack.id] : undefined;
+  return { ...pack, usd: o === undefined ? pack.usd : o };
+}
 export const LEDGER_TYPES = ["purchase", "grant", "claim_debit", "refund"];
 export const DEFAULT_SETTINGS = {
   membershipRequired: false, membershipMonthlyUsd: null, paymentsLive: false,
-  perLeadEnabled: { roofer: true, public_adjuster: false, attorney: false }, ringSeconds: 90,
+  perLeadEnabled: { roofer: true, public_adjuster: false, attorney: false, insurance_agent: false }, ringSeconds: 90,
+  packPrices: { agent10: null },
 };
 
 export async function readSettings(S) {
   const v = (await getJSON(S.settings, "config")) || {};
-  return { ...DEFAULT_SETTINGS, ...v, perLeadEnabled: { ...DEFAULT_SETTINGS.perLeadEnabled, ...(v.perLeadEnabled || {}) } };
+  return { ...DEFAULT_SETTINGS, ...v, perLeadEnabled: { ...DEFAULT_SETTINGS.perLeadEnabled, ...(v.perLeadEnabled || {}) }, packPrices: { ...DEFAULT_SETTINGS.packPrices, ...(v.packPrices || {}) } };
 }
 
 /** Validated patch -> saved settings, or { error }. */
@@ -69,8 +78,14 @@ export async function writeSettings(S, patch, by, now = Date.now()) {
   }
   if (patch.perLeadEnabled && typeof patch.perLeadEnabled === "object") {
     for (const [d, v] of Object.entries(patch.perLeadEnabled)) {
-      if (!DESKS.includes(d) || typeof v !== "boolean") return { error: "perLeadEnabled takes roofer / public_adjuster / attorney: true|false" };
+      if (!DESKS.includes(d) || typeof v !== "boolean") return { error: "perLeadEnabled takes a desk key and true|false" };
       next.perLeadEnabled = { ...next.perLeadEnabled, [d]: v };
+    }
+  }
+  if (patch.packPrices && typeof patch.packPrices === "object") {
+    for (const [id, v] of Object.entries(patch.packPrices)) {
+      if (id !== "agent10" || !(v === null || (typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 100000))) return { error: "packPrices.agent10 must be a dollar amount or null" };
+      next.packPrices = { ...next.packPrices, [id]: v };
     }
   }
   next.updatedAt = new Date(now).toISOString(); next.updatedBy = by;
@@ -256,10 +271,17 @@ export async function settleClaim(S, c, o, { by = "homeowner", now = Date.now() 
   const sample = !!o.ring.sample;
   if (!sample && credits < 1) return { error: [402, "no_credits", "The desk has no credit for this claim"] };
   const r = await appendLedger(S, { proId: pro.id, type: "claim_debit", credits: sample ? 0 : -1, sample,
-    usd: sample ? 0 : (o.ring.kind === "packet" ? 1000 : 750), caseId: c.id, offerId: o.id, by, ref: `claim/${o.id}` }, now);
+    usd: sample ? 0 : await perClaimUsd(S, o.ring), caseId: c.id, offerId: o.id, by, ref: `claim/${o.id}` }, now);
   o.paid = true; o.paidAt = new Date(now).toISOString(); o.verifiedBy = by;
   await S.offers.setJSON(o.id, o);
   return { paid: true, entry: r.entry };
+}
+
+async function perClaimUsd(S, ring) {
+  if (ring.kind === "packet") return 1000;
+  if (ring.kind === "call") return 750;
+  const p = packWithPrice(PACKS.agent10, await readSettings(S));
+  return p.usd == null ? null : Math.round((p.usd / p.credits) * 100) / 100;
 }
 
 /** A declined ring offer reopens the ring for that desk (that pro counted as passed). */
