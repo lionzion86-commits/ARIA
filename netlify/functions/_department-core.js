@@ -16,6 +16,7 @@ import { join, resolve } from "node:path";
 import { conditionOfTitle as conditionOfAnyTitle, CONDITION_LABELS } from "../../scripts/lib/condition.js";
 import { isIntimate } from "../../scripts/lib/section-allowlist.js";
 import { PLUS_LINGERIE_LEAD, leadFirst as plusLingerieFirst, isLingerieSet } from "../../scripts/lib/plus-lingerie.js";
+import { typeWorldById } from "./_search-core.js";
 import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, isDroneProduct, droneRank } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
@@ -1777,6 +1778,25 @@ export function explore(list, f, sort = "deal", page = 0, labels = {}) {
   return { count: hits.length, page, pages, cards: hits.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(cardOf), facets, stats: deptStats(hits) };
 }
 
+/* TYPE PURITY ON A SEARCH LANDING (#443 c.6632585468): ?pt=<rule> keeps
+   only the products of one type (_search-core.js TYPE_WORLDS -- the same
+   rule the search's own answer uses), read from the whole department, so
+   the lead rail and every rail after it are that type and nothing else.
+   A department row has no store department; the rule gets the feed's
+   type label (typeLabel) beside the title and brand. A rule nothing in
+   the department meets gives an empty set, and the page says so. */
+const ptCache = new WeakMap();
+export function typeRuleOf(id) {
+  const w = typeWorldById(String(id || "").trim().toLowerCase().slice(0, 40));
+  return w ? { id: w.id, label: w.label, test: w.test, lead: w.lead || null } : null;
+}
+export function ofType(list, rule) {
+  let m = ptCache.get(list);
+  if (!m) ptCache.set(list, m = new Map());
+  if (!m.has(rule.id)) m.set(rule.id, list.filter((p) => { try { return !!rule.test({ title: p.title, brand: p.brand, retailer: p.retailer, departments: [], typeLabel: typeKeyOf(p).label }); } catch { return false; } }));
+  return m.get(rule.id);
+}
+
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
 /* THE GARMENT-KIND FALLBACK READS A FASHION PRODUCT ONLY (#443
@@ -1874,12 +1894,14 @@ export function answer(qs, roots) {
   const ver = String(qs.ver || "").trim().slice(0, 80);
   if (ver) {
     const base = q.trim() || b || a || t || u ? filterList(d.list, { q, b, a, t, u, dept: d.key }) : d.list;
-    const set = landingSet(base, ver, d.key);
+    const rule = typeRuleOf(qs.pt);
+    const set = rule ? { items: ofType(base, rule), title: rule.label } : landingSet(base, ver, d.key);
     const store = r && r !== "all" ? r : "";
     let items = store ? set.items.filter((p) => p.retailer === store) : set.items;
     const tl = t ? ((base.map(typeKeyOf).find((x) => x.k === t) || {}).label || "") : "";
     const title = set.title || tl || "";
-    const ord = ver === "pasillo:tech_drones" || t === "drones" ? dronesOrder : null;
+    /* A type rule with a lead (Vajilla: the dinnerware sets) keeps it first in every rail. */
+    const ord = ver === "pasillo:tech_drones" || t === "drones" ? dronesOrder : rule && rule.lead ? (l) => l.filter(rule.lead).concat(l.filter((p) => !rule.lead(p))) : null;
     let sections = landingSections(items, { dept: d.key, labels: d.labels, title, ord });
     if (qs.rail !== undefined && qs.rail !== "") {
       const out = pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
@@ -1889,7 +1911,7 @@ export function answer(qs, roots) {
       const out = batchOf(sections, Number(qs.batch));
       return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
     }
-    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
+    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(rule ? { pt: rule.id, ptl: rule.label } : {}), ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
   }
   const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u, dept: d.key }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next

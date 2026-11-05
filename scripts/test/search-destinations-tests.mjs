@@ -179,7 +179,11 @@ await check(`the miss-words (${MISS_WORDS.join(", ")}): no store, no brand, no c
    generic Ofertas rail; and its «También puede ser…» chips are sibling
    types and the department, never a brand or store guess. */
 const CEL = ["electronics", "pasillo:tech_celulares"], PCS = ["electronics", "pasillo:tech_computadoras"], CON = ["electronics", "consolas"];
-const AUD = ["electronics", "pasillo:tech_audifonos"], CAM = ["electronics", "pasillo:tech_camaras"], MON = ["electronics", "pasillo:tech_accesorios", "monitor"];
+const AUD = ["electronics", "pasillo:tech_audifonos"], CAM = ["electronics", "pasillo:tech_camaras"];
+/* Type purity (#443 c.6632585468): a word whose aisle holds more than it
+   names lands on the whole department narrowed by its type rule (&pt=):
+   «monitor» is Monitores, not Accesorios y energía; «plancha» the irons. */
+const MON = ["electronics", "tipos", "", "monitores"], PLA = ["beauty", "tipos", "", "planchas"];
 const CHAMPU = ["cabello", "tipo:champú y acondicionador"], KERA = ["cabello", "tipo:keratina y alisados"], MASK = ["cabello", "tipo:mascarillas"];
 const PESAS = ["sporting_goods", "tipo:pesas-y-cinturones"], VAJ = ["home_goods", "casa:casa_mesa"], LAB = ["beauty", "tipo:labios"];
 const POL = ["men", "tipo:chompas-y-polerones"], SHO = ["clothing", "tipo:shorts"];
@@ -193,7 +197,7 @@ const WATCH = [
   ["consola", CON], ["consolas", CON], ["playstation", CON], ["xbox", CON],
   ["laptop", PCS], ["laptops", PCS], ["computadora", PCS], ["notebook", PCS],
   ["audífonos", AUD], ["audifonos", AUD], ["headphones", AUD], ["cámara", CAM], ["monitor", MON],
-  ["champú", CHAMPU], ["shampoo", CHAMPU], ["keratina", KERA], ["alisado", KERA], ["plancha", KERA], ["mascarilla", MASK],
+  ["champú", CHAMPU], ["shampoo", CHAMPU], ["keratina", KERA], ["alisado", KERA], ["plancha", PLA], ["mascarilla", MASK],
   ["pesas", PESAS], ["mancuernas", PESAS], ["dumbbells", PESAS], ["vajilla", VAJ], ["labial", LAB],
   ["polera", POL], ["poleras", POL], ["hoodie", POL], ["hudi", POL], ["hodie", POL], ["sudadera con capucha", POL], ["poleron", POL],
   ["sweatshirt", POL], ["swetshert", POL],
@@ -218,13 +222,14 @@ function typePage(url) {
 const WATCH_ANSWERS = new Map();
 await check(`the watch set (${WATCH.length} product words): each lands on its TYPE page -- a real rail with products, never the department home, never an Ofertas rail`, async () => {
   const bad = [];
-  for (const [q, [dk, ver, nq]] of WATCH) {
+  for (const [q, [dk, ver, nq, pt]] of WATCH) {
     const a = await route(q);
     WATCH_ANSWERS.set(q, a);
     const d = a.destination;
     const got = `${d.kind}:${d.key} ver=${param(d.url || "", "ver")} q=${param(d.url || "", "q") || ""}`;
-    if (d.kind !== "category" || d.key !== dk || param(d.url, "ver") !== ver || (param(d.url, "q") || "") !== (nq || "")) { bad.push(`${q}: ${got} (want ${dk} ${ver} ${nq || ""})`); continue; }
+    if (d.kind !== "category" || d.key !== dk || param(d.url, "ver") !== ver || (param(d.url, "q") || "") !== (nq || "") || (pt && param(d.url, "pt") !== pt)) { bad.push(`${q}: ${got} pt=${param(d.url, "pt") || ""} (want ${dk} ${ver} ${nq || ""} ${pt || ""})`); continue; }
     assert.match(d.url, dst.SURFACE_RX, q);
+    if (pt) { const h = dept.answer({ dept: dk, ver, pt }); assert.ok(h.status === 200 && h.body.count > 0 && h.body.rails.length, `${q}: ${d.url} shows nothing`); continue; }
     assert.ok(DEST.types[dk] && DEST.types[dk][ver] && DEST.types[dk][ver][1] > 0, `${q}: ${dk} ${ver} is not a listed type`);
     const { rail, page } = typePage(d.url);
     if (!rail) { bad.push(`${q}: ${d.url} -- the page has no rail ${ver}`); continue; }
@@ -238,9 +243,14 @@ await check(`the watch set (${WATCH.length} product words): each lands on its TY
 
 await check("every product-word mapping names a type that exists with products, and every type page's chips are real type pages or the department", () => {
   for (const [id, t] of Object.entries(dst.PRODUCT_TYPES)) {
-    assert.ok(DEST.types[t.dept] && DEST.types[t.dept][t.ver], `${id}: ${t.dept} has no type ${t.ver}`);
-    const { rail, page } = typePage(dst.deptUrl(t.dept, { ver: t.ver, q: t.q || "" }));
-    assert.ok(rail && page && page.count > 0, `${id}: ${t.dept} ${t.ver} shows nothing`);
+    if (t.ver === dst.VER_TYPES) assert.ok(t.pt && DEST.depts[t.dept], `${id}: the whole ${t.dept} with no type rule`);
+    else assert.ok(DEST.types[t.dept] && DEST.types[t.dept][t.ver], `${id}: ${t.dept} has no type ${t.ver}`);
+    /* A type rule's page: that type only (pesas: none in stock, said so -- search-daily-watch-tests). */
+    if (t.pt) { const h = dept.answer({ dept: t.dept, ver: t.ver, pt: t.pt }); assert.equal(h.status, 200, id); assert.equal(h.body.pt, t.pt, id); }
+    else {
+      const { rail, page } = typePage(dst.deptUrl(t.dept, { ver: t.ver, q: t.q || "" }));
+      assert.ok(rail && page && page.count > 0, `${id}: ${t.dept} ${t.ver} shows nothing`);
+    }
     for (const [sd, sv, sq] of t.sib) {
       assert.ok(DEST.types[sd] && DEST.types[sd][sv], `${id}: sibling ${sd} ${sv} is not a type`);
       const s = typePage(dst.deptUrl(sd, { ver: sv, q: sq || "" }));
@@ -463,7 +473,11 @@ if (pw) {
     });
     /* Danny's screenshot: «celular» opens the Celulares type page, phones first. */
     for (const [word, rx, title, shot] of [["celular", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_celulares/, "Celulares", "pw-celular.png"],
-      ["laptop", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_computadoras/, "Computadoras y tablets", "pw-laptop.png"],
+      ["laptop", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_computadoras&pt=laptops/, "Laptops", "pw-laptop.png"],
+      ["monitor", /departamento\.html\?dept=electronics&ver=tipos&pt=monitores/, "Monitores", "sw-monitor.png"],
+      ["consola", /departamento\.html\?dept=electronics&ver=consolas&pt=consolas/, "Consolas", "sw-consola.png"],
+      ["vajilla", /departamento\.html\?dept=home_goods&ver=casa%3Acasa_mesa&pt=vajilla/, "Vajilla", "sw-vajilla.png"],
+      ["toallas", /departamento\.html\?dept=home_goods&ver=casa%3Acasa_cama_bano&pt=toallas/, "Toallas", "sw-toallas.png"],
       ["champú", /departamento\.html\?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador/, "Champú y acondicionador", "pw-champu.png"],
       ["drone", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_drones/, "Drones", "drn-drone.png"],
       ["dron", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_drones/, "Drones", "drn-dron.png"]]) {

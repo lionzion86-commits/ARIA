@@ -132,9 +132,11 @@ footer a{color:#fff;}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
+<script src="/assets/js/page-banner.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
 .hs-dark{--hs-fg:#F4F6FB;--hs-mute:rgba(236,241,250,.8);--hs-bg:rgba(255,255,255,.1);--hs-line:rgba(255,255,255,.26);--hs-go:#F4C463;--hs-gofg:#0A1F44;--hs-sheet:#0A1F44;--hs-ring:rgba(244,196,99,.35)}
@@ -903,19 +905,21 @@ function init(){
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
 }
-/* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from
-   assets/brands/ -- decoration, so it waits for the first screen's
-   product photos (12s at most) instead of sharing a slow link. */
+/* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop -- decoration,
+   so it waits for the first screen's product photos (12s at most)
+   instead of sharing a slow link. THE HEADER BANNER (#443
+   c.6642024745): assets/js/page-banner.js paints the brand's banner file
+   (assets/banners/brand/<key>.json) when it has one; else its brand
+   photo, then the photo of the brand's own store, in turn. */
 function heroImage(){
   try{
     var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     var _heroImg = document.getElementById('brandHeroBg');
-    var _heroScrim = document.getElementById('brandHeroScrim');
-    if (_heroImg){
-      _heroImg.onload = function(){ _heroImg.hidden = false; if (_heroScrim) _heroScrim.hidden = false; };
-      _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
-      _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
-    }
+    if (!_heroImg || !_heroKey) return;
+    var o = { kind: 'brand', key: _heroKey, host: document.getElementById('brandHero'), bg: _heroImg, scrim: document.getElementById('brandHeroScrim'),
+      fallbacks: ['/assets/brands/' + _heroKey + '-hero.jpg', '/assets/tienda/hero/' + _heroKey + '.jpg', '/assets/stores/' + _heroKey + '.jpg'] };
+    if (window.AriaBanner) window.AriaBanner.paint(o);
+    else (window.AriaBannerQ = window.AriaBannerQ || []).push(o);
   }catch(_e){}
 }
 function afterFirstPhotos(fn){

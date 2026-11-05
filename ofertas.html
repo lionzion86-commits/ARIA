@@ -77,6 +77,15 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
 .cats button{flex:0 0 auto;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;
   border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:#fff}
 .cats button[aria-pressed="true"]{background:var(--sky);border-color:var(--sky);color:var(--navy)}
+/* ---- inside one category: Mujer / Hombre / Niños and the filter bar
+   (#443 c.6629871333; assets/js/nav-filter.js, mounted by nfSync) ---- */
+.intro .nf{margin:0 -20px;padding-top:4px}
+@media(min-width:1024px){.intro .nf{margin:0 -32px}.intro .nf .nf-pills,.intro .nf .nf-bar,.intro .nf .nf-sel{padding-left:32px;padding-right:32px}.intro .nf .nf-count{margin-left:32px}}
+.intro .nf .nf-count{margin-bottom:4px}
+.nf-res{max-width:1240px;margin:0 auto;padding-top:14px}
+.nf-res .rail-head h2{font-size:17px;color:#fff}
+.nf-res .rail-head{padding:0 20px 10px;margin:0}
+@media(min-width:1024px){.nf-res .rail-head{padding:0 32px 12px}}
 /* ---- rails ---- */
 .rail-sec{position:relative;max-width:1240px;margin:0 auto;padding-top:14px}
 .hair{position:absolute;left:0;right:0;top:0;height:1px;
@@ -192,6 +201,7 @@ body{background:#CEDAE8}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
@@ -461,6 +471,7 @@ var SRC = {
   rails: BASE + '/assets/ofertas/rails.json',
   slice: BASE + '/assets/ofertas/slices/',
   fn:    BASE + '/.netlify/functions/ofertas',
+  nf:    BASE + '/.netlify/functions/nav-filter',
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
@@ -1043,6 +1054,38 @@ function remember(){
     window.history.replaceState(null, '', u.pathname + u.search + u.hash);
   } catch (e) {}
 }
+/* OFERTAS KEEPS FILTERING INSIDE THE CATEGORY (#443 c.6629871333,
+   Danny: "Ofertas zapatos mujer, Ofertas zapatos hombre, Ofertas zapatos
+   de niños"). A chosen category gets, under its pill, the site's filter
+   bar on that category's offers only (assets/js/nav-filter.js, src
+   ofertas=1&cat=<k>; the engine is netlify/functions/_nav-filter-core.js):
+     - Mujer / Hombre / Niños on top, only the audiences the category's
+       offers really hold (the product's department fact, never a brand
+       or store guess); one tap re-renders in place;
+     - Filtrar · Ordenar · Marca · Talla · Precio, stacking with the
+       audience, every option counted live;
+     - the category's store rails stay the landing; a choice swaps them,
+       in place, for one carousel of the matching offers (48 at a time,
+       never a grid); the state rides the URL (&aud=mujer&fb=...), never
+       the header's old nav flag. Todas or Por tienda takes the bar away. */
+var NF_UVALS = { women: 'mujer', men: 'hombre', kids: 'ninos' };
+function nfSrc(){ return 'ofertas=1&cat=' + encodeURIComponent(S.cat); }
+function nfSync(){
+  var on = S.mode === 'categoria' && S.cat && catLabel(S.cat);
+  var H = window.AriaNFHost;
+  if (!on){
+    if (window.AriaNF) window.AriaNF.off();
+    else if (H) H.src = '';
+    return;
+  }
+  if (window.AriaNF){ window.AriaNF.resource(nfSrc()); return; }
+  if (H){ H.src = nfSrc(); return; }
+  window.AriaNFHost = { src: nfSrc(), endpoint: SRC.nf, prefix: 'f', names: { u: 'aud' }, uvals: NF_UVALS,
+    audPills: true, dark: true, unit: ['oferta', 'ofertas'], anchor: $('cats'), resAnchor: $('results'),
+    hide: ['#results', '#countLine'], title: function(){ return catLabel(S.cat) || 'Ofertas'; },
+    cardHTML: cardHTML, after: function(r){ watchPhotos(r); } };
+  var sc = document.createElement('script'); sc.src = '/assets/js/nav-filter.js'; sc.defer = true; document.head.appendChild(sc);
+}
 function setMode(m){
   m = m === 'categoria' ? 'categoria' : 'tienda';
   if (m === S.mode) return;
@@ -1050,6 +1093,7 @@ function setMode(m){
   if (m === 'tienda') S.cat = '';
   renderMode();
   remember();
+  nfSync();
   if (S.cat || S.q) openSearch();
   else { $('results').hidden = true; $('content').hidden = false; S.search = null; if (S.index) renderRails(S.index); }
 }
@@ -1061,6 +1105,7 @@ function setCat(k){
   for (var i = 0; i < b.length; i++) b[i].setAttribute('aria-pressed', b[i].getAttribute('data-cat') === S.cat ? 'true' : 'false');
   remember();
   openSearch();
+  nfSync();
 }
 
 /* rails.json missing: the all-stores slice still makes a lead rail,
@@ -1090,7 +1135,7 @@ function openRails(){
     try {
       renderRails(r[0] || {});
       /* A shared link's category opens in place; an unknown one is Todas. */
-      if (S.cat){ if (catLabel(S.cat)){ renderCats(S.index); openSearch(); } else { S.cat = ''; renderCats(S.index); remember(); } }
+      if (S.cat){ if (catLabel(S.cat)){ renderCats(S.index); openSearch(); nfSync(); } else { S.cat = ''; renderCats(S.index); remember(); } }
     }
     catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
   }, function(){
@@ -1231,7 +1276,11 @@ function bindUI(){
     t = setTimeout(function(){
       try {
         var v = (q.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-        if (v !== S.q){ S.q = v; openSearch(); }
+        if (v !== S.q){
+          S.q = v; openSearch();
+          /* Inside a filtered category the words narrow the filtered set too. */
+          if (window.AriaNF && window.AriaNF.active() && S.cat) window.AriaNF.set({ w: v });
+        }
       } catch (e) {}
     }, 400);
   });
