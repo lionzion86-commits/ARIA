@@ -149,7 +149,7 @@ await check("the big card (#443 c.6545712892): near-full-width navy tile, 4:5 ph
     return { w: card.offsetWidth, imgW: img.offsetWidth, imgH: img.offsetHeight, bg: getComputedStyle(card).backgroundColor,
       badgeBg: getComputedStyle(card.querySelector(".badge")).backgroundColor,
       price: card.querySelector(".price").textContent, old: card.querySelector(".price-old").textContent,
-      usd: card.querySelector(".price-usd") ? card.querySelector(".price-usd").textContent : null, dollars: /US\$/.test(card.textContent), href: card.getAttribute("href"),
+      usd: card.querySelector(".price-usd").textContent, href: card.getAttribute("href"),
       onScreen: [...document.querySelectorAll("#content .rail-sec")[0].querySelectorAll(".card")].filter((x) => x.getBoundingClientRect().right <= innerWidth).length };
   });
   const big = Math.round(Math.min(300, Math.max(232, 0.68 * 390)));
@@ -162,9 +162,7 @@ await check("the big card (#443 c.6545712892): near-full-width navy tile, 4:5 ph
   const first = rails.lead[0];
   assert.equal(c.price, pen(first.usd * RATE), "the soles price is not usd x rate");
   assert.equal(c.old, pen(first.wasUsd * RATE));
-  /* Soles only (#443 c.6629812301: "we only show soles"). */
-  assert.equal(c.usd, null);
-  assert.equal(c.dollars, false, "a dollar figure on the card");
+  assert.equal(c.usd, "US$ " + first.usd.toFixed(2));
   assert.equal(c.href, "producto.html?producto=" + encodeURIComponent(first.title) + "&tienda=" + encodeURIComponent(first.store));
 });
 

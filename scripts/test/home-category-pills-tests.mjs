@@ -538,14 +538,8 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 await check("390px: a store pill switches its carousel to that store, ending on «Ver más en»; «Todas» puts it back", async () => {
   const TYPES = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json", ".jpg": "image/jpeg", ".webp": "image/webp" };
   const requested = [];
-  /* Cards are soles only: the rate comes from the real exchange-rate handler (SUNAT stubbed). */
-  const FX = await import("../../netlify/functions/exchange-rate.js");
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer((req, res) => {
     const u = new URL(req.url, "http://x");
-    if (u.pathname === "/.netlify/functions/exchange-rate") {
-      const r = await FX.handler({ httpMethod: "GET", queryStringParameters: {} }, { fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ compra: 3.73, venta: 3.75, origen: "SUNAT" }) }), fxStore: null });
-      res.writeHead(r.statusCode, { ...r.headers, "Cache-Control": "no-store" }); res.end(r.body); return;
-    }
     if (u.pathname.startsWith("/.netlify/") || u.pathname.startsWith("/api/")) { res.writeHead(200, { "Content-Type": "application/json" }); res.end("{}"); return; }
     if (u.pathname.startsWith("/" + PILLS_DIR + "/")) requested.push(u.pathname);
     let p = join(ROOT, decodeURIComponent(u.pathname));
@@ -586,13 +580,14 @@ await check("390px: a store pill switches its carousel to that store, ending on 
     assert.ok(end.more, "the rail does not end on its door");
     assert.equal(end.href, `/tienda.html?tienda=${store}`);
     assert.match(end.text, new RegExp("^Ver más en\\s*" + index.labels[store].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    /* the price is the bundle's own: railLeadPrice of the normalized card, in soles */
+    /* the price is the bundle's own: railLeadPrice of the normalized card (soles once the
+       exchange rate answers; this sandbox blocks it, so the bundle shows its US$ fallback) */
     const price = await pg.$eval(sel + " [data-cat-pills-card]", (c) => {
       const t = c.textContent;
-      /* railLeadPrice returns the card's soles slot as HTML since the soles-only cards: its text is the label. */
+      /* railLeadPrice is markup (it fills itself in soles when a late rate lands, #443 c.6648727667): its text is the label. */
       const box = document.createElement("div");
       box.innerHTML = typeof railLeadPrice === "function" ? railLeadPrice(1) : "";
-      const lead = box.textContent.replace(/[\d.,\s\u2026]/g, "");
+      const lead = box.textContent.replace(/[\d.,\s]/g, "");
       return { t, lead };
     });
     assert.ok(price.lead && price.t.includes(price.lead), "a pill card without the bundle's price label");

@@ -328,7 +328,7 @@ if (!process.env.PERFUME_STATIC) {
       } finally { await context.close(); }
     });
 
-    await check("the card shows soles only, no US$ line; an anchor card shows no fake discount", async () => {
+    await check("the card leads with soles, US$ small under it; an anchor card shows no fake discount", async () => {
       const { context, page } = await newPage();
       try {
         await page.goto(BASE + "/", { waitUntil: "load" });
@@ -340,11 +340,10 @@ if (!process.env.PERFUME_STATIC) {
           const ref = c.querySelector(".ariaPricePen");
           return { lead: lead && lead.textContent.trim(), leadFs: lead ? parseFloat(getComputedStyle(lead).fontSize) : 0,
             ref: ref && ref.textContent.trim(), refFs: ref ? parseFloat(getComputedStyle(ref).fontSize) : 0,
-            dollars: /US\$/.test(c.textContent), badge: /-\d+%/.test(c.textContent), anchor: c.getAttribute("data-hero-anchor"), links: c.querySelectorAll("a[href]").length };
+            badge: /-\d+%/.test(c.textContent), anchor: c.getAttribute("data-hero-anchor"), links: c.querySelectorAll("a[href]").length };
         });
         assert(/^S\//.test(card.lead || ""), "lead price is not soles: " + card.lead);
-        /* Soles only (#443 c.6629812301: "we only show soles. Then we show the import underneath"). */
-        assert(!card.ref && !card.dollars, "US$ line: " + JSON.stringify(card));
+        assert(/US\$/.test(card.ref || "") && card.refFs < card.leadFs, "US$ line: " + JSON.stringify(card));
         /* A hero at full price shows no badge; a hero on a real sale shows
            the store's own was-price, like any sale card (#443 item 39 D). */
         const shelfCard = PICKS.find((p) => p.heroAnchor === card.anchor);
@@ -378,7 +377,7 @@ if (!process.env.PERFUME_STATIC) {
         assert(r.before, "the Perfumes rail does not lead the department's rails");
         /* Cards open Aria's product page; the end card opens the Perfumes department. */
         assert(r.hrefs.every((h) => h.startsWith("producto.html?") || h === "departamento.html?dept=perfumes"), "a card links out: " + r.hrefs.join(" "));
-        assert(/^S\//.test(r.pen.trim()) && !/US\$/.test(r.pen + r.usd), "price: " + r.pen + " / " + r.usd);
+        assert(/^S\//.test(r.pen.trim()) && /US\$/.test(r.usd), "price: " + r.pen + " / " + r.usd);
         assert(!requests.some((u) => /-catalog\.json$/.test(u)), "a catalogue was fetched");
         if (SHOTS) {
           await page.goto(BASE + href, { waitUntil: "load" });

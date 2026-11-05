@@ -6,7 +6,7 @@
 <title>Ropa Interior y Medias | Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
-<script src="/import-tax.js"></script>
+<script src="/import-tax.js?v=27e656ae98fa697f"></script>
 <meta name="description" content="Ropa interior y medias de mujer y de hombre de las mejores marcas de Estados Unidos: SKIMS, Stance, PSD, Calvin Klein y más, con envío a Perú.">
 <meta name="theme-color" content="#0B0F17">
 <style>
@@ -495,14 +495,15 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
   function usd(n){ return isFinite(n) ? 'US$ ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx;   /* undefined: asking; null: unavailable; number: S/ per US$ */
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }
-  /* SOLES ONLY (#416; #443 c.6629812301, Danny: "we only show soles.
-     Then we show the import underneath"): the bold price is what a
-     shopper in Peru pays, the IMP line directly under it. Until a rate is
-     known the row holds its place -- never dollars. */
+  /* SOLES FIRST (#416): the bold price is what a shopper in Peru pays;
+     dollars are the small grey reference. Until the rate is known the
+     row holds its place; with no rate at all, dollars, plainly. */
   function priceInner(now, was){
-    if (!fx) return '<span class="now"><i class="bar"></i></span>';
+    /* P0 (#443 c.6648727667): the card paints at once -- dollars until a rate is known, soles the moment it lands; never a waiting bar. */
+    if (!fx) return '<span class="now">' + esc(usd(now)) + '</span>' + (isFinite(was) ? '<span class="was">' + esc(usd(was)) + '</span>' : '') + '<span class="pen">&nbsp;</span>';
     return '<span class="now">' + esc(pen(now)) + '</span>'
-      + (isFinite(was) ? '<span class="was">' + esc(pen(was)) + '</span>' : '');
+      + (isFinite(was) ? '<span class="was">' + esc(pen(was)) + '</span>' : '')
+      + '<span class="pen">' + esc(usd(now)) + '</span>';
   }
   /* Painted in place: a rate that lands late never redraws a carousel. */
   function paintPrices(root){
@@ -888,17 +889,18 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
      (aria_fx_rate_v1) the home page, search and checkout use. */
   var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   function loadFx(){
-    /* The shared rate (/import-tax.js AriaImportTax.fx): the 24-hour
-       cache, the endpoint, SUNAT's last good rate, then a retry -- a rate
-       that lands late repaints the prices in place. */
-    var F = window.AriaImportTax && window.AriaImportTax.fx;
-    if (!F){ fx = null; return Promise.resolve(); }
-    var now = F.now();
-    F.on(function(v){ fx = v; paintPrices(document); });
-    if (now > 0){ fx = now; return Promise.resolve(); }
+    /* A rate that only arrives later (the shared module's retries, #443 c.6648727667) fills the soles in place. */
+    var FXL = window.AriaImportTax && window.AriaImportTax.fx;
+    if (FXL && FXL.on){ FXL.on(function(v){ if (v > 0){ fx = v; paintPrices(document); } }); FXL.get().then(function(v){ if (v > 0 && !(fx > 0)){ fx = v; paintPrices(document); } }); }
+    try {
+      var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+      if (c && typeof c.venta === 'number' && Date.now() - (c.fetchedAt || 0) < FX_CACHE_TTL_MS){ fx = c.venta; return Promise.resolve(); }
+    } catch(e){}
     var timer;
     var deadline = new Promise(function(res){ timer = setTimeout(res, 8000); });
-    var ask = F.get().then(function(v){ if (v > 0) fx = v; });
+    var ask = fetch('/.netlify/functions/exchange-rate').then(function(r){ return r.json().then(function(d){ return r.ok ? d : null; }); }).then(function(d){
+      if (d && typeof d.venta === 'number' && d.venta > 0){ fx = d.venta; try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt:Date.now() }))); } catch(e){} paintPrices(document); }
+    }).catch(function(){});
     return Promise.race([ask, deadline]).then(function(){ clearTimeout(timer); if (fx === undefined) fx = null; paintPrices(document); });
   }
   function getFeed(url){

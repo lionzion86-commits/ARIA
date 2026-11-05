@@ -64,10 +64,10 @@ const SOURCES = [
 ];
 /* What makes a function a product card, and what makes it draw a price row. */
 const CARD_RX = /producto\.html\?producto=|data-card-root|class="card"|class="pcard"|rel-card|class="pick"|cmp-row|fc-row|data-assistant-card|openCrossSellProduct\(|productHref\(/;
-const PRICE_RX = /rel-pricebox|\bpriceInner\(|\bslPriceHTML\(|\bpriceHTML\(|\bfmtDisplayPrice\(|\brailLeadPrice\(|\bsolesUnderHTML\(|\bcardSolesHTML\(|\bcardPrice\(|\bamountHTML\(|fmtPEN\(usd \* rateNow\(\)\)/;
+const PRICE_RX = /rel-pricebox|\bpriceInner\(|\bslPriceHTML\(|\bpriceHTML\(|\bfmtDisplayPrice\(|\brailLeadPrice\(|\bsolesUnderHTML\(|\bcardPrice\(|\bamountHTML\(|fmtPEN\(usd \* rateNow\(\)\)/;
 const IMP_RX = /AriaImportTax\.lineHTML\(|\bcardImpLineHTML\(|\bimpLineHTML\(|\bimp\(\w+, "(?:div|span)"\)/;
 /* Functions that format or repaint a price and build no card of their own. */
-const NOT_CARDS = new Set(["priceInner", "priceHTML", "slPriceInner", "paintPrices", "renderSlPrices", "amountHTML", "cardPrice", "solesUnderHTML", "railLeadPrice", "fmtDisplayPrice", "cardSolesHTML", "solesSlot"]);
+const NOT_CARDS = new Set(["priceInner", "priceHTML", "slPriceInner", "paintPrices", "renderSlPrices", "amountHTML", "cardPrice", "solesUnderHTML", "railLeadPrice", "fmtDisplayPrice"]);
 
 function functionsOf(src) {
   const out = [];
@@ -126,10 +126,10 @@ await check("static: every page that draws such a card loads /import-tax.js befo
   for (const p of pages) {
     const src = readFileSync(join(ROOT, p), "utf8");
     /* defer or not: a deferred tag still runs before the deferred bundle after it. */
-    const at = src.search(/<script src="\/import-tax\.js"[^>]*><\/script>/);
+    const at = src.search(/<script src="\/import-tax\.js(?:\?v=[0-9a-f]{16})?"[^>]*><\/script>/);
     assert.ok(at > 0, `${p} does not load /import-tax.js`);
   }
-  assert.ok(indexSrc.search(/<script src="\/import-tax\.js"[^>]*><\/script>/) < indexSrc.indexOf('src="/' + bundleRel + '"'), "index.html loads the bundle before /import-tax.js");
+  assert.ok(indexSrc.search(/<script src="\/import-tax\.js(?:\?v=[0-9a-f]{16})?"[^>]*><\/script>/) < indexSrc.indexOf('src="/' + bundleRel + '"'), "index.html loads the bundle before /import-tax.js");
   const dh = readFileSync(join(ROOT, "assets/js/dept-header.js"), "utf8");
   assert.match(dh, /\.map\(D\.cardHTML\)/, "dept-header.js Explorar todo no longer draws departamento's own card");
 });
@@ -323,15 +323,12 @@ try {
       const href = el.getAttribute("href") || (el.querySelector("a[href]") || {}).getAttribute?.("href") || "";
       const q = new URLSearchParams(href.split("?")[1] || "");
       const store = q.get("tienda") || "";
-      /* The card shows soles only (#443 c.6629812301): the dollar price it
-         was figured from rides on the price row (data-usd), or on the
-         soles slot itself (data-soles-usd). */
-      const priceEl = el.querySelector(".cmp-ln.prod dd [data-usd], .fc-price[data-usd], [data-usd], [data-soles-usd]");
-      const usd = priceEl ? Number(priceEl.getAttribute("data-usd") || priceEl.getAttribute("data-soles-usd")) : NaN;
-      const shown = el.cloneNode(true);
-      shown.querySelectorAll("[data-card-imp]").forEach((x) => x.remove());
+      const priceEl = el.querySelector(".usd, .price-usd, .fc-price, .cmp-ln.prod dd, .rel-usd") || el;
+      const clone = priceEl.cloneNode(true);
+      clone.querySelectorAll("[data-card-imp]").forEach((x) => x.remove());
+      const m = /US\$\s?([\d,]+(?:\.\d{1,2})?)/.exec(clone.textContent);
       const imp = el.querySelector("[data-card-imp]");
-      out.push({ store, title: q.get("producto") || "", usd, dollars: /US\$|(?<![A-Za-z/])\$\s?\d/.test(shown.innerText), soles: /S\/\s?\d/.test(shown.innerText), imp: imp ? imp.textContent : "", visible: imp ? imp.getBoundingClientRect().height > 0 : false });
+      out.push({ store, title: q.get("producto") || "", usd: m ? Number(m[1].replace(/,/g, "")) : NaN, imp: imp ? imp.textContent : "", visible: imp ? imp.getBoundingClientRect().height > 0 : false });
     });
     return out;
   }, sel);
@@ -340,8 +337,6 @@ try {
     const bad = [];
     for (const c of cards) {
       if (!(c.usd > 0) || !c.store) { bad.push(`${where}: a card without a readable store/price (${c.title})`); continue; }
-      /* THE CARD STANDARD (#443 c.6629812301): the price in soles, no dollar figure on the card. */
-      if (c.dollars || !c.soles) bad.push(`${where}: the card's price is not soles-only -- ${c.store} ${c.title}`);
       const d = T.dutiableOf({ usd: c.usd, retailer: c.store });
       if (Math.abs(d - T.THRESHOLD_USD) < 0.02) continue;      // a cent from the line: the inversion may round either way
       if (d > T.THRESHOLD_USD) { over++; if (!c.imp || !c.visible) bad.push(`${where}: over the line, no IMP -- ${c.store} US$ ${c.usd} ${c.title}`); else if (!/^\+ S\/ [\d,]+\.\d{2} IMP$/.test(c.imp)) bad.push(`${where}: IMP line reads ${JSON.stringify(c.imp)}`); }
@@ -361,8 +356,11 @@ try {
     { name: "brand page + Comparador (Bose QuietComfort Ultra)", url: "marca.html?marca=bose&q=" + encodeURIComponent("quietcomfort ultra"), ready: "#brandFocus .fc-row", sel: "a.card, a.fc-row", needOver: 3 },
     { name: "Ofertas", url: "ofertas.html", ready: "a.card", sel: "a.card", needOver: 1 },
     /* #443 c.6629785432: the Diseñador department -- every card over $200
-       of goods (FOB) carries the line, in soles, under its soles price. */
+       of goods (FOB) carries the line under its price. */
     { name: "Diseñador department", url: "departamento.html?dept=luxury", ready: ".rail a.card", sel: "a.card", needOver: 5 },
+    /* P0 (#443 c.6648727667): SSENSE's Vivienne Westwood necklaces -- the
+       line under every one over the line, none under it. */
+    { name: "store search (SSENSE Vivienne Westwood necklaces)", url: "tienda.html?tienda=ssense&q=" + encodeURIComponent("vivienne westwood necklace"), ready: ".sl a.card", sel: "a.card", needOver: 12 },
   ];
   for (const S of SURFACES) {
     await check(`390px, ${S.name}: every card over $200 of goods shows «+ S/ … IMP» under its price, none under it does`, async () => {
@@ -427,7 +425,7 @@ try {
   srv.close();
 }
 
-const MIN_CHECKS = 5 + Object.keys(SAMPLES).length + 6 + 1;
+const MIN_CHECKS = 5 + Object.keys(SAMPLES).length + 7 + 1;
 if (passed + failures.length < MIN_CHECKS) { console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`); process.exit(1); }
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }

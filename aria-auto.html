@@ -237,7 +237,7 @@
   @supports not (aspect-ratio:4/5){ .card .card-img{padding-top:125%} }
   .card .card-title{font-size:14.5px}
 </style>
-<script src="/import-tax.js"></script>
+<script src="/import-tax.js?v=27e656ae98fa697f"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -624,28 +624,44 @@ function sizedImageUrl(url, w){
      labelled, rather than nothing. */
   var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   function loadFx(){
-    /* SOLES, ALWAYS (#443 c.6629812301, Danny: "we only show soles"):
-       the shared rate (/import-tax.js AriaImportTax.fx -- the 24-hour
-       cache, the endpoint, SUNAT's last good rate, then a retry). Until a
-       rate is known the price row keeps its placeholder; never dollars. */
-    var F = window.AriaImportTax && window.AriaImportTax.fx;
-    if (!F){ fxRate = undefined; return; }
-    var now = F.now();
-    if (now > 0){ fxRate = now; }
-    F.on(function(v){ fxRate = v; paintPrices(document); });
-    if (!(now > 0)) F.get().then(function(v){ if (v > 0 && fxRate !== v){ fxRate = v; paintPrices(document); } });
+    /* A rate that only arrives later (the shared module's retries, #443 c.6648727667) fills the soles in place. */
+    var FXL = window.AriaImportTax && window.AriaImportTax.fx;
+    if (FXL && FXL.on){ FXL.on(function(v){ if (v > 0){ fxRate = v; paintPrices(document); } }); FXL.get().then(function(v){ if (v > 0 && !(fxRate > 0)){ fxRate = v; paintPrices(document); } }); }
+    try{
+      var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+      if (c && typeof c.venta === 'number' && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ fxRate = c.venta; return; }
+    }catch(e){}
+    var done = false;
+    function fin(rate){
+      /* A rate that lands after the 8 s timeout still fills the soles (P0, #443 c.6648727667). */
+      if (done && !(rate > 0)) return; done = true;
+      fxRate = rate > 0 ? rate : (fxRate > 0 ? fxRate : null);
+      paintPrices(document);
+    }
+    var to = setTimeout(function(){ fin(0); }, 8000);
+    try {
+      fetch('/.netlify/functions/exchange-rate')
+        .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+        .then(function(x){
+          clearTimeout(to);
+          var v = x.ok && x.d && typeof x.d.venta === 'number' && x.d.venta > 0 ? x.d.venta : 0;
+          if (v){ try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); } catch(e){} }
+          fin(v);
+        })
+        .catch(function(){ clearTimeout(to); fin(0); });
+    } catch(e){ clearTimeout(to); fin(0); }
   }
-
   function fmtPENn(n){
     try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n); }
     catch(e){ return 'S/ ' + Number(n).toFixed(2); }
   }
   function priceInner(usd, wasUsd){
-    /* Soles only, the IMP line directly under them (#443 c.6629812301). */
-    if (!fxRate) return '<div class="pen"><i></i></div>';
+    /* P0 (#443 c.6648727667): the card paints at once -- dollars until a rate is known, soles the moment it lands; never a waiting bar. */
+    if (!fxRate) return '<div class="pen">' + esc(fmtUSD(usd)) + '</div><div class="usd">&nbsp;</div>';
     var pen = Math.round(usd * fxRate * 100) / 100;
     var was = wasUsd > usd ? Math.round(wasUsd * fxRate * 100) / 100 : 0;
-    return '<div class="pen">' + esc(fmtPENn(pen)) + (was ? '<span class="was">' + esc(fmtPENn(was)) + '</span>' : '') + '</div>';
+    return '<div class="pen">' + esc(fmtPENn(pen)) + (was ? '<span class="was">' + esc(fmtPENn(was)) + '</span>' : '') + '</div>'
+      + '<div class="usd">' + esc(fmtUSD(usd)) + '</div>';
   }
   /* Prices are painted in place: a rate that lands late never redraws the grid. */
   function paintPrices(root){
@@ -1091,7 +1107,7 @@ function partCard(it, vehicle, fitted){
       '<p class="pmeta">' + esc(sourceLabel(it.s)) + (it.b ? ' · ' + esc(it.b) : '') + (loc ? ' · ' + esc(loc) : '') + '</p>' +
       '<p class="ppart">' + (pn ? 'N.º de parte: ' + esc(pn) : '&nbsp;') + '</p>' +
       (ok
-        ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b></div>'
+        ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b><small>' + fmtUSD(usd) + '</small></div>'
           /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
              the arithmetic checkout charges; nothing under $200 of goods. */
           + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.u, retailer: it.s || 'autozone', title: it.t }) : '')
