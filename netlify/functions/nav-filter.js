@@ -1,5 +1,5 @@
 /* ============================================================
-   GET /.netlify/functions/nav-filter?(dept|tienda|marca)=<key> | ofertas=1
+   GET /.netlify/functions/nav-filter?(dept|tienda|marca)=<key> | ofertas=1[&cat=<k>]
        | ri=mujer|hombre  [&u=][&t=][&s=][&b=a|b][&z=][&p=][&r=][&w=][&o=1]
        [&fx=][&sort=][&page=]
    (#443 c.6616347095, the Nordstrom pattern)
@@ -17,7 +17,7 @@ const json = (statusCode, body, cache) => ({
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     ...(cache
-      ? { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": cache, "Netlify-Vary": "query=dept|tienda|marca|ofertas|ri|u|t|s|b|z|p|r|w|o|fx|sort|page" }
+      ? { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": cache, "Netlify-Vary": "query=dept|tienda|marca|ofertas|cat|ri|u|t|s|b|z|p|r|w|o|fx|sort|page" }
       : { "Cache-Control": "no-store" }),
   },
   body: JSON.stringify(body),

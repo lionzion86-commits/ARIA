@@ -32,10 +32,23 @@
    Ropa Interior (its Explorar todo). The department's old filtered view
    is gone: departamento.html sends its old address to its own page.
 
+   OFERTAS, INSIDE ONE CATEGORY (#443 c.6629871333, Danny: "Ofertas
+   zapatos mujer, hombre o niños"). ofertas.html's Por categoría view
+   mounts the bar on one category (src 'ofertas=1&cat=<k>') when a
+   category is chosen, under its category pills: the category's own
+   offers stay the landing (its store rails), the bar narrows inside
+   them. With audPills the page gets the Mujer / Hombre / Niños pills on
+   top -- only the audiences the server says the category really holds
+   (its aud list) -- and Para quién leaves the Filtrar panel. off()
+   takes the bar away again (Todas, Por tienda).
+
    The page names itself in window.AriaNFHost:
      { src: 'tienda=macys', endpoint, prefix: 'f', hide: [selectors],
        anchor: element the bar goes after, cardHTML(card), after(root),
-       getJSON(url), esc(s), title(): the listing's name }
+       getJSON(url), esc(s), title(): the listing's name,
+     optional: names {u: 'aud'} (a key's own URL name), uvals {women:
+       'mujer', ...} (the audience's URL value), audPills, resAnchor
+       (the results rail goes before it), unit ['oferta', 'ofertas'] }
    ================================================================== */
 (function(){
   'use strict';
@@ -52,6 +65,9 @@
   var esc = H.esc || function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var getJSON = H.getJSON || function(u){ return fetch(u).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
   var num = function(n){ return Number(n || 0).toLocaleString('es-PE'); };
+  var UNIT = H.unit || ['producto', 'productos'];
+  var UIN = {}; if (H.uvals) for (var uk in H.uvals) UIN[H.uvals[uk]] = uk;
+  var pname = function(k){ return (H.names && H.names[k]) || PFX + k; };
 
   var CSS = ''
     + (H.hide || []).map(function(s){ return 'html.nf-on ' + s; }).join(',') + (H.hide && H.hide.length ? '{display:none!important}' : '')
@@ -59,6 +75,7 @@
     + '.nf-dark{color:#fff}'
     + '.nf-pills{display:flex;gap:8px;overflow-x:auto;padding:0 20px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}'
     + '.nf-pills::-webkit-scrollbar{display:none}'
+    + '.nf-aud{padding-bottom:10px}'
     + '.nf-pill{flex:0 0 auto;height:42px;padding:0 18px;border-radius:999px;border:1px solid #E4E6EC;background:#fff;color:#0A1F44;font:800 14px/1 sans-serif;font-family:inherit;cursor:pointer;white-space:nowrap}'
     + '.nf-pill small{font-weight:600;color:#6B7487;margin-left:6px;font-size:12px}'
     + '.nf-pill[aria-pressed="true"]{background:#0A1F44;color:#fff;border-color:#0A1F44}'
@@ -113,22 +130,25 @@
   var BTNS = [['f', 'Filtrar'], ['sort', 'Ordenar'], ['b', 'Marca'], ['z', 'Talla'], ['p', 'Precio']];
 
   var box = document.createElement('section'); box.className = 'nf' + (H.dark ? ' nf-dark' : ''); box.id = 'nf'; box.setAttribute('aria-label', 'Tipos y filtros');
-  box.innerHTML = '<nav class="nf-pills" id="nfPills" aria-label="Tipos"></nav>'
+  box.innerHTML = (H.audPills ? '<nav class="nf-pills nf-aud" id="nfAud" aria-label="Para quién" hidden></nav>' : '')
+    + '<nav class="nf-pills" id="nfPills" aria-label="Tipos"></nav>'
     + '<div class="nf-bar" id="nfBar" role="toolbar" aria-label="Filtros">'
     + BTNS.map(function(x){ return '<div class="nf-dd" data-dd="' + x[0] + '"><button type="button" class="nf-btn" data-nf-btn="' + x[0] + '" aria-expanded="false" aria-haspopup="true"><span>' + x[1] + '</span>' + CARET + '</button></div>'; }).join('')
     + '</div><div class="nf-sel" id="nfSel" aria-label="Filtros aplicados" hidden></div>'
     + '<p class="nf-count" id="nfCount" hidden></p>'
     + '<section class="nf-res" id="nfRes" aria-live="polite" hidden><div class="rail-head"><h2 id="nfTitle"></h2><span class="rail-count" id="nfN"></span></div><div class="rail nf-rail" id="nfRail"></div></section>';
   H.anchor.parentNode.insertBefore(box, H.anchor.nextSibling);
+  if (H.resAnchor && H.resAnchor.parentNode) H.resAnchor.parentNode.insertBefore(box.querySelector('#nfRes'), H.resAnchor);
   H.boot = { done: true, box: box };
   var pillsEl = document.getElementById('nfPills'), barEl = document.getElementById('nfBar'), selEl = document.getElementById('nfSel'),
       countEl = document.getElementById('nfCount'), resEl = document.getElementById('nfRes'), railEl = document.getElementById('nfRail'),
-      titleEl = document.getElementById('nfTitle'), nEl = document.getElementById('nfN');
+      titleEl = document.getElementById('nfTitle'), nEl = document.getElementById('nfN'), audEl = document.getElementById('nfAud');
 
   var S = read(), DATA = null, SEQ = 0, PAGE = 0, FX = 0;
   function read(){
     var sp = new URLSearchParams(location.search), s = {};
-    KEYS.forEach(function(k){ var v = (sp.get(PFX + k) || '').trim(); s[k] = MULTI[k] ? (v ? v.split(SEP).filter(Boolean) : []) : v; });
+    KEYS.forEach(function(k){ var v = (sp.get(pname(k)) || '').trim(); s[k] = MULTI[k] ? (v ? v.split(SEP).filter(Boolean) : []) : v; });
+    if (UIN[s.u]) s.u = UIN[s.u];
     if (!AUD[s.u]) s.u = '';
     if (s.o !== '1') s.o = '';
     if (!SORTS.some(function(x){ return x[0] === s.sort; })) s.sort = '';
@@ -137,7 +157,7 @@
   function active(s){ return !!(s.u || s.t || s.s || s.b.length || s.z.length || s.p.length || s.r.length || s.w || s.o || s.sort); }
   function urlOf(s){
     var u = new URL(location.href);
-    KEYS.forEach(function(k){ var v = MULTI[k] ? s[k].join(SEP) : s[k]; if (v) u.searchParams.set(PFX + k, v); else u.searchParams.delete(PFX + k); });
+    KEYS.forEach(function(k){ var v = MULTI[k] ? s[k].join(SEP) : s[k]; if (k === 'u' && v && H.uvals && H.uvals[v]) v = H.uvals[v]; if (v) u.searchParams.set(pname(k), v); else u.searchParams.delete(pname(k)); });
     return u.pathname + u.search + u.hash;
   }
   function set(patch){
@@ -181,7 +201,7 @@
   function letGo(){ var h = HOLD; HOLD = null; if (h) h(); }
   /* A jump link's #hash is a popstate too: only a new query re-reads. */
   var LAST_Q = location.search;
-  window.addEventListener('popstate', function(){ if (location.search === LAST_Q) return; LAST_Q = location.search; S = read(); run(0); });
+  window.addEventListener('popstate', function(){ if (location.search === LAST_Q || !H.src) return; LAST_Q = location.search; S = read(); run(0); });
 
   function getFx(){
     try { var c = JSON.parse(localStorage.getItem('aria_fx_rate_v1') || 'null'); if (c && typeof c.venta === 'number' && c.venta > 0) return Promise.resolve(c.venta); } catch(e){}
@@ -248,8 +268,22 @@
         + (f.t || []).map(function(x){ return '<button type="button" class="nf-pill" data-nf-t="' + esc(x[0]) + '" aria-pressed="' + (S.t === x[0]) + '">' + esc(x[1]) + '<small>' + num(x[2]) + '</small></button>'; }).join('');
     }
     pillsEl.innerHTML = ph; pillsEl.hidden = !ph;
+    /* Mujer / Hombre / Niños: the audiences the listing really holds
+       (the server's aud), each counted under the other selections. */
+    if (audEl){
+      var ah = '', ok = DATA.aud || [];
+      if (ok.length){
+        ah = '<button type="button" class="nf-pill" data-nf-u="" aria-pressed="' + (!S.u) + '">Todos' + (DATA.uAll != null ? '<small>' + num(DATA.uAll) + '</small>' : '') + '</button>';
+        ok.forEach(function(k){
+          var c = 0; (f.u || []).forEach(function(x){ if (x[0] === k) c = x[2]; });
+          if (!c && S.u !== k) return;
+          ah += '<button type="button" class="nf-pill" data-nf-u="' + esc(k) + '" aria-pressed="' + (S.u === k) + '">' + esc(AUD[k] || k) + '<small>' + num(c) + '</small></button>';
+        });
+      }
+      audEl.innerHTML = ah; audEl.hidden = !ah;
+    }
 
-    var n = { f: (S.u ? 1 : 0) + (S.o ? 1 : 0) + S.r.length + (S.w ? 1 : 0), sort: S.sort ? 1 : 0, b: S.b.length, z: S.z.length, p: S.p.length };
+    var n = { f: (S.u && !audEl ? 1 : 0) + (S.o ? 1 : 0) + S.r.length + (S.w ? 1 : 0), sort: S.sort ? 1 : 0, b: S.b.length, z: S.z.length, p: S.p.length };
     var any = { f: true, sort: true, b: (f.b || []).length > 1 || S.b.length > 0, z: (f.z || []).length > 0, p: (f.p || []).length > 0 };
     Array.prototype.forEach.call(barEl.querySelectorAll('.nf-btn'), function(b){
       var k = b.getAttribute('data-nf-btn'), old = b.querySelector('b');
@@ -275,7 +309,7 @@
     selEl.hidden = !chips.length;
     if (!on) return;
 
-    countEl.textContent = DATA.count ? num(DATA.count) + (DATA.count === 1 ? ' producto' : ' productos') : '';
+    countEl.textContent = DATA.count ? num(DATA.count) + ' ' + (DATA.count === 1 ? UNIT[0] : UNIT[1]) : '';
     titleEl.textContent = title();
     nEl.textContent = DATA.count ? num(DATA.count) : '';
     var html = (DATA.cards || []).map(function(c){ try { return H.cardHTML(c); } catch(e){ return ''; } }).join('');
@@ -319,7 +353,7 @@
     var f = (DATA && DATA.facets) || {};
     if (k === 'f'){
       var h = '';
-      if ((f.u || []).length) h += '<h4>Para quién</h4>' + chipsHTML('u', f.u);
+      if ((f.u || []).length && !audEl) h += '<h4>Para quién</h4>' + chipsHTML('u', f.u);
       if ((f.t || []).length) h += '<h4>Tipo</h4>' + chipsHTML('t', f.t);
       if ((f.o || []).length) h += '<h4>Precio rebajado</h4>' + chipsHTML('o', [['1', 'Solo ofertas', f.o[0][2]]]);
       if ((f.r || []).length > 1 || S.r.length) h += '<h4>Tienda</h4>' + chipsHTML('r', withChosen('r', f.r));
@@ -384,6 +418,7 @@
     }
   }
   pillsEl.addEventListener('click', function(e){ pick(e.target.closest('button')); });
+  if (audEl) audEl.addEventListener('click', function(e){ pick(e.target.closest('button')); });
   selEl.addEventListener('click', function(e){
     var x = e.target.closest('[data-nf-x]');
     if (x){
@@ -398,15 +433,25 @@
   railEl.addEventListener('click', function(e){ var m = e.target.closest('#nfMore'); if (m) { m.disabled = true; run(PAGE + 1); } });
 
   /* A page with two listings points the bar at the other one in place. */
+  var EMPTY = function(){ return { u: '', t: '', s: '', b: [], z: [], p: [], o: '', r: [], w: '', sort: '' }; };
   function resource(src, anchor){
-    if (src === H.src) return;
-    H.src = src;
+    if (src === H.src && !box.hidden) return;
+    H.src = src; box.hidden = false;
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
-    S = { u: '', t: '', s: '', b: [], z: [], p: [], o: '', r: [], w: '', sort: '' };
+    S = EMPTY();
     try { history.replaceState(null, '', urlOf(S)); } catch(e){}
     LAST_Q = location.search;
     run(0);
   }
-  window.AriaNF = { state: function(){ return S; }, set: set, box: box, resource: resource, data: function(){ return DATA; }, url: function(){ return api(0); } };
-  getFx().then(function(fx){ FX = fx || 0; run(0); });
+  /* The page leaves the listing (Todas, Por tienda): the bar goes, its state with it. */
+  function off(){
+    SEQ++; closeDD(); S = EMPTY(); H.src = '';
+    try { history.replaceState(null, '', urlOf(S)); } catch(e){}
+    LAST_Q = location.search;
+    results(false); box.hidden = true;
+  }
+  window.AriaNF = { state: function(){ return S; }, set: set, box: box, resource: resource, off: off, active: function(){ return active(S); }, data: function(){ return DATA; }, url: function(){ return api(0); } };
+  /* A page that mounted the bar and left the listing before it loaded. */
+  if (!H.src) box.hidden = true;
+  getFx().then(function(fx){ FX = fx || 0; if (H.src) run(0); });
 })();
