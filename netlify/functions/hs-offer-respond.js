@@ -29,7 +29,7 @@ function proConnectedEmail(pro, c) {
   };
 }
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "offer-respond", limit: 40, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "offer-respond", limit: 40, windowSec: 3600 } }, async ({ S, body, now }) => {
   const c = await caseForToken(S, body.caseId, body.token);
   if (!c) return fail(404, "not_found", "We could not find that case");
   if (!ACTIONS.includes(body.action)) return fail(400, "bad_action", "Unknown action");

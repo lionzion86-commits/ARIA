@@ -5,7 +5,7 @@
 import { endpoint, reply, fail, normEmail, getJSON, proSelf, rateOk } from "./_hs-store.js";
 import { verifyPassword, burnPasswordCheck, createProSession, proCookieHeader } from "./_hs-auth.js";
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "pro-login", limit: 20, windowSec: 900 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "pro-login", limit: 20, windowSec: 900 } }, async ({ S, body, now }) => {
   const email = normEmail(body.email);
   const password = typeof body.password === "string" ? body.password.slice(0, 200) : "";
   const bad = () => fail(401, "bad_credentials", "Email or password is incorrect");

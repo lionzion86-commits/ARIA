@@ -4,7 +4,7 @@
 import { endpoint, reply, fail, getJSON, isId, str, proSelf } from "./_hs-store.js";
 import { adminFromEvent } from "./_hs-auth.js";
 
-export const handler = endpoint({ methods: ["POST"] }, async ({ event, S, body, now }) => {
+export default endpoint({ methods: ["POST"] }, async ({ event, S, body, now }) => {
   const admin = await adminFromEvent(event, S);
   if (!admin) return fail(403, "admin_only", "Admins only");
   if (!isId("pro", body.proId) || typeof body.verified !== "boolean") return fail(400, "bad_request", "Send proId and verified: true|false");

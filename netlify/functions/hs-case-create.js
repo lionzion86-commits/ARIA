@@ -58,7 +58,7 @@ export function buildCase(body, now = Date.now()) {
   return { case: c };
 }
 
-export const handler = endpoint({ methods: ["POST"], rate: { bucket: "case-create", limit: 6, windowSec: 3600 } }, async ({ S, body, now }) => {
+export default endpoint({ methods: ["POST"], rate: { bucket: "case-create", limit: 6, windowSec: 3600 } }, async ({ S, body, now }) => {
   const r = buildCase(body, now);
   if (r.error) return fail(400, r.error[0], r.error[1]);
   const c = r.case;

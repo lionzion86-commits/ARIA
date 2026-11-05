@@ -37,10 +37,36 @@ export function __setStoreFactory(f) { storeFactory = f; }
 export function __setMailer(f) { mailer = f; }
 export function mail(msg, opts) { return (mailer || sendMail)(msg, opts); }
 
+/**
+ * STRONG CONSISTENCY NEEDS THE V2 RUNTIME (#443 c.6666325601, P0).
+ * A store opened with consistency "strong" sends EVERY operation -- writes
+ * included -- to the context's uncachedEdgeURL. Lambda-compat functions
+ * (export const handler + connectLambda) never get that URL, so every
+ * Blobs call threw BlobsConsistencyError: reads were swallowed by getJSON
+ * (looked like "not found"), and the first uncaught write -- rateOk --
+ * turned login, signup, case-create and upload into a 500. Every hs
+ * endpoint now runs as a Functions v2 handler (endpoint() below accepts a
+ * Request), where Netlify supplies the full context. Strong is asked for
+ * only when the context really has the uncached URL; anything still on
+ * the Lambda shape (hs-stripe-webhook) falls back to eventual instead of
+ * failing every call.
+ */
+export function blobsContext() {
+  const raw = globalThis.netlifyBlobsContext || process.env.NETLIFY_BLOBS_CONTEXT;
+  if (typeof raw !== "string" || !raw) return {};
+  try { return JSON.parse(Buffer.from(raw, "base64").toString("utf8")) || {}; } catch { return {}; }
+}
+let warnedEventual = false;
+
 /** Every store this product uses, for one request. */
 export function openStores(event) {
-  if (!storeFactory) { try { connectLambda(event); } catch { /* local / already wired */ } }
-  const make = storeFactory || ((name) => getStore({ name, consistency: "strong" }));
+  if (!storeFactory && event && event.blobs) { try { connectLambda(event); } catch { /* local / already wired */ } }
+  let make = storeFactory;
+  if (!make) {
+    const strong = Boolean(blobsContext().uncachedEdgeURL);
+    if (!strong && !warnedEventual) { warnedEventual = true; console.warn("[home-shield] Blobs context has no uncachedEdgeURL: using eventual consistency"); }
+    make = (name) => getStore(strong ? { name, consistency: "strong" } : { name });
+  }
   const out = {};
   for (const [k, name] of Object.entries(STORE_NAMES)) out[k] = make(name);
   return out;
@@ -139,7 +165,7 @@ export async function rateOk(S, bucket, key, limit, windowSec, now = Date.now())
  */
 export function endpoint({ methods, rate = null, maxBody = 32 * 1024 }, fn) {
   const allow = methods.join(", ") + ", OPTIONS";
-  return async function handler(event) {
+  return v2(async function handler(event) {
     if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: baseHeaders(allow), body: "" };
     if (!methods.includes(event.httpMethod)) return fail(405, "method", "Method not allowed", { allow });
     const S = openStores(event);
@@ -163,6 +189,40 @@ export function endpoint({ methods, rate = null, maxBody = 32 * 1024 }, fn) {
       console.error("[home-shield]", e && e.stack || e);
       return fail(500, "server", "Something went wrong on our side. Please try again.");
     }
+  });
+}
+
+const isRequest = (a) => Boolean(a && typeof a.url === "string" && a.headers && typeof a.headers.get === "function");
+
+/**
+ * One handler, both shapes. Netlify calls a v2 function (the file's
+ * default export) with (Request, context); tests and local tools call it
+ * with a Lambda-style event. The Request is turned into that event --
+ * lower-cased headers, the client IP from context.ip, the raw body as
+ * base64 (readJson decodes it) -- and the { statusCode, headers, body,
+ * isBase64Encoded } answer back into a Response.
+ */
+export function v2(lambda) {
+  return async function dual(a, context) {
+    if (!isRequest(a)) return lambda(a, context);
+    const req = a;
+    const u = new URL(req.url);
+    const headers = {};
+    req.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+    if (context && context.ip && !headers["x-nf-client-connection-ip"]) headers["x-nf-client-connection-ip"] = String(context.ip);
+    let body = "";
+    let isBase64Encoded = false;
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      const buf = Buffer.from(await req.arrayBuffer());
+      if (buf.length) { body = buf.toString("base64"); isBase64Encoded = true; }
+    }
+    const queryStringParameters = {};
+    u.searchParams.forEach((v, k) => { queryStringParameters[k] = v; });
+    const r = (await lambda({ httpMethod: req.method, headers, body, isBase64Encoded, queryStringParameters, path: u.pathname, rawUrl: req.url }, context)) || {};
+    const status = r.statusCode || 200;
+    const payload = status === 204 || status === 304 || r.body == null || r.body === "" ? null
+      : r.isBase64Encoded ? Buffer.from(r.body, "base64") : r.body;
+    return new Response(payload, { status, headers: r.headers || {} });
   };
 }
 

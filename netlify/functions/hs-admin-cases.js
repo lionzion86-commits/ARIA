@@ -6,7 +6,7 @@
 import { endpoint, reply, fail, loadAll, anonymizeCase } from "./_hs-store.js";
 import { adminFromEvent } from "./_hs-auth.js";
 
-export const handler = endpoint({ methods: ["GET"] }, async ({ event, S }) => {
+export default endpoint({ methods: ["GET"] }, async ({ event, S }) => {
   if (!(await adminFromEvent(event, S))) return fail(403, "admin_only", "Admins only");
   const cases = await loadAll(S.cases, "c_");
   const offers = await loadAll(S.offers, "o_");

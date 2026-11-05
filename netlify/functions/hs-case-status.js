@@ -27,7 +27,7 @@ export async function homeownerView(S, c) {
   };
 }
 
-export const handler = endpoint({ methods: ["GET"], rate: { bucket: "case-status", limit: 240, windowSec: 3600, methods: ["GET"] } }, async ({ S, query }) => {
+export default endpoint({ methods: ["GET"], rate: { bucket: "case-status", limit: 240, windowSec: 3600, methods: ["GET"] } }, async ({ S, query }) => {
   const c = await caseForToken(S, query.c, query.t);
   if (!c) return fail(404, "not_found", "We could not find that case. Check the link.");
   return reply(200, await homeownerView(S, c));
