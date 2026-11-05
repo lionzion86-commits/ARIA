@@ -123,7 +123,11 @@ export async function rateOk(S, bucket, key, limit, windowSec, now = Date.now())
   let n = 0;
   try { const v = await S.rate.get(k, { type: "json" }); n = (v && v.n) || 0; } catch { n = 0; }
   if (n >= limit) return false;
-  await S.rate.setJSON(k, { n: n + 1, exp: (win + 1) * windowSec * 1000 });
+  // FAIL-OPEN (P0, 2026-11-05): this write threw in production and took
+  // down every rate-limited endpoint with it -- login included. A counter
+  // write must never be able to 500 the request it guards: log and allow.
+  try { await S.rate.setJSON(k, { n: n + 1, exp: (win + 1) * windowSec * 1000 }); }
+  catch (e) { console.error("[home-shield] rate write failed (fail-open)", e && e.stack || e); }
   return true;
 }
 
