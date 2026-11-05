@@ -525,7 +525,7 @@
      early, barge-in stops her when the homeowner starts talking.
      ================================================================ */
   var convo = (function () {
-    var c = { active: false, state: "off", stream: null, ctx: null, an: null, buf: null, timer: 0, rec: null, chunks: [], mime: "", startedAt: 0, lastVoice: 0, heard: false, loud: 0, floor: 0.01, calib: [], idleRounds: 0 };
+    var c = { active: false, state: "off", stream: null, ctx: null, an: null, buf: null, timer: 0, rec: null, chunks: [], mime: "", startedAt: 0, lastVoice: 0, heard: false, loud: 0, peak: 0, openedAt: 0, warned: false, calib: [], idleRounds: 0 };
     var SILENCE_MS = 900, MAX_UTTER_MS = 30000, NO_SPEECH_MS = 15000, BARGE_MS = 260;
     c.uiState = function () { return c.state === "speaking" ? "speaking" : c.state === "thinking" ? "thinking" : c.state === "listening" ? "listening" : "idle"; };
     c.set = function (s) {
@@ -550,18 +550,23 @@
       for (var i = 0; i < opts.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
       return "";
     }
+    /* Noise floor: a low percentile of the last ~3 s, skipping the first
+       second after the mic opens. Someone already talking cannot raise the
+       threshold above a normal voice: it is capped. */
     function tick() {
       if (!c.active) return;
       var now = Date.now(), lv = level();
-      if (c.calib.length < 8) { c.calib.push(lv); if (c.calib.length === 8) { var s = c.calib.slice().sort(); c.floor = Math.max(0.004, s[4]); } }
-      var thr = Math.max(0.018, c.floor * 3), barge = Math.max(0.05, c.floor * 6);
+      if (now - c.openedAt > 1000) { c.calib.push(lv); if (c.calib.length > 60) c.calib.shift(); }
+      var th = vadThresholds(c.calib), thr = th.speech, barge = th.barge;
       if (c.state === "listening") {
+        if (lv > c.peak) c.peak = lv;
+        if (!c.warned && !c.heard && now - c.startedAt > 4000 && c.peak < 0.0015) { c.warned = true; micProblem(); }
         if (lv > thr) { if (!c.heard) { c.heard = true; c.set("listening"); } c.lastVoice = now; }
         if (c.heard && now - c.lastVoice > SILENCE_MS) return c.finish();
         if (c.heard && now - c.startedAt > MAX_UTTER_MS) return c.finish();
         if (!c.heard && now - c.startedAt > NO_SPEECH_MS) {
           c.idleRounds++;
-          if (c.idleRounds >= 3) return c.stop();
+          if (c.idleRounds >= 3) { c.stop(); showErr(t("info.autoStop")); return; }
           c.restartRec();
         }
       } else if (c.state === "speaking") {
@@ -573,13 +578,20 @@
       c.startRec();
     };
     c.startRec = function () {
-      c.chunks = []; c.startedAt = Date.now(); c.heard = false;
+      c.chunks = []; c.startedAt = Date.now(); c.heard = false; c.peak = 0;
       try { c.rec = c.mime ? new MediaRecorder(c.stream, { mimeType: c.mime }) : new MediaRecorder(c.stream); } catch (e) { c.rec = new MediaRecorder(c.stream); }
       c.rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) c.chunks.push(ev.data); };
+      c.rec.onerror = function (ev) {
+        var e = ev && (ev.error || ev);
+        showErr(t("err.mic", { e: (e && (e.message || e.name)) || "recorder error" }));
+        if (c.active && c.state === "listening") setTimeout(function () { if (c.active) c.restartRec(); }, 300);
+      };
       c.rec.start(250);
     };
+    c.resume = function () { if (c.ctx && c.ctx.state === "suspended" && c.ctx.resume) { try { c.ctx.resume(); } catch (e) { /* ignore */ } } };
     c.listen = function (barged) {
       if (!c.active) return;
+      c.resume();
       c.set("listening");
       c.startRec();
       if (barged) { c.heard = true; c.lastVoice = Date.now(); c.set("listening"); }
@@ -617,13 +629,26 @@
         showErr(t("err.mic", { e: "not supported on this browser" }));
         return Promise.resolve();
       }
-      c.active = true; c.idleRounds = 0;
+      c.active = true; c.idleRounds = 0; c.warned = false;
       c.set("starting");
+      /* The AudioContext is made and resumed HERE, inside the tap: created
+         after the permission prompt it starts suspended on desktop and the
+         analyser reads zeros forever. */
+      var AC = window.AudioContext || window.webkitAudioContext;
+      try { c.ctx = new AC(); } catch (e) { c.ctx = null; }
+      c.resume();
       return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
         if (!c.active) { stream.getTracks().forEach(function (tr) { tr.stop(); }); return; }
         c.stream = stream;
-        var AC = window.AudioContext || window.webkitAudioContext;
-        c.ctx = new AC();
+        if (!c.ctx) c.ctx = new AC();
+        c.resume();
+        var track = stream.getAudioTracks()[0];
+        if (track) {
+          if (track.muted) micProblem();
+          track.onmute = function () { if (c.active) micProblem(); };
+          track.onended = function () { if (c.active) { showErr(t("err.mic", { e: "the microphone was disconnected" })); c.stop(); } };
+        }
+        c.openedAt = Date.now();
         var src = c.ctx.createMediaStreamSource(stream);
         c.an = c.ctx.createAnalyser(); c.an.fftSize = 1024;
         c.buf = new Float32Array(c.an.fftSize);
@@ -651,6 +676,25 @@
     return c;
   })();
   window.HS_CONVO = convo;
+
+  /** Speech and barge-in thresholds from recent mic levels: the 10th
+   * percentile is the room, and the speech threshold is capped so a voice
+   * always clears it. */
+  function vadThresholds(levels) {
+    var floor = 0.006;
+    if (levels && levels.length >= 6) { var srt = levels.slice().sort(function (a, b) { return a - b; }); floor = Math.max(0.002, srt[Math.floor(srt.length * 0.1)]); }
+    return { floor: floor, speech: Math.min(Math.max(0.018, floor * 3), 0.04), barge: Math.min(Math.max(0.05, floor * 6), 0.09) };
+  }
+  window.HS_VAD = vadThresholds;
+
+  /* The mic gives us nothing: say so, on screen and in her voice. */
+  var micWarnedAt = 0;
+  function micProblem() {
+    if (Date.now() - micWarnedAt < 10000) return;
+    micWarnedAt = Date.now();
+    showErr(t("err.micSilent"));
+    if (!speech.active) speak(t("err.micSilent"), { owner: "chat" });
+  }
 
   function blobToB64(blob) {
     return new Promise(function (res, rej) {

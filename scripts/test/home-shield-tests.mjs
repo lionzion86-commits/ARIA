@@ -687,7 +687,7 @@ await check("i18n: the HTML ships the English copy (works before hs.js runs)", (
   for (const m of PAGE.matchAll(/data-i18n="([^"]+)"( data-i18n-lang="(es|en)")?[^>]*>([^<]*)</g)) assert.equal(dec(m[4]).trim(), I18N[m[3] || "en"][m[1]], m[1]);
 });
 await check("copy: the exact intro, the disclaimer, no emojis", () => {
-  assert.equal(I18N.en["intro.line1"], "Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your roofer, all into one.");
+  assert.equal(I18N.en["intro.line1"], "Hey, I'm Aria. I'm in your corner and I'm always in your corner. I'm your lawyer, your public adjuster, your contractor, all into one.");
   assert.match(I18N.en["intro.line2"], /^Upload your policy — I can dissect it: strong points, weak points, a better option if one exists, and my best recommendation\.$/);
   assert.equal(I18N.en["footer.disclaimer"], "Aria provides general information, not legal advice. Aria is not a licensed attorney, public adjuster, insurance agent or contractor; she connects you with licensed professionals.");
   assert.match(I18N.en["case.consent"], /^I agree to be contacted only by professionals I approve\. Aria Home Shield never sells my information\.$/);
@@ -706,6 +706,18 @@ await check("launch angle: the hero leads with the language promise; the languag
   for (const L of ["en", "es"]) for (const k of ["barrier.title", "barrier.p1", "barrier.p2", "barrier.p3"]) assert.ok(I18N[L][k], k + " " + L);
   assert.match(I18N.en["barrier.p1"], /second language, with a 60-page policy full of traps, is harder/);
   assert.match(I18N.es["barrier.p3"], /en tu idioma, línea por línea, hasta que la entiendas/);
+});
+await check("wording: «Contractor / Contratista», never roofer / techero / contratista de techos, in any displayed or spoken text", () => {
+  const BAD = /\broofers?\b|\btecher[oa]s?\b|\btechador(a|es)?\b|contratistas? de techos/i;
+  for (const L of ["en", "es"]) for (const [k, v] of Object.entries(I18N[L])) assert.ok(!BAD.test(v), `${L} ${k}: ${v}`);
+  const visible = (html) => html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+  for (const [n, h] of [["index.html", PAGE], ["caso.html", CASO]]) assert.ok(!BAD.test(visible(h)), n + ": " + (visible(h).match(BAD) || [])[0]);
+  const p = FE.prompt.buildHsSystemPrompt({ lang: "en" }).replace(/"trades": \[[^\]]*\]/, "");
+  assert.ok(!BAD.test(p.split("\n").filter((l) => !/^OUTPUT|^\{"issue"/.test(l)).join("\n")), "prompt prose says roofer");
+  assert.match(p, /a "contractor" in English and a "contratista" in Spanish/);
+  assert.match(I18N.en["intro.line1"], /your public adjuster, your contractor, all into one\.$/);
+  assert.match(I18N.es["intro.line1"], /tu contratista, todo en una\.$/);
+  assert.equal(I18N.en["trade.roofer"], "Contractor"); assert.equal(I18N.es["trade.roofer"], "Contratista");
 });
 await check("Mountain Test (static): no shop bundle, no catalogue, deferred script, small files", () => {
   for (const s of [PAGE, CASO]) {
@@ -1006,6 +1018,70 @@ if (pw) {
     });
   }
 
+  /* A fake microphone inside the page: "talk" = a voice from the first
+     instant for 2.5 s (the user already talking while the mic calibrates),
+     "silent" = a live track at level 0, "muted" = a muted track. Plus an
+     AudioContext that starts suspended until resume() is called. */
+  const fakeMic = (mode) => `(() => {
+    window.__resumes = 0;
+    const Orig = window.AudioContext;
+    window.AudioContext = function () {
+      const c = new Orig(); let resumed = false; const r = c.resume.bind(c);
+      Object.defineProperty(c, "state", { get: () => (resumed ? "running" : "suspended") });
+      c.resume = () => { window.__resumes++; resumed = true; return r(); };
+      return c;
+    };
+    navigator.mediaDevices.getUserMedia = async () => {
+      const ac = new Orig(); const dst = ac.createMediaStreamDestination();
+      if ("${mode}" === "talk") { const o = ac.createOscillator(); o.frequency.value = 220; const g = ac.createGain(); g.gain.setValueAtTime(0.6, ac.currentTime); g.gain.setValueAtTime(0, ac.currentTime + 2.5); o.connect(g); g.connect(dst); o.start(); }
+      const st = dst.stream;
+      if ("${mode}" === "muted") Object.defineProperty(st.getAudioTracks()[0], "muted", { get: () => true });
+      return st;
+    };
+  })()`;
+
+  for (const W of [1366, 390]) {
+    await check(`browser ${W}: mic: AudioContext made and resumed in the tap; a user talking from the first instant is still heard`, async () => {
+      reset();
+      stub["hs-stt"] = (b) => ({ json: { text: b && b.audio && b.audio.length > 100 ? "Hello Aria." : "" } });
+      stub["hs-chat"] = () => ({ json: { reply: "I'm here. Tell me what happened.", caseDraft: {}, ready: false } });
+      const c = await ctx(W); const page = await c.newPage(); const errs = errorsOf(page);
+      await page.addInitScript(fakeMic("talk"));
+      await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForFunction(() => window.__resumes >= 1, null, { timeout: 3000 });
+      await page.waitForFunction(() => document.querySelectorAll("#hsMsgs .hs-msg-u").length >= 1, null, { timeout: 15000 });
+      assert.equal(await page.locator("#hsMsgs .hs-msg-u").first().innerText(), "Hello Aria.");
+      assert.ok(log.some((x) => x.fn === "hs-stt"), "speech reached hs-stt");
+      await page.click("#hsMic");
+      assert.deepEqual(errs, []);
+      await c.close();
+    });
+  }
+  await check("vad: thresholds stay below a normal voice even when calibrated while talking", async () => {
+    const c = await ctx(390); const page = await c.newPage();
+    await page.goto(BASE + "/home-shield/", { waitUntil: "load" });
+    const r = await page.evaluate(() => ({ talking: window.HS_VAD(Array(40).fill(0.15)), quiet: window.HS_VAD(Array(40).fill(0.003)), none: window.HS_VAD([]) }));
+    assert.ok(r.talking.speech <= 0.04 && r.talking.speech < 0.15, JSON.stringify(r));
+    assert.ok(r.quiet.speech >= 0.018 && r.none.speech <= 0.04, JSON.stringify(r));
+    await c.close();
+  });
+  for (const [mode, W, L] of [["silent", 1366, "en"], ["muted", 390, "es"]]) {
+    await check(`browser ${W}: mic ${mode} -> she says plainly she can't hear the microphone (${L})`, async () => {
+      reset();
+      const c = await ctx(W); const page = await c.newPage();
+      await page.addInitScript(fakeMic(mode));
+      await page.goto(BASE + "/home-shield/?lang=" + L, { waitUntil: "load" });
+      await page.click("#hsFloat");
+      await page.waitForSelector("#hsErr:not([hidden])", { timeout: 12000 });
+      assert.equal(await page.locator("#hsErr").innerText(), I18N[L]["err.micSilent"]);
+      await page.waitForTimeout(400);
+      assert.ok(ttsTexts().some((x) => I18N[L]["err.micSilent"].startsWith(x) || x.startsWith(I18N[L]["err.micSilent"].slice(0, 20))), "spoken: " + JSON.stringify(ttsTexts()));
+      await page.click("#hsMic");
+      await c.close();
+    });
+  }
+
   await check("browser 390: Listen on the intro speaks the intro through hs-tts; again in Español; one voice at a time", async () => {
     reset();
     const c = await ctx(390); const page = await c.newPage(); const errs = errorsOf(page);
@@ -1254,7 +1330,7 @@ if (pw) {
     await page.waitForSelector(".hs-offer");
     assert.equal(await page.locator(".hs-offer").count(), 2);
     const first = page.locator('.hs-offer:has-text("Luis Prueba")');
-    assert.match(await first.innerText(), /License: Roofing contractor CCC1330001 FL/);
+    assert.match(await first.innerText(), /License: Contractor CCC1330001 FL/);
     assert.ok(!/3055550101|pro1@/.test(await page.locator("#casoBody").innerText()), "pro contact before sharing");
     assert.equal(await first.locator("button").first().innerText(), "Talk first through Aria Home Shield");
     await page.locator(".hs-offer").first().evaluate((e) => window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 70, behavior: "instant" }));
