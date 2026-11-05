@@ -510,7 +510,7 @@ await test("P0 c.6666325601: a rate-limit write that throws never 500s (login 40
     assert.equal(signup.status, 400, JSON.stringify(signup.body));
     const cc = await call("hs-case-create", { body: {} });
     assert.equal(cc.status, 400, JSON.stringify(cc.body));
-    assert.ok(logged.some((l) => /rate write failed \(allowed\): BlobsConsistencyError/.test(l)), logged.join(" | "));
+    assert.ok(logged.some((l) => /rate write failed \(fail-open\)/.test(l)), logged.join(" | "));
   } finally { console.error = quiet; store.__setStoreFactory((name) => (STORES[name] ||= memStore())); }
 });
 
