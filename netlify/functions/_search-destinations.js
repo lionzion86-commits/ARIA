@@ -90,7 +90,7 @@ const CONCEPTS = {
   book: ["books"], books: ["books"], candy: ["candy_chocolate"], chocolate: ["candy_chocolate"], snacks: ["candy_chocolate"],
   party: ["party"], balloons: ["party"], razor: ["mens_grooming"], shaver: ["mens_grooming"], trimmer: ["mens_grooming"], beard: ["mens_grooming"],
   brake: ["auto_parts"], brakes: ["auto_parts"], "brake pads": ["auto_parts"], "oil filter": ["auto_parts"], "auto parts": ["auto_parts"],
-  refurbished: ["reacondicionados"], "plus size": ["curvy"], luxury: ["luxury"], designer: ["luxury"],
+  refurbished: ["reacondicionados"], "plus size": ["curvy"], curvy: ["curvy"], luxury: ["luxury"], designer: ["luxury"],
 };
 /* Spanish the dictionary does not translate (it is a word list for the
    engine, not a department map). */
@@ -105,6 +105,7 @@ const SPANISH = {
   reacondicionado: "refurbished", lujo: "luxury", fiesta: "party", globos: "balloons", afeitadora: "razor", rasuradora: "razor",
   barba: "beard", maquinillas: "razor", bebes: "stroller", pesa: "weights", pesas: "weights", mancuernas: "dumbbell",
   medias: "socks", lenceria: "lingerie", sneakers: "sneakers", zapatillas: "sneakers",
+  "talla plus": "plus size", "tallas grandes": "plus size", "talla grande": "plus size", "tallas especiales": "plus size", "plus sizes": "plus size",
 };
 /* ---------- the product word -> its TYPE page (#443 c.6579541628) ----------
    Danny's final ruling: a word that names a product type ("celular",
@@ -688,11 +689,24 @@ export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) 
   /* A store's or brand's whole name, exactly (case, accents and
      punctuation aside), is that page -- before any folding. */
   const exact = exactName(D, typed);
-  const query = exact ? wordsOf(typed).join(" ") : routeKey(ctx, D, typed) || typed;
+  /* A category's whole name, exactly ("tallas plus", "plus size"), is
+     that category's page -- before the route key's spelling fold may
+     rewrite a word of it ("tallas" -> "mallas") and lose the category
+     (Danny, 2026-11-05: a category name typed exactly lands on its
+     category). Product words keep their type pages: the guard stands
+     down whenever a product type reads the query. */
+  const pureCat = !exact && !productTypeOf(D, typed) && !productTypePhrase(D, typed)
+    ? categoryOfQuery(D, typed) : null;
+  const catDest = pureCat && !pureCat.rest.length
+    ? deptDest(D, pureCat.dept, { t: pureCat.t, a: pureCat.a }) : null;
+  const query = exact || catDest ? wordsOf(typed).join(" ") : routeKey(ctx, D, typed) || typed;
   let out;
   if (exact) {
     const r = equivalentQuery(ctx, query);
     out = withAlternatives(ctx, D, query, exact, r && r.state === "results" ? r.hits : []);
+  } else if (catDest) {
+    const r = equivalentQuery(ctx, query);
+    out = withAlternatives(ctx, D, query, catDest, r && r.state === "results" ? r.hits : []);
   } else out = routeOf(ctx, D, query, fx, read, 0);
   out.q = typed;
   if (query !== typed) out.canonical = query;
