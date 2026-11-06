@@ -16,12 +16,13 @@
 //   POST { action: "events", events }        -> the outbox: checkout_comprado / checkout_excepcion
 //   POST { action: "register", yape, cci }   -> her Yape/Plin number and CCI account
 //   POST { action: "cashout", amountPen }    -> a cash-out request (fee and net shown before)
-import { getStore, connectLambda } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
+import { strongStore, connectIfLambda, v2 } from "./_blobs-store.js";
 import { corsHeaders } from "./_auth-helpers.js";
 import { callerRole, hostOf } from "./_agent-auth.js";
 import { dispatchEngine } from "./_dispatch.js";
 
-export const strongStore = (name) => getStore({ name, consistency: "strong" });
+export { strongStore };
 
 /* Agents never see configuration or variable names (Danny, c.6560497090).
    The technical reason stays on Danny's board (admin-dispatch board().gate). */
@@ -56,8 +57,8 @@ export async function dispatchAgentResponse(ctx, body, engine) {
   }
 }
 
-export async function handler(event) {
-  connectLambda(event);
+export async function agentDispatch(event) {
+  connectIfLambda(event);
   const headers = { ...corsHeaders("POST, OPTIONS"), "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
@@ -73,3 +74,7 @@ export async function handler(event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: agentSafeError(error) }) };
   }
 }
+
+// Functions v2 (default export, no named `handler`) so the Blobs context carries uncachedEdgeURL and
+// strong consistency is real (#443 c.6668071617, see _blobs-store.js).
+export default v2(agentDispatch);

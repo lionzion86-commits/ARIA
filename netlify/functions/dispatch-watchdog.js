@@ -7,7 +7,7 @@
 // A board order (sin asignar) is never archived and never goes quiet: it
 // re-escalates each time its wait doubles past the window.
 // Both namespaces: production ("dispatch") and the preview sandbox.
-import { getStore, connectLambda } from "@netlify/blobs";
+import { strongStore, connectIfLambda } from "./_blobs-store.js";
 import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 export const config = { schedule: "*/5 * * * *" };
@@ -25,10 +25,12 @@ export async function runWatchdog(getStoreFn) {
   return out;
 }
 
-export async function handler(event) {
-  connectLambda(event);
+/* Functions v2 scheduled function (default export + config.schedule, unchanged), so the Blobs
+   context carries uncachedEdgeURL and strong consistency is real (#443 c.6668071617). */
+export default async function watchdog(event) {
+  connectIfLambda(event);
   try {
-    const out = await runWatchdog((name) => getStore({ name, consistency: "strong" }));
+    const out = await runWatchdog(strongStore);
     console.log("[dispatch-watchdog]", JSON.stringify(out));
     return { statusCode: 200, body: JSON.stringify(out) };
   } catch (error) {

@@ -52,6 +52,8 @@
    says, in as many words, that Stripe is not connected.
    ------------------------------------------------------------ */
 
+/* Stays Lambda-shaped (the signature needs the raw body): strongStore falls back to eventual here. */
+import { strongStore } from "./_blobs-store.js";
 import { getStore, connectLambda } from "@netlify/blobs";
 import { postTransaction } from "./_wallet.js";
 import { KEYCLUB_STORE, onOrderPaid } from "./_keyclub.js";
@@ -261,7 +263,7 @@ export async function handler(event) {
       try {
         const latest = await getStore("orders").get(payment.orderId, { type: "json" });
         if (latest && latest.paymentStatus === "paid") {
-          dispatch = await dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host })
+          dispatch = await dispatchEngine({ getStore: strongStore, host })
             .intake(latest, { eventId: stripeEvent.id });
         }
       } catch (error) {

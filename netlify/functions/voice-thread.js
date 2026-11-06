@@ -9,13 +9,13 @@
 
    ENVIRONMENT (names only): LIVEKIT_API_SECRET.
    ============================================================ */
-import { getStore, connectLambda } from "@netlify/blobs";
+import { strongStore, connectIfLambda, v2 } from "./_blobs-store.js";
 import { VOICE_THREAD_STORE, verifyWorkerToken, readThread, appendLines, saveCall } from "./_voice-thread.js";
 
 const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 const reply = (statusCode, body) => ({ statusCode, headers, body: JSON.stringify(body) });
 
-export async function handler(event, env = process.env, store = null) {
+export async function voiceThread(event, env = process.env, store = null) {
   if (event.httpMethod !== "GET" && event.httpMethod !== "POST") return reply(405, { error: "Method not allowed" });
   if (!env.LIVEKIT_API_SECRET) return reply(503, { error: "LIVEKIT_API_SECRET not configured" });
   const auth = String((event.headers && (event.headers.authorization || event.headers.Authorization)) || "");
@@ -23,8 +23,8 @@ export async function handler(event, env = process.env, store = null) {
   if (!thread) return reply(401, { error: "unauthorized" });
 
   if (!store) {
-    connectLambda(event);
-    store = getStore({ name: VOICE_THREAD_STORE, consistency: "strong" });
+    connectIfLambda(event);
+    store = strongStore(VOICE_THREAD_STORE);
   }
   try {
     if (event.httpMethod === "GET") {
@@ -45,3 +45,7 @@ export async function handler(event, env = process.env, store = null) {
     return reply(500, { error: "store failed" });
   }
 }
+
+// Functions v2 (default export, no named `handler`) so the Blobs context carries uncachedEdgeURL and
+// strong consistency is real (#443 c.6668071617, see _blobs-store.js).
+export default v2(voiceThread);

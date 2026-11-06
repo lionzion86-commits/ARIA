@@ -5,19 +5,21 @@
 // card. Every row that does not line up is listed with why. The payout
 // ledger per agent (earnings, fees, cash-outs) rides in the same report.
 // 05:10 UTC = 00:10 in Lima.
-import { getStore, connectLambda } from "@netlify/blobs";
+import { strongStore, connectIfLambda } from "./_blobs-store.js";
 import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 export const config = { schedule: "10 5 * * *" };
 
-export async function handler(event) {
-  connectLambda(event);
+/* Functions v2 scheduled function (default export + config.schedule, unchanged), so the Blobs
+   context carries uncachedEdgeURL and strong consistency is real (#443 c.6668071617). */
+export default async function reconcile(event) {
+  connectIfLambda(event);
   try {
     const out = {};
     for (const host of ["ariashop.pe", "localhost"]) {
       const gate = dispatchGate(host);
       if (!gate.on) { out.dispatch = { off: gate.reason }; continue; } // production stays inert until switched on
-      const engine = dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host });
+      const engine = dispatchEngine({ getStore: strongStore, host });
       const r = await engine.reconcile();
       out[engine.ns] = { rows: r.rows.length, ok: r.ok, issues: r.issues };
     }

@@ -227,7 +227,7 @@ await check("memory: the worker's token is the store's; a wrong secret, an old t
 
 await check("memory: /api/voice-thread keeps the last 40 lines and each finished call whole, and only the spoken words", async () => {
   const S = await import(ROOT + "netlify/functions/_voice-thread.js");
-  const { handler } = await import(ROOT + "netlify/functions/voice-thread.js");
+  const handler = (({ default: d, handler: h }) => d || h)(await import(ROOT + "netlify/functions/voice-thread.js"));
   const store = memStore(), env = { LIVEKIT_API_SECRET: SECRET };
   const th = S.newThreadId(), other = S.newThreadId();
   const auth = (t) => ({ authorization: "Bearer " + S.workerToken(SECRET, t) });
@@ -285,7 +285,7 @@ await check("memory: /api/voice-token seals this device's thread and the store's
 await check("memory: the worker reads the thread, writes every line, saves the call; a dead store never costs the voice", async () => {
   const S = await import(ROOT + "netlify/functions/_voice-thread.js");
   const W = await import(VA + "src/thread-store.mjs");
-  const { handler } = await import(ROOT + "netlify/functions/voice-thread.js");
+  const handler = (({ default: d, handler: h }) => d || h)(await import(ROOT + "netlify/functions/voice-thread.js"));
   const store = memStore(), env = { LIVEKIT_API_SECRET: SECRET };
   const th = S.newThreadId();
   const URL0 = "https://deploy-preview-501--ariashopperu.netlify.app/api/voice-thread";

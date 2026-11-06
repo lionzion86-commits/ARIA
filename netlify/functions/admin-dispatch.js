@@ -19,7 +19,8 @@
 //   POST { action: "watchdog" }            -> run the watchdog now
 //   POST { action: "simulate", stores }    -> SANDBOX HOSTS ONLY: a test order from the sample products,
 //                                             straight into the sandbox namespace (never the orders store)
-import { getStore, connectLambda } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
+import { connectIfLambda, v2 } from "./_blobs-store.js";
 import { corsHeaders } from "./_auth-helpers.js";
 import { callerRole, hostOf } from "./_agent-auth.js";
 import { dispatchEngine } from "./_dispatch.js";
@@ -86,8 +87,8 @@ export async function dispatchAdminResponse(ctx, method, body, engine, query = {
   }
 }
 
-export async function handler(event) {
-  connectLambda(event);
+export async function adminDispatch(event) {
+  connectIfLambda(event);
   const headers = { ...corsHeaders("GET, POST, OPTIONS"), "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "GET" && event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
@@ -105,3 +106,7 @@ export async function handler(event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 }
+
+// Functions v2 (default export, no named `handler`) so the Blobs context carries uncachedEdgeURL and
+// strong consistency is real (#443 c.6668071617, see _blobs-store.js).
+export default v2(adminDispatch);
