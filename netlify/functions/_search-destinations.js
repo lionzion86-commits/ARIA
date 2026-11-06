@@ -32,6 +32,7 @@
    departamento.html and its type lenses can be a destination.
    ================================================================== */
 import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords, coreWorldOf, typeWorldById } from "./_search-core.js";
+import { modaType } from "./_department-core.js";
 
 export const DEST_FILE = "assets/search/destinations.json";
 export const CHOOSER_MAX = 4, ALT_MAX = 4, RAIL_ITEMS = 12;
@@ -91,6 +92,12 @@ const CONCEPTS = {
   party: ["party"], balloons: ["party"], razor: ["mens_grooming"], shaver: ["mens_grooming"], trimmer: ["mens_grooming"], beard: ["mens_grooming"],
   brake: ["auto_parts"], brakes: ["auto_parts"], "brake pads": ["auto_parts"], "oil filter": ["auto_parts"], "auto parts": ["auto_parts"],
   refurbished: ["reacondicionados"], "plus size": ["curvy"], luxury: ["luxury"], designer: ["luxury"],
+};
+/* SECTION NAMES (#443 c.6674074811, Danny: every section name is a door
+   to its section). The names shoppers use for a section that its own
+   label does not cover. Read before every other word list, so they win. */
+const SECTION_WORDS = {
+  curvy: "tallas plus|talla plus|plus size|plus sizes|plus-size|tallas grandes|talla grande|tallas especiales|talla especial|curvy|ropa curvy|ropa talla plus|ropa tallas plus|ropa de tallas grandes|ropa talla grande",
 };
 /* Spanish the dictionary does not translate (it is a word list for the
    engine, not a department map). */
@@ -253,6 +260,7 @@ export function destinations(ctx, read = readRepoFile) {
   /* Category words: concept -> [dept, lens] (only departments that exist). */
   const vocab = new Map();
   const put = (w, v) => { const k = spaced(w); if (k && v && D.depts[v[0]] && !vocab.has(k)) vocab.set(k, v); };
+  for (const [dept, list] of Object.entries(SECTION_WORDS)) for (const w of list.split("|")) put(w, [dept]);
   for (const [en, v] of Object.entries(CONCEPTS)) put(en, v);
   for (const [es, en] of Object.entries(SPANISH)) put(es, CONCEPTS[en]);
   /* The search dictionary's Spanish -> English. */
@@ -277,6 +285,20 @@ export function destinations(ctx, read = readRepoFile) {
     }
   }
   for (const [k, [name]] of Object.entries(D.depts)) put(name, [k]);
+  /* Every type rail's own label ("Tablas De Surf", "Velas y aromas",
+     "Keratina y alisados"): a section name is a door to that section.
+     Its department, with the department's own lens when it has one. */
+  D.typeLabel = new Map();
+  for (const [k, rails] of Object.entries(D.types)) {
+    for (const [ver, [label, n]] of Object.entries(rails || {})) {
+      const lk = spaced(label);
+      /* A label with an audience in it («Zapatillas Mujer») is the
+         audience rule's to read (shoes_women), not a phrase of its own. */
+      if (!lk || !n || lk.split(" ").some((w) => AUDIENCE[w])) continue;
+      if (!D.typeLabel.has(lk) || D.typeLabel.get(lk).n < n) D.typeLabel.set(lk, { dept: k, ver, n });
+    }
+  }
+  for (const [lk, tl] of D.typeLabel) put(lk, [tl.dept]);
   D.vocab = vocab;
   D.vocabLongest = Math.max(1, ...[...vocab.keys()].map((w) => w.split(" ").length));
   return (ctx._dest = D);
@@ -439,6 +461,17 @@ const DEPT_OF_FIELD = {
   books: "books", skate_snow: "surf_skate", balloons: "party", favors: "party", dulces: "candy_chocolate", calzones: "ropa_interior_mujer",
   brasieres: "ropa_interior_mujer", medias_panty: "ropa_interior_mujer",
 };
+/* A clothing section's rail carries clothing (#443 c.6674074811: a
+   JanSport backpack and a surfboard led «Categoría · Ropa»). The store's
+   department field files whole surf shops under clothing; the product's
+   own type decides. */
+const CLOTHING_DEPTS = new Set(["clothing", "women", "men", "kids", "curvy"]);
+const GARMENT_TYPES = new Set(["bano", "vestidos", "faldas", "chaquetas", "polerones", "shorts", "pantalones", "tops", "camisas", "lenceria", "gorras"]);
+export function railDeptOf(p) {
+  const d = deptOfProduct(p);
+  if (CLOTHING_DEPTS.has(d) && !GARMENT_TYPES.has(modaType(p))) return "";
+  return d;
+}
 export function deptOfProduct(p) {
   if (p._cat === "soccer") return "soccer";
   if (p.retailer === "ariaperfumes") return "perfumes";
@@ -459,7 +492,7 @@ function railIndex(ctx, D) {
     if (D.stores[p.retailer]) push(byStore, p.retailer, p);
     const b = D.brandNames.get(nameKey(p.brand));
     if (b) push(byBrand, b, p);
-    push(byDept, deptOfProduct(p), p);
+    push(byDept, railDeptOf(p), p);
   }
   const best = (a) => a.slice().sort((x, y) => (onSale(y) - onSale(x)) || ((y.reviews || 0) - (x.reviews || 0))).slice(0, RAIL_ITEMS);
   return (ctx._destIdx = { byStore, byBrand, byDept, best });
@@ -690,10 +723,12 @@ export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) 
   const exact = exactName(D, typed);
   const query = exact ? wordsOf(typed).join(" ") : routeKey(ctx, D, typed) || typed;
   let out;
+  const section = exact ? null : sectionOf(D, typed);
   if (exact) {
     const r = equivalentQuery(ctx, query);
     out = withAlternatives(ctx, D, query, exact, r && r.state === "results" ? r.hits : []);
-  } else out = routeOf(ctx, D, query, fx, read, 0);
+  } else if (section) out = withAlternatives(ctx, D, wordsOf(typed).join(" "), section, []);
+  else out = routeOf(ctx, D, query, fx, read, 0);
   out.q = typed;
   if (query !== typed) out.canonical = query;
   if (out.chooser) out.chooser.title = out.chooser.title.replace("“" + query + "”", "“" + typed + "”");
@@ -715,6 +750,33 @@ function exactName(D, typed) {
     return brandDest(D, bk);
   }
   return null;
+}
+/* A query that is ONLY a section's name, as typed (#443 c.6674074811):
+   «tallas plus», «Tallas Grandes», «Tablas de surf», «Velas y aromas».
+   It lands on that section before any spelling or plural folding can
+   turn it into something else -- never the chooser. A product word keeps
+   its type page; a big brand of the same name keeps its brand page. */
+const AUDIENCE_SECTION_WORDS = new Set(["moda", "ropa"]);
+export function sectionOf(D, typed) {
+  const ws = wordsOf(typed);
+  if (!ws.length) return null;
+  /* The nav's own tabs, «Mujer», «Hombre», «Niños» (and «moda mujer»,
+     «ropa de hombre»): that audience's Moda department. */
+  const aud = ws.filter((w) => AUDIENCE[w]);
+  if (aud.length && ws.every((w) => AUDIENCE[w] || FILLER.has(w) || AUDIENCE_SECTION_WORDS.has(w))) {
+    const a = AUDIENCE[aud[0]];
+    if (aud.every((w) => AUDIENCE[w] === a) && D.depts[a]) return deptDest(D, a);
+  }
+  if (productTypeOf(D, typed) || productTypePhrase(D, typed)) return null;
+  const cat = categoryOfQuery(D, typed);
+  if (!cat || cat.rest.length) return null;
+  const key = nameKey(typed);
+  if (D.brandNames.has(key) && D.brands[D.brandNames.get(key)][1] >= 300) return null;
+  if (D.storeNames.has(key)) return null;
+  /* A type rail named exactly: its own listing. */
+  const tl = D.typeLabel && D.typeLabel.get(spaced(typed));
+  if (tl && tl.dept === cat.dept && !cat.t) return deptDest(D, cat.dept, { ver: tl.ver, a: cat.a });
+  return deptDest(D, cat.dept, { t: cat.t, a: cat.a });
 }
 /* Known words: the catalogue carries them, or Aria's vocabulary does. */
 function isKnownWord(ctx, D, w) {
@@ -951,8 +1013,8 @@ function chooserAnswer(ctx, D, query, hits, fx, reason, near = []) {
     cat = [deptDest(D, "electronics", { q: acc }), items.length ? items : shown];
   }
   if (!cat && shown.length) {
-    const [t] = tally(top, deptOfProduct);
-    if (t && t[1] >= 2 && D.depts[t[0]]) { const items = shown.filter((p) => deptOfProduct(p) === t[0]); if (items.length) cat = [deptDest(D, t[0], { q: narrowing(query, items) }), items]; }
+    const [t] = tally(top, railDeptOf);
+    if (t && t[1] >= 2 && D.depts[t[0]]) { const items = shown.filter((p) => railDeptOf(p) === t[0]); if (items.length) cat = [deptDest(D, t[0], { q: narrowing(query, items) }), items]; }
   }
   if (!cat && nearOf("category")) { const n = nearOf("category"), all = idx.byDept.get(n.dest.key) || []; if (all.length) cat = [n.dest, idx.best(all), all.length]; }
   if (!cat) { const b = biggest(new Map([...idx.byDept].filter(([k]) => D.depts[k]))); if (b) cat = [deptDest(D, b[0]), idx.best(b[1]), b[1].length]; }
