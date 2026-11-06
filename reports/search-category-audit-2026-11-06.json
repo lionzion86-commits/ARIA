@@ -1,0 +1,4902 @@
+{
+ "issue": "#443 c.6674074811",
+ "date": "2026-11-06",
+ "generator": "node scripts/audit-search-categories.mjs",
+ "total": 270,
+ "failingBefore": 71,
+ "failingAfter": 0,
+ "fixed": 71,
+ "exceptions": [
+  "Tenis"
+ ],
+ "byKind": {
+  "department": {
+   "total": 34,
+   "failingBefore": 2,
+   "failingAfter": 0
+  },
+  "lens": {
+   "total": 20,
+   "failingBefore": 0,
+   "failingAfter": 0
+  },
+  "type rail": {
+   "total": 200,
+   "failingBefore": 57,
+   "failingAfter": 0
+  },
+  "nav": {
+   "total": 4,
+   "failingBefore": 3,
+   "failingAfter": 0
+  },
+  "tallas plus": {
+   "total": 12,
+   "failingBefore": 9,
+   "failingAfter": 0
+  }
+ },
+ "rows": [
+  {
+   "label": "Electrónica",
+   "from": "department",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa",
+   "from": "department",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Moda Hombre",
+   "from": "department",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Moda Mujer",
+   "from": "department",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Moda Niños",
+   "from": "department",
+   "section": "kids",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Dulces y Chocolates",
+   "from": "department",
+   "section": "candy_chocolate",
+   "before": {
+    "kind": "category",
+    "key": "candy_chocolate",
+    "url": "departamento.html?dept=candy_chocolate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "candy_chocolate",
+    "url": "departamento.html?dept=candy_chocolate&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Deportes",
+   "from": "department",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casa Aria",
+   "from": "department",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Decoración",
+   "from": "department",
+   "section": "home_decor",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tallas Plus",
+   "from": "department",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20plus",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Gym Rat",
+   "from": "department",
+   "section": "gym_rat",
+   "before": {
+    "kind": "category",
+    "key": "gym_rat",
+    "url": "departamento.html?dept=gym_rat&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "gym_rat",
+    "url": "departamento.html?dept=gym_rat&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Surf & Skate",
+   "from": "department",
+   "section": "surf_skate",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pesca Submarina",
+   "from": "department",
+   "section": "spearfishing",
+   "before": {
+    "kind": "category",
+    "key": "spearfishing",
+    "url": "departamento.html?dept=spearfishing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "spearfishing",
+    "url": "departamento.html?dept=spearfishing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Fútbol",
+   "from": "department",
+   "section": "soccer",
+   "before": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tenis",
+   "from": "department",
+   "section": "tennis",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos&pt=zapatillas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos&pt=zapatillas",
+    "ok": true
+   },
+   "fixed": true,
+   "exception": "«tenis» is also the everyday word for sneakers; it opens Zapatillas (the product-word ruling, c.6579541628), with the sport one tap away. Danny decides."
+  },
+  {
+   "label": "Lentes de Sol",
+   "from": "department",
+   "section": "sunglasses",
+   "before": {
+    "kind": "category",
+    "key": "sunglasses",
+    "url": "departamento.html?dept=sunglasses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sunglasses",
+    "url": "departamento.html?dept=sunglasses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sección Hombre",
+   "from": "department",
+   "section": "mens_grooming",
+   "before": {
+    "kind": "category",
+    "key": "mens_grooming",
+    "url": "departamento.html?dept=mens_grooming&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "mens_grooming",
+    "url": "departamento.html?dept=mens_grooming&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Aria Fight Club",
+   "from": "department",
+   "section": "combat_sports",
+   "before": {
+    "kind": "category",
+    "key": "combat_sports",
+    "url": "departamento.html?dept=combat_sports&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "combat_sports",
+    "url": "departamento.html?dept=combat_sports&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Joyas y Accesorios",
+   "from": "department",
+   "section": "joyas_accesorios",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Carteras",
+   "from": "department",
+   "section": "purses",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Aria Party",
+   "from": "department",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Juguetes",
+   "from": "department",
+   "section": "toys",
+   "before": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&ver=tipo%3Ajuguetes",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Aria Beauty",
+   "from": "department",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cabello",
+   "from": "department",
+   "section": "cabello",
+   "before": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Libros",
+   "from": "department",
+   "section": "books",
+   "before": {
+    "kind": "category",
+    "key": "books",
+    "url": "departamento.html?dept=books&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "books",
+    "url": "departamento.html?dept=books&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos",
+   "from": "department",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos de Mujer",
+   "from": "department",
+   "section": "shoes_women",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos de Hombre",
+   "from": "department",
+   "section": "shoes_men",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Repuestos",
+   "from": "department",
+   "section": "auto_parts",
+   "before": {
+    "kind": "category",
+    "key": "auto_parts",
+    "url": "departamento.html?dept=auto_parts&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "auto_parts",
+    "url": "departamento.html?dept=auto_parts&ver=tipo%3Arepuestos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Diseñador y Lujo",
+   "from": "department",
+   "section": "luxury",
+   "before": {
+    "kind": "category",
+    "key": "luxury",
+    "url": "departamento.html?dept=luxury&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "luxury",
+    "url": "departamento.html?dept=luxury&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Perfumes",
+   "from": "department",
+   "section": "perfumes",
+   "before": {
+    "kind": "category",
+    "key": "perfumes",
+    "url": "departamento.html?dept=perfumes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "perfumes",
+    "url": "departamento.html?dept=perfumes&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Reacondicionados",
+   "from": "department",
+   "section": "reacondicionados",
+   "before": {
+    "kind": "category",
+    "key": "reacondicionados",
+    "url": "departamento.html?dept=reacondicionados&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "reacondicionados",
+    "url": "departamento.html?dept=reacondicionados&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa Interior y Medias",
+   "from": "department",
+   "section": "ropa_interior",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa Interior Mujer",
+   "from": "department",
+   "section": "ropa_interior_mujer",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior_mujer",
+    "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior_mujer",
+    "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa de baño",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=bano&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=bano&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Camisas",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=camisas&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=camisas&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mochilas y bolsos",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipo%3Amochilas-y-bolsos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casacas",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Gorras",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Agorras",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Joyas",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa interior",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pantalones y jeans",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Apantalones-y-jeans",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Polerones",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Shorts",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Polos",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatillas",
+   "from": "lens",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos&pt=zapatillas",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos&pt=zapatillas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casacas y abrigos",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Acasacas-y-abrigos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Faldas",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=faldas&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=faldas&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Lencería",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior_mujer",
+    "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior_mujer",
+    "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chompas y polerones",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Blusas y tops",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=tops&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Ablusas-y-tops",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Vestidos",
+   "from": "lens",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=vestidos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=vestidos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casacas y chompas",
+   "from": "lens",
+   "section": "kids",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pantalones",
+   "from": "lens",
+   "section": "kids",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chromebooks",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=chromebooks",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=chromebooks",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Consolas",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=consolas&pt=consolas",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=consolas&pt=consolas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Celulares",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_celulares",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_celulares",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Computadoras y tablets",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_computadoras",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Audífonos",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_audifonos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_audifonos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Audio y parlantes",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&q=audio&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_audio",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Gaming",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&q=gaming&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_gaming",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cámaras",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_camaras&pt=camaras",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_camaras&pt=camaras",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Drones",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_drones",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_drones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Relojes inteligentes",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_relojes",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_relojes",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casa inteligente y seguridad",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=casa%20inteligente%20y%20seguridad",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_casa_inteligente",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Audio para auto",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=audio%20para%20auto",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_auto",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Componentes de PC",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=componentes%20de%20pc",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_componentes",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Accesorios y energía",
+   "from": "type rail",
+   "section": "electronics",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "electronics",
+    "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_accesorios",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Medias",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Toallas Y Ponchos",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "brand",
+    "key": "kindredbravely",
+    "url": "marca.html?marca=kindredbravely&q=toallas%20poncho",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Atoallas-y-ponchos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Sandalias",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa deportiva",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Aropa-deportiva",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pantalón",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa de bebé",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipo%3Aropa-de-bebe",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Prenda",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "brand",
+    "key": "oneill",
+    "url": "marca.html?marca=oneill&q=brenda",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Aprenda",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Calzado",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sombreros",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Suéter",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Leggings",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "gym_rat",
+    "url": "departamento.html?dept=gym_rat&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "gym_rat",
+    "url": "departamento.html?dept=gym_rat&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sudaderas",
+   "from": "type rail",
+   "section": "clothing",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Billeteras",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Collares y dijes",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Acollares-y-dijes",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Correas",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pulseras y tobilleras",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Apulseras-y-tobilleras",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Bufandas",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Blazers",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&q=blazer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Ablazers",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Aretes",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Gorros",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Anillos",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chaqueta",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Neceseres",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=neceseres",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Aneceseres",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Guantes",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=gloves",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aguantes",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Corbatas",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&q=tie&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Acorbatas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Llaveros",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Lentes",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "sunglasses",
+    "url": "departamento.html?dept=sunglasses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sunglasses",
+    "url": "departamento.html?dept=sunglasses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Bolso",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Batas",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Abatas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Relojes",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pijamas",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ternos",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Aternos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Broches y pines",
+   "from": "type rail",
+   "section": "men",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=brochas%20y%20pin",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Abroches-y-pines",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Ready To Wear",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=ready%20to%20wear",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Aready-to-wear",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Fajas y shapewear",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "brand",
+    "key": "skims",
+    "url": "marca.html?marca=skims&q=shapewear",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Afajas-y-shapewear",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Pantalones y faldas",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Apantalones-y-faldas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Handbag",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Enterizos",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Aenterizos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios para el pelo",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Aaccesorios-para-el-pelo",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Bodies",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=bodies",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Abodies",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Conjuntos",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "brand",
+    "key": "barbie",
+    "url": "marca.html?marca=barbie&q=conjunto",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Aconjuntos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Small Leather",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&q=small%20leather&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Asmall-leather",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tacones",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipo%3Atacones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mocasines y pantuflas",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipo%3Amocasines-y-pantuflas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pantalón Capri",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&q=capri&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Apantalon-capri",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Suit",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sudadera",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cárdigan",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&q=cardigan&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipo%3Acardigan",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pijama",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sudadera Con Capucha",
+   "from": "type rail",
+   "section": "women",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Decks (tablas De Skate)",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&q=deck&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Adecks-tablas-de-skate",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Skateboards",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Askateboards",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tablas De Surf",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Atablas-de-surf",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Trucks, Ruedas Y Partes",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=trucks%20ruedas%20y%20parts",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Atrucks-ruedas-y-partes",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Accesorios De Fútbol",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaccesorios-de-futbol",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios De Skate",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaccesorios-de-skate",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chimpunes",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios De Surf",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaccesorios-de-surf",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Repuestos Y Accesorios De Pesca Submarina",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "auto_parts",
+    "url": "departamento.html?dept=auto_parts&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Arepuestos-y-accesorios-de-pesca-submarin",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Polos de licra",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Apolos-de-licra",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Trajes De Neopreno",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Atrajes-de-neopreno",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cascos Y Protecciones",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&q=helmet&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acascos-y-protecciones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Máscaras Y Snorkels",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Amascaras-y-snorkels",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Bodyboards",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&q=bodyboard&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Abodyboards",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Quillas De Surf",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aquillas-de-surf",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pesas Y Cinturones",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Apesas-y-cinturones",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios De Tenis",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaccesorios-de-tenis",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Arpones",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=arpones",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aarpones",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Balones y pelotas",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Abalones-y-pelotas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Skimboards",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&q=skimboard&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Askimboards",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Aletas De Buceo",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=suitcase%20de%20buceo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaletas-de-buceo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Boyas Y Flotadores",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "miss",
+    "url": "search.html?q=boys%20y",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aboyas-y-flotadores",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Raquetas",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "tennis",
+    "url": "departamento.html?dept=tennis&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "tennis",
+    "url": "departamento.html?dept=tennis&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Snorkel",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&q=snorkel&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Asnorkel",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Accesorios De Pesca Submarina",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "joyas_accesorios",
+    "url": "departamento.html?dept=joyas_accesorios&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aaccesorios-de-pesca-submarina",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Colchonetas",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=colchonetas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acolchonetas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Sup / Paddle Surf",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "surf_skate",
+    "url": "departamento.html?dept=surf_skate&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Asup-paddle-surf",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Arpones De Vara",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=arpones%20de%20vara",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Aarpones-de-vara",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cuchillos De Buceo",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuchillos%20de%20buceo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acuchillos-de-buceo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cascos",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&q=helmet&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acascos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Vendas",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "miss",
+    "url": "search.html?q=vendas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Avendas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Canilleras",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=canilleras",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acanilleras",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cuerdas",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuerdas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Acuerdas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Linternas De Buceo",
+   "from": "type rail",
+   "section": "sporting_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=linternas%20de%20buceo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "sporting_goods",
+    "url": "departamento.html?dept=sporting_goods&ver=tipo%3Alinternas-de-buceo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Libros de mesa",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "books",
+    "url": "departamento.html?dept=books&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Alibros",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Navidad",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&q=navidad&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Anavidad",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Velas y aromas",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_velas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cojines y mantas",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cojines%20y%20manta",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_textiles",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cama y baño",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=bano&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_cama_bano",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mesa y vajilla",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_mesa",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cocina",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_cocina",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Lámparas",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Hogar",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=hogar",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipo%3Ahogar",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Habitación del bebé",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=habitacion%20del%20bebe",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipo%3Ahabitacion-del-bebe",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Canastas y organizadores",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=canastas%20y%20organizadores",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Acanastas-y-organizadores",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Coche",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=coche",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=tipo%3Acoche",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Belleza",
+   "from": "type rail",
+   "section": "home_goods",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Abelleza",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cuadros y decoración de pared",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Acuadros-y-decoracion-de-pared",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Velas y candelabros",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&q=candelabra&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Avelas-y-candelabros",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Plantas y flores",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "brand",
+    "key": "floreflore",
+    "url": "marca.html?marca=floreflore&q=plant",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Aplantas-y-flores",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Floreros",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=floreros",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Afloreros",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Portarretratos",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=portarretratos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Aportarretratos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Espejos",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=espejos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Aespejos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Manteles y servilletas",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=mantel%20y%20servilletas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Amanteles-y-servilletas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Aromas Para El Hogar",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "brand",
+    "key": "alharamain",
+    "url": "marca.html?marca=alharamain&q=aroma%20hogar",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Aaromas-para-el-hogar",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Tapetes",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=tapetes",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Atapetes",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Velas",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Avelas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Maceteros",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "miss",
+    "url": "search.html?q=maceteros",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Amaceteros",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cojines",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cojines",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Acojines",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Faroles",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=faroles",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Afaroles",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Vasos y tazas",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=vase%20y%20tazas",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Avasos-y-tazas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Jabones y cremas",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Ajabones-y-cremas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mantas",
+   "from": "type rail",
+   "section": "home_decor",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=manta",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipo%3Amantas",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Más ropa",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "clothing",
+    "url": "departamento.html?dept=clothing&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipo%3Amujer-otros",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Polos para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=tops&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=tops&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Camisas para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=camisas&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=camisas&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pantalones y jeans para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=pantalones&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Shorts para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=shorts&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=shorts&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Polerones para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=polerones&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=polerones&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Casacas para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=chaquetas&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=chaquetas&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa de baño para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=bano&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&t=bano&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ropa interior para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "ropa_interior",
+    "url": "departamento.html?dept=ropa_interior&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Más ropa para hombre",
+   "from": "type rail",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Bolsos",
+   "from": "type rail",
+   "section": "purses",
+   "before": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "purses",
+    "url": "departamento.html?dept=purses&ver=tipo%3Abolsos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Globos",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Aglobos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Recuerdos de fiesta",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Arecuerdos-de-fiesta",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Decoración de fiesta",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Adecoracion-de-fiesta",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Vajilla",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_mesa&pt=vajilla",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "home_goods",
+    "url": "departamento.html?dept=home_goods&ver=casa%3Acasa_mesa&pt=vajilla",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Stickers Y Decoración",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&q=sticker&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Astickers-y-decoracion",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Decoración de jardín",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "home_decor",
+    "url": "departamento.html?dept=home_decor&q=jardin&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Adecoracion-de-jardin",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Disfraces",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=disfraces",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Adisfraces",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Regalos",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=regalo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Aregalos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Juegos",
+   "from": "type rail",
+   "section": "party",
+   "before": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&q=juego&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "party",
+    "url": "departamento.html?dept=party&ver=tipo%3Ajuegos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Figura Coleccionable",
+   "from": "type rail",
+   "section": "toys",
+   "before": {
+    "kind": "brand",
+    "key": "disney",
+    "url": "marca.html?marca=disney&q=figura%20coleccionable",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&ver=tipo%3Afigura-coleccionable",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Peluche",
+   "from": "type rail",
+   "section": "toys",
+   "before": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "toys",
+    "url": "departamento.html?dept=toys&ver=tipo%3Apeluche",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Perfumes y brumas",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "perfumes",
+    "url": "departamento.html?dept=perfumes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Aperfumes-y-brumas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cuidado del cabello",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Acuidado-del-cabello",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Ojos",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "brand",
+    "key": "disney",
+    "url": "marca.html?marca=disney&q=ojos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Aojos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cuidado De La Piel",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuidado%20de%20la%20piel",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Acuidado-de-la-piel",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Labios",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=labios",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Alabios",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Hidratantes",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=hidratantes",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Ahidratantes",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Maquillaje",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Amaquillaje",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sérums",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Aserums",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Rostro",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=rostro",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Arostro",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Fragancia",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "perfumes",
+    "url": "departamento.html?dept=perfumes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Afragancia",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mascarillas",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Amascarillas",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Amascarillas",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tónicos",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=tonicos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Atonicos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Limpieza",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=limpieza",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Alimpieza",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Protector Solar",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Aprotector-solar",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cuidado Corporal",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "perfumes",
+    "url": "departamento.html?dept=perfumes&q=corporal&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Acuidado-corporal",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Baño Y Cuerpo",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&t=bano&q=leather&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Abano-y-cuerpo",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Herramientas De Belleza",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Aherramientas-de-belleza",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cuidado De Manos",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuidado%20de%20mano",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Acuidado-de-manos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Cuerpo",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuero",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Acuerpo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Sets De Regalo",
+   "from": "type rail",
+   "section": "beauty",
+   "before": {
+    "kind": "brand",
+    "key": "lego",
+    "url": "marca.html?marca=lego&q=set%20regalo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipo%3Asets-de-regalo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Keratina y alisados",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Akeratina%20y%20alisados",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Reparación",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "chooser",
+    "key": "miss",
+    "url": "search.html?q=reparacion",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Areparaci%C3%B3n",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Aceites y sérums",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "category",
+    "key": "beauty",
+    "url": "departamento.html?dept=beauty&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Aaceites%20y%20s%C3%A9rums",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Cuero cabelludo",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=cuero%20cabelludo",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Acuero%20cabelludo",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Sin enjuague",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=sin%20enjuague",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Asin%20enjuague",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Champú y acondicionador",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Más tratamientos",
+   "from": "type rail",
+   "section": "cabello",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=mas%20tratamiento",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "cabello",
+    "url": "departamento.html?dept=cabello&ver=tipo%3Am%C3%A1s%20tratamientos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Zapatillas Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatillas Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sandalias Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sandalias Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mocasines y pantuflas Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mocasines y pantuflas Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Botas y botines Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Botas y botines Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chimpunes Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chimpunes Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tacones Mujer",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tacones Hombre",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_men",
+    "url": "departamento.html?dept=shoes_men&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatillas Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Chimpunes Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "soccer",
+    "url": "departamento.html?dept=soccer&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mocasines y pantuflas Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Zapatos Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Sandalias Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Botas y botines Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Tacones Niños",
+   "from": "type rail",
+   "section": "shoes",
+   "before": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&t=zapatos&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Botas y botines",
+   "from": "type rail",
+   "section": "shoes_women",
+   "before": {
+    "kind": "category",
+    "key": "shoes",
+    "url": "departamento.html?dept=shoes&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "shoes_women",
+    "url": "departamento.html?dept=shoes_women&ver=tipo%3Abotas-y-botines",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Pastillas De Freno",
+   "from": "type rail",
+   "section": "auto_parts",
+   "before": {
+    "kind": "category",
+    "key": "auto_parts",
+    "url": "departamento.html?dept=auto_parts&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "auto_parts",
+    "url": "departamento.html?dept=auto_parts&ver=tipo%3Apastillas-de-freno",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "Mujer",
+   "from": "nav",
+   "section": "women",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=mujer",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Hombre",
+   "from": "nav",
+   "section": "men",
+   "before": {
+    "kind": "chooser",
+    "key": "doors",
+    "url": "search.html?q=hombre",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "men",
+    "url": "departamento.html?dept=men&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Niños",
+   "from": "nav",
+   "section": "kids",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=ninos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "kids",
+    "url": "departamento.html?dept=kids&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Diseñador",
+   "from": "nav",
+   "section": "luxury",
+   "before": {
+    "kind": "category",
+    "key": "luxury",
+    "url": "departamento.html?dept=luxury&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "luxury",
+    "url": "departamento.html?dept=luxury&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "tallas plus",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20plus",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "talla plus",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20plus",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "plus size",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "plus-size",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  },
+  {
+   "label": "tallas grandes",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20grand",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "talla grande",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20grande",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "tallas especiales",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "brand",
+    "key": "disney",
+    "url": "marca.html?marca=disney&q=talla",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "curvy",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "women",
+    "url": "departamento.html?dept=women&q=curvy&ver=tipos",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Tallas Plus",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20plus",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "TALLAS PLUS",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20plus",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Tallas Grandes",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "chooser",
+    "key": "low",
+    "url": "search.html?q=talla%20grand",
+    "ok": false
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": true
+  },
+  {
+   "label": "Plus Size",
+   "from": "tallas plus",
+   "section": "curvy",
+   "before": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "after": {
+    "kind": "category",
+    "key": "curvy",
+    "url": "departamento.html?dept=curvy&ver=tipos",
+    "ok": true
+   },
+   "fixed": false
+  }
+ ]
+}
