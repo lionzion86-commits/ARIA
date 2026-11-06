@@ -58,13 +58,106 @@ export async function destroyProSession(event, S) {
   if (sid) { try { await S.sessions.delete(`pro/${sha256(sid)}`); } catch { /* already gone */ } }
 }
 
-/** The admin's email when the shop session is on ADMIN_EMAILS; else null. */
-export async function adminFromEvent(event, S, now = Date.now()) {
+/* ================================================================
+   HOME SHIELD ADMIN: ITS OWN DOOR (#443 c.6672170980). The admin page signs in
+   with email + password against an allowlist in the hs-settings store (key
+   "admins": { emails: [...], users: { email: { passHash, setAt } } }), seeded at
+   runtime from ADMIN_EMAILS (never an email in the repo). A first password is
+   set through a one-time, 30-minute setup link (sha256 stored, single use) or,
+   for someone already signed in to the shop as an admin, directly. The session
+   is the httpOnly hs_admin cookie (12 h), hashed in hs-sessions like the pro
+   sessions. The shop session (aria_session on ADMIN_EMAILS) still works as a
+   fallback, so every hs-admin-* endpoint accepts either.
+   ================================================================ */
+export const ADMIN_COOKIE = "hs_admin";
+export const ADMIN_TTL_SECONDS = 60 * 60 * 12;
+export const SETUP_TTL_MS = 30 * 60 * 1000;
+export const adminCookieHeader = (sid) => `${ADMIN_COOKIE}=${encodeURIComponent(sid)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${ADMIN_TTL_SECONDS}`;
+export const clearAdminCookieHeader = () => `${ADMIN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+
+const envAdmins = (env = process.env) => String(env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+/** The allowlist record, seeded (and kept in step) with ADMIN_EMAILS. */
+export async function readAdmins(S, env = process.env) {
+  const cur = (await getJSON(S.settings, "admins")) || { emails: [], users: {} };
+  const emails = [...new Set([...(cur.emails || []), ...envAdmins(env)])];
+  const rec = { emails, users: cur.users || {} };
+  if (emails.length !== (cur.emails || []).length) await S.settings.setJSON("admins", rec);
+  return rec;
+}
+export async function isShieldAdmin(S, email) {
+  if (!email) return false;
+  return (await readAdmins(S)).emails.includes(String(email).toLowerCase());
+}
+export async function setAdminPassword(S, email, password, now = Date.now()) {
+  const rec = await readAdmins(S);
+  rec.users = { ...rec.users, [email]: { passHash: await hashPassword(password), setAt: new Date(now).toISOString() } };
+  await S.settings.setJSON("admins", rec);
+}
+export async function createAdminSession(S, email, now = Date.now()) {
+  const sid = randomBytes(32).toString("hex");
+  await S.sessions.setJSON(`admin/${sha256(sid)}`, { email, createdAt: new Date(now).toISOString() });
+  return sid;
+}
+function adminSid(event) {
+  const cookies = parseCookies((event.headers || {}).cookie || (event.headers || {}).Cookie);
+  const sid = cookies[ADMIN_COOKIE];
+  return typeof sid === "string" && /^[0-9a-f]{64}$/.test(sid) ? sid : null;
+}
+export async function destroyAdminSession(event, S) {
+  const sid = adminSid(event);
+  if (sid) { try { await S.sessions.delete(`admin/${sha256(sid)}`); } catch { /* gone */ } }
+}
+
+/** One-time setup token: 32 random bytes; only its sha256 is stored, 30 minutes, single use. */
+export async function issueSetupToken(S, email, now = Date.now()) {
+  const token = randomBytes(32).toString("hex");
+  await S.sessions.setJSON(`adminsetup/${sha256(token)}`, { email, exp: now + SETUP_TTL_MS });
+  return token;
+}
+/** The email for a live token (and burns it), or null. */
+export async function takeSetupToken(S, token, now = Date.now()) {
+  if (typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) return null;
+  const key = `adminsetup/${sha256(token)}`;
+  const rec = await getJSON(S.sessions, key);
+  if (!rec) return null;
+  await S.sessions.delete(key);
+  if (now > rec.exp) return null;
+  return rec.email;
+}
+
+/** The shop session's email (any account), or null. */
+async function shopEmail(event, S, now) {
   const cookies = parseCookies((event.headers || {}).cookie || (event.headers || {}).Cookie);
   const sid = cookies[SESSION_COOKIE_NAME];
   if (!sid) return null;
   const sess = await getJSON(S.shopSessions, sid);
   if (!sess || !sess.email) return null;
   if ((now - new Date(sess.createdAt).getTime()) / 1000 > SESSION_TTL_SECONDS) return null;
-  return isAdmin(sess.email) ? sess.email : null;
+  return sess.email;
+}
+
+/** { email, via: "shield" | "shop" } or { code: "no_session" | "not_admin" }. */
+export async function adminState(event, S, now = Date.now()) {
+  let sawSession = false;
+  const sid = adminSid(event);
+  if (sid) {
+    const sess = await getJSON(S.sessions, `admin/${sha256(sid)}`);
+    if (sess && (now - Date.parse(sess.createdAt)) / 1000 <= ADMIN_TTL_SECONDS) {
+      sawSession = true;
+      if (await isShieldAdmin(S, sess.email)) return { email: sess.email, via: "shield" };
+    }
+  }
+  const shop = await shopEmail(event, S, now);
+  if (shop) {
+    sawSession = true;
+    if (isAdmin(shop) || (await isShieldAdmin(S, shop))) return { email: shop.toLowerCase(), via: "shop" };
+  }
+  return { code: sawSession ? "not_admin" : "no_session" };
+}
+
+/** The admin's email (hs_admin first, then the shop session on the allowlist); else null. */
+export async function adminFromEvent(event, S, now = Date.now()) {
+  const st = await adminState(event, S, now);
+  return st.email || null;
 }

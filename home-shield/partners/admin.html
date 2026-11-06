@@ -49,14 +49,15 @@
 </head>
 <body>
 <header><div class="wrap"><b>Aria Home Shield</b><span class="tag gold" data-t="title">PARTNER DESKS</span><span class="sp"></span>
-  <div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
+  <button class="btn" id="hsSignout" type="button" hidden style="min-height:34px;padding:0 12px;margin-right:8px">Sign out</button><div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
 <main class="wrap" id="app"></main>
+<script src="/home-shield/admin-gate.js"></script>
 <script>
 (function () {
   "use strict";
   var I18N = {
     en: {
-      title: "PARTNER DESKS", gate: "Admins only. Sign in on the store with an account listed in ADMIN_EMAILS, then reload.", settings: "Settings",
+      title: "PARTNER DESKS", settings: "Settings",
       membershipRequired: "Membership required", membershipMonthlyUsd: "Membership price (USD per month, empty = not set)", paymentsLive: "Payments live (Stripe Checkout)",
       perLead: "Per-lead billing", ringSeconds: "Ring seconds", save: "Save", saved: "Saved", partners: "Partners", ledger: "Ledger",
       credits: "credits", held: "held", available: "available", grant: "Grant", refund: "Refund", note: "Note", membershipOn: "Mark membership active", membershipOff: "Mark membership inactive",
@@ -65,7 +66,7 @@
       l_purchase: "Pack purchase", l_grant: "Credit grant", l_claim_debit: "Verified claim", l_refund: "Refund", empty: "Nothing yet.",
     },
     es: {
-      title: "ESCRITORIOS DE SOCIOS", gate: "Solo administradores. Inicia sesión en la tienda con una cuenta que esté en ADMIN_EMAILS y vuelve a cargar.", settings: "Configuración",
+      title: "ESCRITORIOS DE SOCIOS", settings: "Configuración",
       membershipRequired: "Membresía obligatoria", membershipMonthlyUsd: "Precio de membresía (USD al mes, vacío = sin definir)", paymentsLive: "Pagos activos (Stripe Checkout)",
       perLead: "Cobro por cliente", ringSeconds: "Segundos de timbre", save: "Guardar", saved: "Guardado", partners: "Socios", ledger: "Movimientos",
       credits: "créditos", held: "reservados", available: "disponibles", grant: "Otorgar", refund: "Reembolsar", note: "Nota", membershipOn: "Marcar membresía activa", membershipOff: "Marcar membresía inactiva",
@@ -80,13 +81,37 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   var API = "/.netlify/functions/hs-partner-admin", app = document.getElementById("app");
   function post(b) { return fetch(API, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(function (r) { return r.json().then(function (x) { if (!r.ok) alert(x.error || r.status); return x; }); }); }
-  function load() { return fetch(API, { credentials: "same-origin" }).then(function (r) { return r.json().then(function (b) { S.d = r.ok ? b : null; S.gate = !r.ok; render(); }); }); }
+
+  /* THE DOOR (#443 c.6672170980): who is signed in (hs_admin or the shop session), else the Shield
+     login card with the reason. Never a link to the storefront. Re-checked when the tab comes back. */
+  function door() {
+    return HSAdminGate.me().then(function (m) {
+      if (!m.ok) { S.gate = true; S.gateCode = (m.body && m.body.code) || "no_session"; S.me = null; render(); return false; }
+      S.me = m.body; S.gate = false; return true;
+    });
+  }
+  function recheck() { if (document.visibilityState === "visible" && S.gate) load(); }
+  document.addEventListener("visibilitychange", recheck);
+  window.addEventListener("focus", recheck);
+  document.getElementById("hsSignout").onclick = function () { HSAdminGate.logout().then(function () { load(); }); };
+  function chrome() {
+    var so = document.getElementById("hsSignout");
+    so.hidden = !(S.me && S.me.via === "shield");
+    so.textContent = HSAdminGate.t("signout", S.lang);
+  }
+  function load() {
+    return door().then(function (ok) {
+      if (!ok) return;
+      return fetch(API, { credentials: "same-origin" }).then(function (r) { return r.json().then(function (b) { S.d = r.ok ? b : null; S.gate = !r.ok; if (!r.ok) S.gateCode = b.code || "not_admin"; render(); }); });
+    });
+  }
   document.querySelectorAll("[data-lang]").forEach(function (b) { b.onclick = function () { S.lang = b.dataset.lang; try { localStorage.setItem("hs_lang", S.lang); } catch (e) {} render(); }; });
   function render() {
     document.documentElement.lang = S.lang;
     document.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)); });
     document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = t(el.dataset.t); });
-    if (S.gate) { app.innerHTML = '<div class="card muted">' + esc(t("gate")) + "</div>"; return; }
+    chrome();
+    if (S.gate) { HSAdminGate.render(app, S.lang, S.gateCode, load); return; }
     if (!S.d) { app.innerHTML = "<p class=muted>...</p>"; return; }
     var s = S.d.settings, desks = ["roofer", "public_adjuster", "attorney"];
     app.innerHTML =

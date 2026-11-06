@@ -54,20 +54,19 @@
 </head>
 <body>
 <header><div class="wrap"><b>Aria Home Shield</b><span class="tag gold">ADMIN</span><span class="sp"></span>
-  <div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
+  <button class="btn" id="hsSignout" type="button" hidden style="min-height:34px;padding:0 12px;margin-right:8px">Sign out</button><div class="pill"><button data-lang="en" aria-pressed="true">EN</button><button data-lang="es" aria-pressed="false">ES</button></div></div></header>
 <main class="wrap" id="app"></main>
+<script src="/home-shield/admin-gate.js"></script>
 <script>
 (function () {
   "use strict";
   var T = {
-    en: { gateT: "Admins only", gate: "This page needs the shop session of an account listed in ADMIN_EMAILS. Sign in on the store with that account and come back.",
-      signin: "Go to sign in", retry: "I signed in", pros: "Pros", cases: "Cases", pending: "Pending verification", verified: "Verified", verify: "Approve license",
+    en: { pros: "Pros", cases: "Cases", pending: "Pending verification", verified: "Verified", verify: "Approve license",
       revoke: "Revoke", note: "Note (optional): how you checked the license", license: "License", trades: "Trades", area: "Area", phone: "Phone", email: "Email",
       joined: "Enrolled", requests: "Requests", connected: "Connected", noPros: "No pros enrolled yet.", noCases: "No cases yet.", offers: "Offers", docs: "Docs",
       contact: "Contact on file", yes: "yes", no: "no", within: "mi of", checkHint: "Check the number on the state licensing board's public lookup before approving.",
       st_open: "Open", st_offered: "Offered", st_connected: "Connected", st_closed: "Closed" },
-    es: { gateT: "Solo para administradores", gate: "Esta página necesita la sesión de la tienda de una cuenta que esté en ADMIN_EMAILS. Inicia sesión en la tienda con esa cuenta y vuelve.",
-      signin: "Ir a iniciar sesión", retry: "Ya inicié sesión", pros: "Profesionales", cases: "Casos", pending: "Verificación pendiente", verified: "Verificado", verify: "Aprobar licencia",
+    es: { pros: "Profesionales", cases: "Casos", pending: "Verificación pendiente", verified: "Verificado", verify: "Aprobar licencia",
       revoke: "Revocar", note: "Nota (opcional): cómo verificaste la licencia", license: "Licencia", trades: "Especialidades", area: "Zona", phone: "Teléfono", email: "Correo",
       joined: "Inscrito", requests: "Solicitudes", connected: "Conectados", noPros: "Todavía no hay profesionales inscritos.", noCases: "Todavía no hay casos.", offers: "Solicitudes", docs: "Docs",
       contact: "Contacto guardado", yes: "sí", no: "no", within: "mi de", checkHint: "Revisa el número en el buscador público de la junta de licencias del estado antes de aprobar.",
@@ -81,22 +80,42 @@
   var app = document.getElementById("app");
   document.querySelectorAll("[data-lang]").forEach(function (b) { b.onclick = function () { S.lang = b.dataset.lang; try { localStorage.setItem("hs_lang", S.lang); } catch (e) {} render(); }; });
 
+
+  /* THE DOOR (#443 c.6672170980): who is signed in (hs_admin or the shop session), else the Shield
+     login card with the reason. Never a link to the storefront. Re-checked when the tab comes back. */
+  function door() {
+    return HSAdminGate.me().then(function (m) {
+      if (!m.ok) { S.gate = true; S.gateCode = (m.body && m.body.code) || "no_session"; S.me = null; render(); return false; }
+      S.me = m.body; S.gate = false; return true;
+    });
+  }
+  function recheck() { if (document.visibilityState === "visible" && S.gate) load(); }
+  document.addEventListener("visibilitychange", recheck);
+  window.addEventListener("focus", recheck);
+  document.getElementById("hsSignout").onclick = function () { HSAdminGate.logout().then(function () { load(); }); };
+  function chrome() {
+    var so = document.getElementById("hsSignout");
+    so.hidden = !(S.me && S.me.via === "shield");
+    so.textContent = HSAdminGate.t("signout", S.lang);
+  }
   function load() {
-    return Promise.all([get("hs-admin-pros"), get("hs-admin-cases")]).then(function (r) {
-      if (r[0].status === 403 || r[0].status === 401) { S.gate = true; render(); return; }
-      S.gate = false; S.pros = r[0].body; S.cases = r[1].body; render();
+    return door().then(function (ok) {
+      if (!ok) return;
+      return Promise.all([get("hs-admin-pros"), get("hs-admin-cases")]).then(function (r) {
+        if (r[0].status === 403 || r[0].status === 401) { S.gate = true; S.gateCode = (r[0].body && r[0].body.code) || "not_admin"; render(); return; }
+        S.gate = false; S.pros = r[0].body; S.cases = r[1].body; render();
+      });
     });
   }
   function render() {
     document.documentElement.lang = S.lang;
     document.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)); });
-    if (S.gate) {
-      app.innerHTML = '<div class="card"><h2>' + esc(t("gateT")) + '</h2><p class="muted">' + esc(t("gate")) + '</p><div class="row"><a class="btn gold" style="display:inline-grid;place-items:center;text-decoration:none" href="/">' + esc(t("signin")) + '</a><button class="btn" id="retry">' + esc(t("retry")) + "</button></div></div>";
-      document.getElementById("retry").onclick = load; return;
-    }
+    chrome();
+    if (S.gate) { HSAdminGate.render(app, S.lang, S.gateCode, load); return; }
     if (!S.pros) { app.innerHTML = '<p class="muted">...</p>'; return; }
-    app.innerHTML = '<div class="tabs" role="tablist"><button role="tab" data-tab="pros" aria-selected="' + (S.tab === "pros") + '">' + esc(t("pros")) + " (" + S.pros.pending + " " + esc(t("pending").toLowerCase()) + ')</button><button role="tab" data-tab="cases" aria-selected="' + (S.tab === "cases") + '">' + esc(t("cases")) + " (" + (S.cases.cases || []).length + ")</button></div><section id='pane'></section>";
+    app.innerHTML = '<div id="hsShopPanel"></div><div class="tabs" role="tablist"><button role="tab" data-tab="pros" aria-selected="' + (S.tab === "pros") + '">' + esc(t("pros")) + " (" + S.pros.pending + " " + esc(t("pending").toLowerCase()) + ')</button><button role="tab" data-tab="cases" aria-selected="' + (S.tab === "cases") + '">' + esc(t("cases")) + " (" + (S.cases.cases || []).length + ")</button></div><section id='pane'></section>";
     app.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { S.tab = b.dataset.tab; render(); }; });
+    HSAdminGate.shopPanel(document.getElementById("hsShopPanel"), S.lang, S.me, function () { door(); });
     var pane = document.getElementById("pane");
     if (S.tab === "pros") paintPros(pane); else paintCases(pane);
   }
