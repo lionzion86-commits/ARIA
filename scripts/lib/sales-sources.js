@@ -27,8 +27,13 @@ export const SALES_SOURCES = [
   { retailer: "walmart", department: "sporting_goods" },
 ];
 
-// Must match index.html exactly.
-export const SALES_TAX_RATE = 1.07;
+/* THE PRICE-SIDE SALES TAX: x1.07 at EVERY source, Walmart included
+   (#443 c.6684452115, Danny 2026-11-06 -- normalizeDeal's flat x1.07 is
+   correct under that ruling). Read from /import-tax.js, the one
+   definition every pricing copy mirrors; scripts/test/sales-parity-tests.mjs
+   checks a deal's displayed price equals what checkout charges. */
+import "../../import-tax.js";
+export const SALES_TAX_RATE = globalThis.AriaImportTax.SALES_TAX_RATE;
 export const LIVE_PRICE_MARKUP = 1.24; // band-1 rate / legacy reference; live pricing uses tieredMarginUsd
 export const MIN_DISCOUNT_PCT = 5;
 

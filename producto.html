@@ -178,7 +178,7 @@ footer a{color:#fff}
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/display-name.js"></script>
-<script src="/import-tax.js?v=27e656ae98fa697f"></script>
+<script src="/import-tax.js?v=8856ca559e259c40"></script>
 <script src="/shade-gate.js"></script>
 <script src="/vuelve-pronto.js"></script>
 <script src="/condition.js"></script>
@@ -615,16 +615,25 @@ function tieredMarginUsd(rawUsd){
    TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
    the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
    This page used to stop at the margin, 7% under the SPA's price. */
-var TAX_EXEMPT = {"walmart": 1};
+/* SALES TAX, TWO SIDES (#443 c.6684452115, Danny 2026-11-06; addendum
+   c.6684509088). PRICE: every store is shelf x 1.07 x tier, Walmart
+   included -- no store is exempt here, so TAX_EXEMPT stays empty.
+   COST: where Aria really pays no tax at the register (verified:
+   Walmart, CCS, Venum) the goods' true value -- the dutiable base,
+   raw x costTaxRate -- carries no 7%. One rule: /import-tax.js;
+   scripts/test/sales-parity-tests.mjs pins every copy to it. */
+var TAX_EXEMPT = {};
+var COST_TAX_EXEMPT = {"ccs": 1, "venum": 1, "walmart": 1};
 /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
    price -- no margin, no Miami tax on top; the value is the factor that
    takes it back to the goods' true value (the import-tax base). One list,
    mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
-var PRE_PRICED = {"ariaperfumes": 1.18};
+var PRE_PRICED = {"ariaperfumes": 1.2626};
 /* LAUNCH PRICING (#443 item 32): "Precio de lanzamiento" over the price of
    a store in its launch promo. Mirrored from weight-data.js LAUNCH_PRICED. */
 var LAUNCH_PRICED = {"ariaperfumes": true};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function costTaxRate(retailer){ return COST_TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
 function finalUsd(raw, retailer){
   /* FAMILIA (#443): a flagged account sees Aria's cost -- no margin. */
   if (typeof ARIA_FAMILIA !== "undefined" && ARIA_FAMILIA === true) return dutiableUsd(raw, retailer);
@@ -649,7 +658,7 @@ function importTaxEstimateUsd(fobUsd, freightUsd){
   var f = Number(freightUsd);
   return Math.round((fob + (isFinite(f) && f > 0 ? f : 0)) * TAX_ESTIMATE_RATE * 100) / 100;
 }
-function dutiableUsd(raw, retailer){ var f = PRE_PRICED[String(retailer || "").toLowerCase()]; return f ? Math.round(Number(raw) / f * 100) / 100 : Math.round(Number(raw) * salesTaxRate(retailer) * 100) / 100; }
+function dutiableUsd(raw, retailer){ var f = PRE_PRICED[String(retailer || "").toLowerCase()]; return f ? Math.round(Number(raw) / f * 100) / 100 : Math.round(Number(raw) * costTaxRate(retailer) * 100) / 100; }
 /* Soles first, dollars small and grey; dollars alone only without a rate. */
 function moneyHtml(usd){
   return FX_RATE ? esc(fmtPen(usd * FX_RATE)) + ' <small>' + esc(fmtUsd(usd)) + '</small>' : esc(fmtUsd(usd));
@@ -1872,7 +1881,7 @@ function addCurrentToCart(p, sizes){
     /* The dutiable base is what the goods really cost: the raw price
        plus the sales tax Aria pays at that register, never the margin
        (same stamp as the SPA's normalizeLiveItem). */
-    dutiableUsd: Math.round(Number(p.price) * salesTaxRate(p.retailer) * 100) / 100,
+    dutiableUsd: Math.round(Number(p.price) * costTaxRate(p.retailer) * 100) / 100,
     /* The catalogue's weight when it has one (a published figure is a
        spec checkout honours); otherwise an honest placeholder that
        checkout re-resolves server side. */

@@ -196,11 +196,13 @@
     prosoccer: { feeUsd: null, freeOverUsd: 100, source: 'ProSoccer prosoccer.com/pages/shipping-delivery, carrier matrix 2026-11-03 (#443 c.6620628148)' },
   };
 
-  /* The Miami sales tax Aria pays at each register (Walmart exempt), the
-     same rule as producto.html and _search-core.js (a test pins them
-     together): the line's dutiable base divided by it is the store's own
-     price. */
-  var SALES_TAX_EXEMPT = { walmart: 1 };
+  /* The Miami sales tax Aria really PAYS at each register -- the COST
+     side (#443 c.6684452115 / c.6684509088: Walmart, CCS and Venum are
+     verified tax-exempt; every store's PRICE carries x1.07 regardless).
+     The line's dutiable base is raw x this rate, so dividing by it gives
+     the store's own price. Mirrors /import-tax.js COST_TAX_EXEMPT
+     (scripts/test/sales-parity-tests.mjs pins them together). */
+  var SALES_TAX_EXEMPT = { ccs: 1, venum: 1, walmart: 1 };
   function salesTaxRateOf(store) { return SALES_TAX_EXEMPT[keyOf(store)] ? 1 : 1.07; }
 
   function r2(n) { return Math.round(Number(n) * 100) / 100; }

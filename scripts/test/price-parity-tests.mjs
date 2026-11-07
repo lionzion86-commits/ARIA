@@ -58,24 +58,29 @@ function pagePricing(file) {
   const exempt = /var TAX_EXEMPT = (\{[^}]*\});/.exec(src);
   /* #443 item 32: the pre-priced stores (Aria Perfumes). */
   const pre = /var PRE_PRICED = (\{[^}]*\});/.exec(src);
-  const parts = [margin, exempt && exempt[0], pre && pre[0], lift(src, "function salesTaxRate("), lift(src, "function finalUsd(")];
+  /* #443 c.6684452115: the cost side has its own list and rate. */
+  const cost = /var COST_TAX_EXEMPT = (\{[^}]*\});/.exec(src);
+  const parts = [margin, exempt && exempt[0], cost && cost[0], pre && pre[0], lift(src, "function salesTaxRate("), lift(src, "function costTaxRate("), lift(src, "function finalUsd(")];
   assert.ok(parts.every(Boolean), `${file}: pricing functions moved — update this test`);
-  const api = new Function(parts.join("\n") + "\nreturn { finalUsd, salesTaxRate, TAX_EXEMPT, PRE_PRICED };")();
+  const api = new Function(parts.join("\n") + "\nreturn { finalUsd, salesTaxRate, costTaxRate, TAX_EXEMPT, COST_TAX_EXEMPT, PRE_PRICED };")();
   return { ...api, src };
 }
 
 const index = pageHtml();
 const statusBlock = /const TAX_EXEMPT_STATUS = \{([\s\S]*?)\n\};/.exec(index)[1];
+/* #443 c.6684452115: 'exempt' is the COST side only (no tax paid at the
+   register); every PRICE carries x1.07, so the pages' price-side list is empty. */
 const SPA_EXEMPT = [...statusBlock.matchAll(/^\s*([a-z0-9_]+):\s*'exempt'/gm)].map((m) => m[1]).sort();
 
 await check("the SPA's exempt list is what this test thinks it is", () => {
-  assert.ok(SPA_EXEMPT.includes("walmart"), "walmart is no longer exempt in index.html");
+  assert.ok(SPA_EXEMPT.includes("walmart"), "walmart is no longer cost-side exempt in index.html");
 });
 
 for (const file of PAGES) {
   await check(`${file}: same price as the SPA card, tax included, for every kind of retailer`, () => {
     const P = pagePricing(file);
-    assert.deepEqual(Object.keys(P.TAX_EXEMPT).sort(), SPA_EXEMPT, `${file}'s exempt list drifted from index.html`);
+    assert.deepEqual(Object.keys(P.TAX_EXEMPT).sort(), [], `${file}: a store is price-side exempt again`);
+    assert.deepEqual(Object.keys(P.COST_TAX_EXEMPT).sort(), SPA_EXEMPT, `${file}'s cost-side exempt list drifted from index.html`);
     assert.deepEqual(P.PRE_PRICED, { ...PRE_PRICED_SRC }, `${file}'s pre-priced list drifted from weight-data.js`);
     for (const retailer of ["walmart", "target", "autozone", "gymshark", "somebrandnew", "ariaperfumes"]) {
       for (const raw of [5, 54.99, 499.99, 750, 2600]) {
@@ -101,7 +106,7 @@ await check("producto.html's cart line stamps the same dutiable base as the SPA"
   const m = /dutiableUsd:\s*([^\n]+),\s*\r?\n/.exec(src);
   assert.ok(m, "the cart line's dutiableUsd moved");
   const P = pagePricing("producto.html");
-  const stamp = (price, retailer) => new Function("p", "salesTaxRate", `return ${m[1]};`)({ price, retailer }, P.salesTaxRate);
+  const stamp = (price, retailer) => new Function("p", "salesTaxRate", "costTaxRate", `return ${m[1]};`)({ price, retailer }, P.salesTaxRate, P.costTaxRate);
   for (const [raw, retailer] of [[54.99, "autozone"], [19.99, "walmart"], [120, "target"]]) {
     assert.equal(stamp(raw, retailer), spa(raw, retailer).dutiableUsd, `${retailer} $${raw}`);
   }

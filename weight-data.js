@@ -79,9 +79,9 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
 
    Peru taxes the GOODS, not our margin. The dutiable base is what the
    goods really cost: the raw US price plus whatever Miami sales tax Aria
-   really pays at that retailer's register (per-retailer rate — 1.07 by
-   default, 1.0 for DR-13-exempt retailers; see TAX_EXEMPT_STATUS in
-   index.html), BEFORE the service markup. Every price on the site is
+   really pays at that retailer's register (the COST-side rate, costTaxRate
+   below — 1.07 by default, 1.0 where Aria is verified tax-exempt at the
+   register; the price side is x1.07 at every store), BEFORE the service markup. Every price on the site is
    built as (raw + tieredMarginUsd(raw)) x taxRate (see normalizeLiveItem()
    in index.html), so the base backs out via rawFromTieredMarked — the
    same inversion the admin margin view uses. Items stamped at pricing
@@ -101,7 +101,15 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    margin. Every page copy (var PRE_PRICED) and the bundle mirror this;
    scripts/test/price-parity-tests.mjs pins them. When the 90-day promo
    ends, the builder prices at the tiered margin and this factor goes. */
-export const PRE_PRICED = T.PRE_PRICED; // { ariaperfumes: 1.18 }, frozen
+export const PRE_PRICED = T.PRE_PRICED; // { ariaperfumes: 1.2626 } = 1.07 x 1.18, frozen
+/* THE SALES TAX, TWO SIDES (#443 c.6684452115): the price side is x1.07
+   at every store (salesTaxRate), the cost side is x1.00 where Aria pays no
+   tax at the register (costTaxRate, COST_TAX_EXEMPT). One definition, in
+   /import-tax.js; module-land reads it from here. */
+export const SALES_TAX_RATE = T.SALES_TAX_RATE;
+export const COST_TAX_EXEMPT = T.COST_TAX_EXEMPT;
+export const salesTaxRate = T.salesTaxRate;
+export const costTaxRate = T.costTaxRate;
 /* LAUNCH PRICING (#443 item 32 amendment, Danny): while a pre-priced
    store's launch promo runs, every card and product page of it says
    "Precio de lanzamiento" -- the promo is temporary by announcement, so

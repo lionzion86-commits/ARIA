@@ -15,15 +15,23 @@
    tax. Here the store price would be the wholesale cost, so it never
    leaves this script: each row carries Aria's price (cost x the perfume
    lane's margin) and the pages show it as is (PRE_PRICED in
-   /pricing-rules.js). The import-tax base is the goods' true value,
+   /import-tax.js). The import-tax base is the goods' true value,
    price / factor, never the margin.
+
+   THE STACK (#443 c.6684758084, Danny 2026-11-06 -- supersedes the x1.00
+   tax factor of Oct 24): the same shape as every other store. The 7% is
+   computed on the TRUE wholesale cost first, the margin after:
+     launch promo  price = cost x 1.07 x 1.18
+     after it      price = (cost + tieredMarginUsd(cost)) x 1.07
+   Worked checks: Dior Sauvage EDT 100 ml, cost $150.00 -> $189.39;
+   Paco Rabanne 1 Million, cost $54.84 -> $69.24 (perfumes-tests).
 
    THE PROMO (standing doctrine): 18% lane-wide for the first 90 days
    from the public launch, then the standard tiered margin. Set
    PERFUME_LAUNCH below the day the department goes live; the build
    prices at 18% until launch + 90 days and at the standard margin after.
    Re-run the builder and the PRE_PRICED factor follows (see
-   pricing-rules.js).
+   /import-tax.js).
 
    CLASSES, NEVER MERGED. Testers, unboxed, minis/travel, gift sets,
    refills and the fragrance-adjacent lines (body mist, lotion, after
@@ -41,7 +49,7 @@
    ============================================================ */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { tieredMarginUsd } from "../weight-data.js";
+import { tieredMarginUsd, SALES_TAX_RATE } from "../weight-data.js";
 import { spanishFor } from "./lib/description-es.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -62,10 +70,10 @@ export function promoActive(now = new Date(), launch = PERFUME_LAUNCH) {
   return now.getTime() < end;
 }
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-/** Aria's price for one bottle from its cost. */
+/** Aria's price for one bottle from its true cost: cost x 1.07 x margin. */
 export function ariaPrice(costUsd, promo = promoActive()) {
   const c = Number(costUsd);
-  return r2(promo ? c * (1 + PROMO_MARGIN) : c + tieredMarginUsd(c));
+  return r2(promo ? c * SALES_TAX_RATE * (1 + PROMO_MARGIN) : (c + tieredMarginUsd(c)) * SALES_TAX_RATE);
 }
 
 const CONC = { EDP: "Eau de Parfum", EDT: "Eau de Toilette", EDC: "Eau de Cologne", Extrait: "Extrait de Parfum", Parfum: "Parfum" };

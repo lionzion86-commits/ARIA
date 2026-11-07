@@ -41,7 +41,7 @@
    dutiable base is the supplier cost, so dutiable_usd is null there.
    ============================================================ */
 import "../../sale-rule.js";
-import { equivalentQuery, didYouMean, finalUsd, salesTaxRate, readRepoFile, shippingOf } from "./_search-core.js";
+import { equivalentQuery, didYouMean, finalUsd, costTaxRate, readRepoFile, shippingOf } from "./_search-core.js";
 import { cartLineFor } from "./_door-price.js";
 import { resolveCartWeights } from "./_weight-resolve.js";
 import { freightFloorUsd } from "./_checkout-model.js";
@@ -532,10 +532,11 @@ export async function getProduct(args, env) {
   }
 
   /* The dutiable base (what Peru taxes): the store's price plus the
-     Miami sales tax Aria pays there -- never the margin, and never a
+     Miami sales tax Aria really pays there (the cost side, costTaxRate:
+     none at Walmart, CCS, Venum) -- never the margin, and never a
      pre-priced store's supplier cost. */
   const dutiable = prePriced ? null
-    : rec || !row.finalPrice ? r2(rawPrice * salesTaxRate(retailer))
+    : rec || !row.finalPrice ? r2(rawPrice * costTaxRate(retailer))
     : (Number.isFinite(dutiableBaseUsd(priceUsd)) ? dutiableBaseUsd(priceUsd) : null);
 
   const recLike = rec || { name: row.title, retailer, price: rawPrice, dept: row.departments[0] || "" };
@@ -552,7 +553,7 @@ export async function getProduct(args, env) {
   if (Number.isFinite(fob) && fob > 0) taxUsd = fob <= TAX_ESTIMATE_THRESHOLD_USD ? 0 : (kg && !prePriced ? importTaxEstimateUsd(fob, freight) : null);
 
   const ship = shippingOf(cartLineFor({ retailer, title: row.title, brand: row.brand, cardUsd: priceUsd,
-    rawUsd: prePriced || (!rec && row.finalPrice) ? null : rawPrice, taxRate: salesTaxRate(retailer) }));
+    rawUsd: prePriced || (!rec && row.finalPrice) ? null : rawPrice, taxRate: costTaxRate(retailer) }));
 
   const images = (rec ? unpack(rec.images, rec.image) : [row.image]).filter(isHttpUrl);
   if (!images.length && isHttpUrl(row.image)) images.push(row.image);

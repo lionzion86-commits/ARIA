@@ -33,6 +33,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildCatalog, productIdFor } from "./lib/mcp/catalog.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { PRE_PRICED } from "../weight-data.js";
 import { variantIdOf } from "./lib/variants.mjs";
 import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
 
@@ -90,8 +91,12 @@ export function buildPriceIndex() {
     if (!title || !(price > 0) || !it.retailer || isOffSaleRetailer(it.retailer)) continue;
     const id = productIdFor(it.retailer, title);
     const had = prices[id];
-    if (!had) prices[id] = [r2(price), r2(it.dutiableUsd ?? price)];
-    else if (Math.abs(had[0] - price) > 0.005) { had[2] = r2(price); had[3] = r2(it.dutiableUsd ?? price); }
+    /* The feed carries no dutiable value for a pre-priced store (its cost
+       is never public): it is the price over the store's factor. */
+    const pre = PRE_PRICED[String(it.retailer).toLowerCase()];
+    const dutiable = it.dutiableUsd ?? (pre ? price / pre : price);
+    if (!had) prices[id] = [r2(price), r2(dutiable)];
+    else if (Math.abs(had[0] - price) > 0.005) { had[2] = r2(price); had[3] = r2(dutiable); }
     sale++;
   }
   return { v: 1, generatedAt: null, count: Object.keys(prices).length, saleFeedItems: sale, variantPrices, prices };
