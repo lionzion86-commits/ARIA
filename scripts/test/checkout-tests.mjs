@@ -172,7 +172,7 @@ function orderBody(extra = {}) {
   const freight = 26;
   return {
     customer: { name: "Danny", email: "danny@ariashop.pe", idNumber: "45678912" },
-    shipping: { destCity: "Lima" },
+    shipping: { destCity: "Lima", addrDistrict: "Miraflores" },
     items: [product],
     quote: { total_usd: goods + freight, flete_usd: freight, source: "avi" },
     shippingMode: "consolidated",
@@ -205,12 +205,15 @@ async function post(body, { host = "deploy-preview-1--ariashopperu.netlify.app",
 }
 const W = await import(ROOT + "weight-data.js");
 const BF = await import(ROOT + "scripts/lib/buyer-fee.js");
+/* Entrega en Lima (#443 c.6709315389 item 7): Miraflores is zona 1. */
+const LD = await import(ROOT + "scripts/lib/lima-delivery.js");
 function expectedPen(mode = "consolidated", freight = 26) {
   const tax = W.importTaxEstimateUsd(product.dutiableUsd, freight);
   const usd = Math.round((product.priceUsd + freight + tax) * 100) / 100;
   const base = Math.round((product.priceUsd + freight) * FX * 100) / 100;
   /* Envío Aria: S/ 1 per store checkout (#443 c.6560848572); one store here. */
-  return Math.round((usd * FX + W.smallOrderFeePen(base) + M.expressFeePen(mode, FX) + BF.buyerFeePen([product])) * 100) / 100;
+  return Math.round((usd * FX + W.smallOrderFeePen(base) + M.expressFeePen(mode, FX) + BF.buyerFeePen([product])
+    + LD.limaDeliveryFeePen("Lima", "Miraflores", product.priceUsd)) * 100) / 100;
 }
 
 await check("a preview with no Stripe key refuses instead of faking a payment", async () => {
@@ -508,7 +511,7 @@ await check("provincia offers Olva and Shalom only; Lima offers Reparto Aria onl
 
 await check("the dollar total on screen carries the soles fees too (provincia, small order, express, Envío Aria)", () => {
   const page = readFileSync(ROOT + "checkout.html", "utf8");
-  assert.match(page, /const shownUsd = orderTotalUsdShown\(totals\.totalUsd, smallOrderFee \+ provFee \+ expressFee \+ ariaFee\);/);
+  assert.match(page, /const shownUsd = orderTotalUsdShown\(totals\.totalUsd, smallOrderFee \+ provFee \+ expressFee \+ ariaFee \+ limaFee\);/);
   assert.match(page, /payBtn\.textContent = payLabel\(shownUsd, /, "Pagar label prints the dollar total without the fees");
   assert.doesNotMatch(page, /sumTotal\.innerHTML = fmtPrimary\(totals\.totalUsd\)/, "a summary total still omits the soles fees");
 });
@@ -687,7 +690,8 @@ function familiaPen(freight = 26) {
   const tax = W.importTaxEstimateUsd(product.dutiableUsd, freight);
   const usd = Math.round((goods + freight + tax) * 100) / 100;
   const base = Math.round((goods + freight) * FX * 100) / 100;
-  return Math.round((usd * FX + W.smallOrderFeePen(base) + M.expressFeePen("consolidated", FX) + BF.buyerFeePen([product])) * 100) / 100;
+  return Math.round((usd * FX + W.smallOrderFeePen(base) + M.expressFeePen("consolidated", FX) + BF.buyerFeePen([product])
+    + LD.limaDeliveryFeePen("Lima", "Miraflores", goods)) * 100) / 100;
 }
 function signIn(email, extra = {}) {
   if (!globalThis.__blobs.has("users")) globalThis.__blobs.set("users", new Map());
