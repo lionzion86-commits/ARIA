@@ -3853,7 +3853,7 @@ html{scroll-padding-top:76px}
       </div>
       <div class="flex items-center gap-1.5 text-[12px] text-zinc-500">
         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--green)"></span>
-        Búsqueda en vivo activa · comparando <span id="storeCount" class="tabular font-semibold" style="color:var(--navy)">4</span> tiendas
+        Búsqueda en vivo activa · comparando <span data-store-count="120" data-store-count-digits id="storeCount" class="tabular font-semibold" style="color:var(--navy)">120</span> tiendas
       </div>
     </div>
 
@@ -4742,19 +4742,14 @@ html{scroll-padding-top:76px}
     <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
       <div class="ariaKicker ariaKicker--onLight mb-3">Dónde compramos</div>
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">
-        <span data-store-count>Ocho</span> tiendas, todas reales.
+        <span data-store-count="120">120</span> tiendas, todas reales.
       </h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-9" style="color:#4A5568">
         Los últimos productos, de las mejores tiendas, traídos directo desde Estados Unidos.
       </p>
-      <!-- 4-across. Rendered from the RETAILERS registry, never
-           hand-written -- and so is the COUNT in the heading above. It
-           said "Ocho" from the day eight stores fit a 4x2 grid, and was
-           still saying it at twelve: Macy's, SSENSE and then the three
-           beauty stores all arrived without it. A number in prose that
-           nothing recomputes is a number that goes wrong quietly, which
-           is the opposite of what this section is claiming. -->
+      <!-- The count: scripts/build-store-doors.mjs. The grid: the registry. -->
       <div id="storesGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      <div id="storesGridMore"></div>
       <div class="mt-8 text-[13px]" style="color:#6B7487">¿Buscas algo de una tienda que no está en la lista? Escríbenos por el chat y la conseguimos.</div>
     </div>
   </section>
@@ -6600,7 +6595,7 @@ html{scroll-padding-top:76px}
 <script src="/store-shipping.js" defer></script>
 <script src="/fragrance.js" defer></script>
 <script src="/import-tax.js?v=27e656ae98fa697f" defer></script>
-<script src="/build/app-9016c24595e95d83.js" defer></script>
+<script src="/build/app-b3650fc8f464f8a2.js" defer></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 
