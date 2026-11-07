@@ -44,7 +44,9 @@ const FX = 3.75;
 /* What the search server answers for a pink MacBook: one under the
    S/ 5000 ceiling, one over it, and one without a photo (never a card). */
 const SEARCH_ITEMS = [
-  { id: "m1", title: "Apple MacBook Air 13-inch M3 Laptop - Rose Gold", brand: "Apple", store: "bestbuy", storeLabel: "Best Buy",
+  /* A real Best Buy record (bestbuy-catalog.json), so the tapped card
+     resolves on producto.html from its own PDP shard. */
+  { id: "m1", title: 'Apple - MacBook Air 15" Laptop - M2 chip Built for Apple Intelligence - 8GB Memory - 256GB SSD - Starlight', brand: "Apple", store: "bestbuy", storeLabel: "Best Buy",
     usd: 1099.99, pen: Math.round(1099.99 * FX * 100) / 100, wasUsd: 1299.99, wasPen: Math.round(1299.99 * FX * 100) / 100,
     image: "/aria-icon-512.png", category: "laptops" },
   { id: "m2", title: "Apple MacBook Pro 16-inch M3 Max - Pink Edition", brand: "Apple", store: "bestbuy", storeLabel: "Best Buy",
@@ -152,7 +154,13 @@ async function openInstagramWebView() {
     who: el.classList.contains("ml-auto") ? "user" : el.tagName === "BUTTON" ? "card" : el.classList.contains("assistantNote") ? "note" : "bot",
     text: el.innerText.replace(/\s+/g, " ").trim(),
   })));
-  return { ctx, page, errors, navigations, catalogueRequests, searchQueries, agentCalls, stillSamePage, column };
+  /* Live JS heap after a GC, in MB, of whatever document the tab holds now. */
+  const heapMB = async () => {
+    const s = await ctx.newCDPSession(page);
+    try { await s.send("HeapProfiler.collectGarbage"); return Math.round((await s.send("Runtime.getHeapUsage")).usedSize / 1e6); }
+    finally { await s.detach().catch(() => {}); }
+  };
+  return { ctx, page, errors, navigations, catalogueRequests, searchQueries, agentCalls, stillSamePage, column, heapMB };
 }
 
 const askedBudget = (t) => /presupuesto|tope/i.test(t) && /\?/.test(t);
@@ -244,7 +252,7 @@ await check("VOICE: «MacBooks rosadas» -> budget asked once -> «5000.» kept 
   assert.ok(out, "the tool never answered the model");
   assert.ok(!out.unavailable, "the tool asked for the budget again / failed: " + JSON.stringify(out));
   assert.equal((out.products || []).length, 1, "the budget filter is wrong: " + JSON.stringify(out.products));
-  assert.match(out.products[0].title, /Rose Gold/);
+  assert.match(out.products[0].title, /MacBook Air 15" Laptop - M2/);
   assert.equal(out.budget_pen, BUDGET_PEN, "the tool does not say back the ceiling it applied");
   const col = await W.column();
   const cards = col.filter((m) => m.who === "card");
@@ -310,6 +318,70 @@ await check("after the whole conversation: still the same page, nothing reloaded
   assert.equal(W.catalogueRequests.length, 0, "catalogue files fetched: " + W.catalogueRequests.length);
 });
 
+/* THE PRODUCT VIEW, ON THIS PHONE (#443 P0 follow-up). The in-page
+   product view's related rail, combo and route restore each used to call
+   relatedPool() -- the same 80 files. Run here directly: none may fetch
+   a catalogue file, and the heap stays where it was. */
+await check("the in-page product view on this phone: no related rail, no combo, no route lookup touches the catalogue", async () => {
+  const before = W.catalogueRequests.length;
+  const r = await W.page.evaluate(async () => {
+    const anchor = { retailer: "bestbuy", title: 'Apple - MacBook Air 15" Laptop - M2 chip Built for Apple Intelligence - 8GB Memory - 256GB SSD - Starlight', price: 1099.99, image: "/aria-icon-512.png" };
+    const t = document.getElementById("productViewTitle");
+    if (t) t.textContent = anchor.title;
+    await renderRelatedRail(anchor);
+    /* A two-product combo anchored on this product: the second product
+       can only be priced from the whole catalogue, so on this phone the
+       combo must not resolve (and must not go and load it). The page's
+       own combo data is used when it has one; otherwise a synthetic one. */
+    const data = (typeof comboDeals === "function" ? comboDeals() : []).find((c) => c && Array.isArray(c.items) && c.items.length > 1);
+    const combo = data || { id: "prueba", savingUsd: 10, items: [{ retailer: anchor.retailer, title: anchor.title },
+      { retailer: "bestbuy", title: "Apple - USB-C Power Adapter 35W" }] };
+    const a = data ? { ...combo.items[0], price: 50, image: "/aria-icon-512.png" } : anchor;
+    if (t) t.textContent = a.title;
+    await renderComboModule(a);
+    const comboResolved = await resolveComboDeal(combo, a);
+    const found = await findCatalogProductByTitle(anchor.title);
+    return { railHidden: document.getElementById("relatedRail") ? document.getElementById("relatedRail").hidden : true,
+      comboShown: document.getElementById("comboDealWrap") ? !document.getElementById("comboDealWrap").hidden : false,
+      comboResolved, found: found ? found.title : null, pool: progressivePool.length };
+  });
+  assert.equal(r.railHidden, true, "a related rail was drawn from the catalogue");
+  assert.equal(r.comboShown, false, "a combo was drawn");
+  assert.equal(r.comboResolved, null, "a combo resolved without its products: " + JSON.stringify(r.comboResolved));
+  assert.match(String(r.found), /MacBook Air 15/, "the route lookup did not resolve through the search server");
+  assert.equal(r.pool, 0, "a product pool was built");
+  assert.equal(W.catalogueRequests.length, before, "the product view fetched catalogue files: " + W.catalogueRequests.slice(before, before + 5).join(", "));
+  const heap = await W.heapMB();
+  assert.ok(heap < 60, "the heap grew to " + heap + " MB");
+});
+
+/* THE TAP. A result card opens the product page the shopper chose:
+   one navigation, to producto.html for that product -- never a reload of
+   the home page -- and producto.html builds itself from its own small
+   files, never from the catalogue. */
+await check("tapping a result card: one navigation to that product's page, no reload, zero catalogue requests, heap small", async () => {
+  const before = W.catalogueRequests.length;
+  const errorsBefore = W.errors.length;
+  assert.deepEqual(W.navigations, [], "the page had already navigated: " + W.navigations.join(" | "));
+  const card = W.page.locator("#assistantMessages [data-assistant-card]").first();
+  assert.equal(await card.count(), 1, "no card to tap");
+  await Promise.all([W.page.waitForURL(/\/producto\.html\?/, { timeout: 15000 }), card.tap()]);
+  await W.page.waitForLoadState("load");
+  await W.page.waitForTimeout(4000);
+  assert.equal(W.navigations.length, 1, "expected exactly one navigation, got: " + W.navigations.join(" | "));
+  const u = new URL(W.navigations[0]);
+  assert.equal(u.pathname, "/producto.html", "the tap went somewhere else: " + W.navigations[0]);
+  assert.match(u.searchParams.get("producto") || "", /MacBook Air 15" Laptop - M2/, "the tap opened a different product");
+  assert.equal(u.searchParams.get("tienda"), "bestbuy");
+  assert.ok(!W.navigations.some((x) => /\/(?:index\.html)?(?:\?|$)/.test(new URL(x).pathname + new URL(x).search) && new URL(x).pathname !== "/producto.html"), "the home page reloaded");
+  const title = await W.page.evaluate(() => (document.getElementById("p-title") || {}).textContent || "");
+  assert.match(title, /MacBook Air/, "the product page did not render the product: " + title);
+  assert.equal(W.catalogueRequests.length, before, "the product page fetched catalogue files: " + W.catalogueRequests.slice(before, before + 5).join(", "));
+  const heap = await W.heapMB();
+  assert.ok(heap < 60, "the product page heap is " + heap + " MB");
+  assert.deepEqual(W.errors.slice(errorsBefore), [], "product page errors: " + W.errors.slice(errorsBefore).join(" | "));
+});
+
 await W.ctx.close();
 
 /* The same page on a desktop browser keeps the in-page catalogue path. */
@@ -325,7 +397,7 @@ await check("desktop is unchanged: not a light browser, so search stays in the p
 
 await browser.close();
 
-const MIN_CHECKS = 9;
+const MIN_CHECKS = 11;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

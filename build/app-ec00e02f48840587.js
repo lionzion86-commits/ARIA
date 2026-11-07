@@ -6412,6 +6412,13 @@ async function renderRelatedRail(anchorIn){
   const anchor = anchorIn;
   section.hidden = true; row.innerHTML = ''; relatedRendered = [];
   if (!anchor || !Number.isFinite(Number(anchor.price)) || Number(anchor.price) <= 0) return;
+  /* NO RAIL RATHER THAN THE WHOLE CATALOGUE (#443 P0 c.6692638975).
+     The rail is picked from relatedPool() -- all 80 catalogue files, the
+     load that got the Instagram WebView killed. On a phone, an in-app
+     browser or a low-memory device (ariaLowMemoryBrowser) the in-page
+     product view shows no rail; producto.html, where a card tap lands,
+     draws its rails from its own small files (assets/pdp/rails). */
+  if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()) return;
 
   const pool = await relatedPool().catch(() => []);
   /* The shopper may have moved on while the cache loaded. Drawing a rail
@@ -17734,6 +17741,12 @@ function pushRoute(route){
 async function findCatalogProductByTitle(title){
   const want = String(title || '').trim().toLowerCase();
   if (!want) return null;
+  /* On a light device the title is resolved by the search server, the
+     way producto.html does, never by loading every catalogue. */
+  if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()){
+    const res = await catalogSearchOnServer(title, { limit: 48 }).catch(() => null);
+    return ((res && res.items) || []).find(it => String(it.title || '').trim().toLowerCase() === want) || null;
+  }
   const pool = await relatedPool().catch(() => []);
   return pool.find(it => String(it.title || '').trim().toLowerCase() === want) || null;
 }
@@ -27967,7 +27980,12 @@ function combosForProduct(retailer, title){
    then hides rather than promising a bundle it cannot build. */
 async function resolveComboDeal(combo, anchor){
   let pool = [];
-  try { pool = await relatedPool(); } catch { pool = []; }
+  /* On a light device the other SKUs are not looked up in the whole
+     catalogue (see renderRelatedRail): with nothing to price them
+     against, the combo is not drawn -- never a guessed price. */
+  if (!(typeof ariaSearchOnServer === 'function' && ariaSearchOnServer())){
+    try { pool = await relatedPool(); } catch { pool = []; }
+  }
   const lines = [];
   for (const ref of combo.items){
     let found = null;

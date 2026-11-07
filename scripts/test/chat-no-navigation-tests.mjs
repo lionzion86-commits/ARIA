@@ -133,6 +133,15 @@ check("a call on a phone never warms the whole catalogue: the search server answ
   assert.match(lift("function ariaLowMemoryBrowser(){"), /iPhone\|iPad\|iPod\|Android/, "a phone is not treated as a light browser");
 });
 
+check("the in-page product view never loads the whole catalogue on a phone: rail, combo, route lookup", () => {
+  for (const sig of ["async function renderRelatedRail(anchorIn){", "async function resolveComboDeal(combo, anchor){", "async function findCatalogProductByTitle(title){"]) {
+    const body = stripComments(lift(sig));
+    const gate = body.indexOf("ariaSearchOnServer()");
+    assert.ok(gate > 0, `${sig} has no phone check`);
+    assert.ok(gate < body.indexOf("relatedPool()"), `${sig} reaches relatedPool() before asking whether this is a phone`);
+  }
+});
+
 check("a spoken number is never dropped as noise", () => {
   const noise = lift("function realtimeTranscriptIsNoise(t){");
   assert.match(noise, /if \(letters < 2\) return !\/\\d\/\.test\(s\);/, "a digits-only answer (\"5000.\") is noise again");
@@ -153,7 +162,7 @@ check('"Por qué Aria" never 404s', () => {
   assert.match(redirects, /^\/por-que-aria \/nosotros\.html 301$/m);
 });
 
-const MIN_CHECKS = 8;
+const MIN_CHECKS = 9;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
