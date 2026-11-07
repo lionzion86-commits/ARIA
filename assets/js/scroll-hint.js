@@ -18,6 +18,9 @@
    La pista desaparece cuando la fila llega a su final, y no existe
    cuando la fila cabe entera (escritorio, filas cortas).
 
+   Mientras una fila tiene un menú abierto dentro (la barra de filtros
+   abre su hoja ahí), no se desvanece: la máscara recortaría la hoja.
+
    Solo mira y pinta: no toca los botones de ninguna fila, ni sus
    clics, ni su filtrado (la lógica de cada página es de cada página).
    El chevrón es un hermano de la fila, fuera de ella, y no recibe toques.
@@ -43,7 +46,10 @@
 
   var W = 28; /* ancho del desvanecido y del chevrón, en px */
   var css = ''
-    + '[data-sh].sh-more{-webkit-mask-image:linear-gradient(to left,transparent 0,rgba(0,0,0,.25) 10px,#000 ' + W + 'px);mask-image:linear-gradient(to left,transparent 0,rgba(0,0,0,.25) 10px,#000 ' + W + 'px)}'
+    /* A mask clips every descendant, a fixed bottom sheet too (the
+       filter bar opens its panels inside the row): while a row holds an
+       open menu, no fade. Without :has, no fade at all; the chevron stays. */
+    + '[data-sh].sh-more:not(:has([aria-expanded="true"],[role="dialog"])){-webkit-mask-image:linear-gradient(to left,transparent 0,rgba(0,0,0,.25) 10px,#000 ' + W + 'px);mask-image:linear-gradient(to left,transparent 0,rgba(0,0,0,.25) 10px,#000 ' + W + 'px)}'
     + '.sh-hint{position:absolute;z-index:2;width:' + W + 'px;display:none;align-items:center;justify-content:flex-end;padding-right:3px;box-sizing:border-box;pointer-events:none;'
     + 'font:800 18px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:#B8860B}'
     + '.sh-hint.sh-dark{color:#F4C463}'
