@@ -1792,13 +1792,38 @@ export function explore(list, f, sort = "deal", page = 0, labels = {}) {
 const ptCache = new WeakMap();
 export function typeRuleOf(id) {
   const w = typeWorldById(String(id || "").trim().toLowerCase().slice(0, 40));
-  return w ? { id: w.id, label: w.label, test: w.test, lead: w.lead || null } : null;
+  return w ? { id: w.id, label: w.label, test: w.test, lead: w.lead || null, pool: w.pool || null } : null;
 }
 export function ofType(list, rule) {
   let m = ptCache.get(list);
   if (!m) ptCache.set(list, m = new Map());
-  if (!m.has(rule.id)) m.set(rule.id, list.filter((p) => { try { return !!rule.test({ title: p.title, brand: p.brand, retailer: p.retailer, departments: [], typeLabel: typeKeyOf(p).label }); } catch { return false; } }));
+  if (!m.has(rule.id)) m.set(rule.id, list.filter((p) => { try { return !!rule.test({ title: p.title, brand: p.brand, retailer: p.retailer, departments: [], type: p.type, typeLabel: typeKeyOf(p).label }); } catch { return false; } }));
   return m.get(rule.id);
+}
+/* A SHELF IS EVERY DEPARTMENT THAT CARRIES IT (#443 c.6693598650 §3): a
+   type rule with a pool (_search-core.js LANDING_TYPES) reads the landing
+   department and every department in its pool -- each product once (the
+   same product sits in Moda Mujer and Diseñador), the landing
+   department's own order first -- with every department's store names. */
+const poolCache = new Map();
+export function pooledDept(d, pool, roots) {
+  const key = d.key + ">" + pool.join(",");
+  if (poolCache.has(key)) return poolCache.get(key);
+  const seen = new Set(), list = [], labels = {};
+  for (const k of [d.key, ...pool]) {
+    const x = k === d.key ? d : loadDept(k, roots);
+    if (!x) continue;
+    for (const [rk, rl] of Object.entries(x.labels || {})) if (!(rk in labels)) labels[rk] = rl;
+    for (const p of x.list) {
+      const id = p.retailer + "|" + p.title + "|" + p.image;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      list.push(p);
+    }
+  }
+  const out = { key: d.key, labels, list };
+  poolCache.set(key, out);
+  return out;
 }
 
 /* The page's filters, unchanged: one store, and every word of the
@@ -1897,8 +1922,9 @@ export function answer(qs, roots) {
      narrows the set after it is chosen: «tienda:walmart» stays Walmart's. */
   const ver = String(qs.ver || "").trim().slice(0, 80);
   if (ver) {
-    const base = q.trim() || b || a || t || u ? filterList(d.list, { q, b, a, t, u, dept: d.key }) : d.list;
     const rule = typeRuleOf(qs.pt);
+    const src = rule && rule.pool ? pooledDept(d, rule.pool, roots) : d;
+    const base = q.trim() || b || a || t || u ? filterList(src.list, { q, b, a, t, u, dept: d.key }) : src.list;
     const set = rule ? { items: ofType(base, rule), title: rule.label } : landingSet(base, ver, d.key);
     const store = r && r !== "all" ? r : "";
     let items = store ? set.items.filter((p) => p.retailer === store) : set.items;
@@ -1906,7 +1932,7 @@ export function answer(qs, roots) {
     const title = set.title || tl || "";
     /* A type rule with a lead (Vajilla: the dinnerware sets) keeps it first in every rail. */
     const ord = ver === "pasillo:tech_drones" || t === "drones" ? dronesOrder : rule && rule.lead ? (l) => l.filter(rule.lead).concat(l.filter((p) => !rule.lead(p))) : null;
-    let sections = landingSections(items, { dept: d.key, labels: d.labels, title, ord });
+    let sections = landingSections(items, { dept: d.key, labels: src.labels, title, ord });
     if (qs.rail !== undefined && qs.rail !== "") {
       const out = pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
       return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más productos." } };
@@ -1915,7 +1941,7 @@ export function answer(qs, roots) {
       const out = batchOf(sections, Number(qs.batch));
       return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
     }
-    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(rule ? { pt: rule.id, ptl: rule.label } : {}), ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
+    return { status: 200, body: headOf(d.key, items, sections, src.labels, { r: store || "all", q, ver, ...(rule ? { pt: rule.id, ptl: rule.label } : {}), ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
   }
   const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u, dept: d.key }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next

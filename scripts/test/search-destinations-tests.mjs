@@ -50,7 +50,7 @@ const BATTERY = [
   ["nike air force 1", "brand"], ["air force 1", "brand"], ["converse all star", "brand"], ["adidas samba", "brand"],
   ["samba", "brand"], ["airpods", "brand"], ["zapatillas nike", "brand"], ["levis jeans", "brand"], ["jordan 1", "brand"],
   ["vestidos", "category"], ["dresses", "category"], ["zapatillas", "category"], ["sneakers", "category"], ["laptops", "category"],
-  ["juguetes", "category"], ["toys", "category"], ["pesas", "category"], ["dumbbells", "category"], ["perfumes", "category"],
+  ["juguetes", "category"], ["toys", "category"], /* no weights in any catalogue: the honest empty (#443 c.6693598650 §3) */ ["pesas", "chooser"], ["dumbbells", "chooser"], ["perfumes", "category"],
   ["perfume mujer", "category"], ["lentes de sol", "category"], ["sunglasses", "category"], ["polos hombre", "category"],
   ["cartera cuero", "category"], ["zapatillas mujer", "category"], ["lego", "brand"], ["barbie", "brand"],
   ["maybelline", "brand"], ["hot wheels", "brand"], ["play doh", "brand"], ["nerf", "brand"], ["fisher price", "brand"],
@@ -149,6 +149,8 @@ await check("the chooser: four carousels -- Categoría, Marca, Producto, Ofertas
   for (const [q, a] of ANSWERS) {
     if (a.destination.kind !== "chooser") continue;
     const rails = a.chooser.rails;
+    /* The honest empty (#443 c.6693598650 §3) offers only real neighbouring shelves, each its type page. */
+    if (a.chooser.reason === "honest") { assert.ok(rails.length && rails.every((r) => r.kind === "category" && dst.SURFACE_RX.test(r.url) && r.items.length), q); continue; }
     assert.deepEqual(rails.map((r) => r.kind), dst.CHOOSER_KINDS, q);
     for (const r of rails) {
       assert.ok(dst.SURFACE_RX.test(r.url) || /^search\.html\?resultados=1&q=[^&"<>\s#]*(#lane-ofertas)?$/.test(r.url) || r.url === "ofertas.html", `${q}: ${r.url}`);
@@ -184,9 +186,10 @@ const AUD = ["electronics", "pasillo:tech_audifonos"], CAM = ["electronics", "pa
    names lands on the whole department narrowed by its type rule (&pt=):
    «monitor» is Monitores, not Accesorios y energía; «plancha» the irons. */
 const MON = ["electronics", "tipos", "", "monitores"], PLA = ["beauty", "tipos", "", "planchas"];
-const CHAMPU = ["cabello", "tipo:champú y acondicionador"], KERA = ["cabello", "tipo:keratina y alisados"], MASK = ["cabello", "tipo:mascarillas"];
-const PESAS = ["sporting_goods", "tipo:pesas-y-cinturones"], VAJ = ["home_goods", "casa:casa_mesa"], LAB = ["beauty", "tipo:labios"];
-const POL = ["men", "tipo:chompas-y-polerones"], SHO = ["clothing", "tipo:shorts"];
+const CHAMPU = ["cabello", "tipo:champú y acondicionador", "", "champu"], KERA = ["cabello", "tipo:keratina y alisados"], MASK = ["cabello", "tipo:mascarillas"];
+const VAJ = ["home_goods", "casa:casa_mesa"], LAB = ["beauty", "tipo:labios"];
+/* The whole shelf, every department that carries it (#443 c.6693598650 §3). */
+const POL = ["clothing", "tipos", "", "polerones"], SHO = ["clothing", "tipo:shorts", "", "shorts"], BOT = ["shoes", "tipos", "", "botas"], CAR = ["purses", "tipos", "", "carteras"];
 /* Drones (#443 c.6583248088: «dron» landed on the shelf, «drone» did not):
    every spelling, Spanish and English, singular and plural, accented or
    not, alone or with a modifier, lands on the ONE Drones type page. */
@@ -198,7 +201,7 @@ const WATCH = [
   ["laptop", PCS], ["laptops", PCS], ["computadora", PCS], ["notebook", PCS],
   ["audífonos", AUD], ["audifonos", AUD], ["headphones", AUD], ["cámara", CAM], ["monitor", MON],
   ["champú", CHAMPU], ["shampoo", CHAMPU], ["keratina", KERA], ["alisado", KERA], ["plancha", PLA], ["mascarilla", MASK],
-  ["pesas", PESAS], ["mancuernas", PESAS], ["dumbbells", PESAS], ["vajilla", VAJ], ["labial", LAB],
+  ["vajilla", VAJ], ["labial", LAB], ["botas", BOT], ["botines", BOT], ["boots", BOT], ["carteras", CAR], ["cartera", CAR], ["handbag", CAR],
   ["polera", POL], ["poleras", POL], ["hoodie", POL], ["hudi", POL], ["hodie", POL], ["sudadera con capucha", POL], ["poleron", POL],
   ["sweatshirt", POL], ["swetshert", POL],
   ["short", SHO], ["shorts", SHO], ["chort", SHO], ["shor", SHO],

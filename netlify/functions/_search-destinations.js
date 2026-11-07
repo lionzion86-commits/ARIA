@@ -31,7 +31,7 @@
    storefront, a brand with a static marca.html head, a department of
    departamento.html and its type lenses can be a destination.
    ================================================================== */
-import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords, coreWorldOf, typeWorldById } from "./_search-core.js";
+import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords, coreWorldOf, typeWorldById, honestEmptyOf } from "./_search-core.js";
 import { modaType } from "./_department-core.js";
 
 export const DEST_FILE = "assets/search/destinations.json";
@@ -160,7 +160,9 @@ export const PRODUCT_TYPES = {
   relojes: { dept: "electronics", ver: "pasillo:tech_relojes", sib: [["reacondicionados", "aisle:tech_relojes"], ["electronics", "pasillo:tech_celulares"]] },
   parlantes: { dept: "electronics", ver: "pasillo:tech_audio", sib: [["electronics", "pasillo:tech_audifonos"], ["electronics", "pasillo:tech_auto"]] },
   monitores: { dept: "electronics", ver: "tipos", pt: "monitores", sib: [["electronics", "pasillo:tech_gaming", "monitor"], ["electronics", "pasillo:tech_computadoras"]] },
-  champu: { dept: "cabello", ver: "tipo:champú y acondicionador", sib: [["cabello", "tipo:mascarillas"], ["beauty", "tipo:cuidado-del-cabello"]] },
+  /* The whole shelf (#443 c.6693598650 §3): Cabello's and Aria Beauty's
+     shampoos and conditioners, not one aisle's 181. */
+  champu: { dept: "cabello", ver: "tipo:champú y acondicionador", pt: "champu", sib: [["cabello", "tipo:mascarillas"], ["beauty", "tipo:cuidado-del-cabello"]] },
   keratina: { dept: "cabello", ver: "tipo:keratina y alisados", pt: "keratina", sib: [["cabello", "tipo:reparación"], ["cabello", "tipo:mascarillas"]] },
   alisado: { dept: "cabello", ver: "tipo:keratina y alisados", pt: "alisado", sib: [["cabello", "tipo:reparación"], ["cabello", "tipo:mascarillas"]] },
   /* The hair iron (and the clothes iron, when a store sells one): the
@@ -172,8 +174,15 @@ export const PRODUCT_TYPES = {
   vajilla: { dept: "home_goods", ver: "casa:casa_mesa", pt: "vajilla", sib: [["home_goods", "casa:casa_cocina"]] },
   toallas: { dept: "home_goods", ver: "casa:casa_cama_bano", pt: "toallas", sib: [["home_goods", "casa:casa_textiles"]] },
   zapatillas: { dept: "shoes", ver: "tipos", pt: "zapatillas", sib: [["shoes", "tipo:zapatillas:women"], ["shoes", "tipo:zapatillas:men"], ["shoes", "tipo:zapatillas:kids"]] },
-  shorts: { dept: "clothing", ver: "tipo:shorts", sib: [["women", "tipo:shorts"], ["men", "tipo:shorts"], ["kids", "tipo:shorts"]] },
-  polerones: { dept: "men", ver: "tipo:chompas-y-polerones", sib: [["women", "tipo:chompas-y-polerones"], ["kids", "tipo:chompas-y-polerones"]] },
+  /* THE WHOLE SHELF (#443 c.6693598650 §3, the Nov 6 audit): each of
+     these words reached one department's aisle -- «poleras» Moda Hombre's
+     1,025, «chort» Ropa's 1,238, «botas» every shoe of Zapatos. Each now
+     lands with its type rule (pt, _search-core.js LANDING_TYPES), read
+     from every department that carries the type, and that type only. */
+  shorts: { dept: "clothing", ver: "tipo:shorts", pt: "shorts", sib: [["women", "tipo:shorts"], ["men", "tipo:shorts"], ["kids", "tipo:shorts"]] },
+  polerones: { dept: "clothing", ver: "tipos", pt: "polerones", sib: [["men", "tipo:chompas-y-polerones"], ["women", "tipo:chompas-y-polerones"], ["kids", "tipo:chompas-y-polerones"]] },
+  carteras: { dept: "purses", ver: "tipos", pt: "carteras", sib: [["women", "tipo:carteras"], ["men", "tipo:carteras"], ["purses", "tipo:mochilas-y-bolsos"]] },
+  botas: { dept: "shoes", ver: "tipos", pt: "botas", sib: [["shoes", "tipo:botas y botines:women"], ["shoes", "tipo:botas y botines:men"], ["shoes", "tipo:botas y botines:kids"]] },
 };
 /* The words, Spanish, English and the misspellings people type (accents
    and case already folded; "|" between phrases). A phrase is matched whole, filler words
@@ -204,6 +213,8 @@ export const PRODUCT_WORDS = {
   toallas: "toalla|toallas|toalla de bano|toallas de bano|toalla de playa|toallas de playa|toalla de mano|toallas de mano|towel|towels|bath towel|bath towels|beach towel|beach towels",
   zapatillas: "zapatilla|zapatillas|zapatillas deportivas|zapatilla deportiva|zapatillas de correr|zapatillas running|sneaker|sneakers|trainers|running shoes",
   shorts: "short|shorts|chort|chorts|shor|shorst|shors|bermuda|bermudas",
+  carteras: "cartera|carteras|cartera de mujer|carteras de mujer|cartera para mujer|carteras para mujer|cartera de cuero|carteras de cuero|handbag|handbags|purse|purses|bolso de mano|bolsos de mano|bandolera|bandoleras|cartera bandolera|carteras bandoleras|crossbody|crossbody bag|crossbody bags|tote|totes|tote bag|tote bags|clutch|clutches|cartera de fiesta|carteras de fiesta",
+  botas: "bota|botas|botin|botines|botas y botines|botas de cuero|botas de lluvia|botas de invierno|botas militares|botas de trabajo|botas vaqueras|botas texanas|botas chelsea|boot|boots|booties|bootie|ankle boots|chelsea boots|rain boots|work boots|combat boots|cowboy boots|winter boots|snow boots",
   polerones: "polera|poleras|poleron|polerones|hoodie|hoodies|hudi|hudis|hodie|hodies|hoddie|hoodi|sudadera|sudaderas|sudadera con capucha|sudaderas con capucha|buzo con capucha|sweatshirt|sweatshirts|swetshert|swetshirt|sweatshert|sweat shirt",
 };
 /* Who it is for: switches a fashion department to that audience's. */
@@ -313,8 +324,8 @@ export function brandUrl(key, q) { return "marca.html?marca=" + enc(key) + (q ? 
    "tipos" (the department's own types; its Ofertas rail never leads a
    search landing -- #443 c.6579064382). */
 export const VER_TYPES = "tipos";
-export function deptUrl(key, { t, a, q, ver = VER_TYPES, pt } = {}) {
-  return "departamento.html?dept=" + enc(key) + (t ? "&t=" + enc(t) : "") + (a ? "&a=" + enc(a) : "") + (q ? "&q=" + enc(q) : "") + (ver ? "&ver=" + enc(ver) : "") + (pt ? "&pt=" + enc(pt) : "");
+export function deptUrl(key, { t, a, q, ver = VER_TYPES, pt, u } = {}) {
+  return "departamento.html?dept=" + enc(key) + (t ? "&t=" + enc(t) : "") + (a ? "&a=" + enc(a) : "") + (q ? "&q=" + enc(q) : "") + (ver ? "&ver=" + enc(ver) : "") + (pt ? "&pt=" + enc(pt) : "") + (u ? "&para=" + enc(u) : "");
 }
 /* The only urls a destination, an alternative or a door may carry. */
 export const SURFACE_RX = /^(tienda|marca|departamento)\.html\?(tienda|marca|dept)=[a-z0-9_]+(&[a-z]+=[^&"<>\s]*)*$/;
@@ -326,7 +337,7 @@ function deptLabel(D, key, t, ver, pt) {
   const d = D.depts[key];
   if (!d) return key;
   const type = ver && D.types[key] && D.types[key][ver];
-  if (pt) { const w = typeWorldById(pt); if (w) return w.label + " · " + d[0]; }
+  if (pt) { const w = typeWorldById(pt); if (w) return w.label === d[0] ? w.label : w.label + " · " + d[0]; }
   if (type) return type[0] + " · " + d[0];
   const lens = t && d[1] && d[1][t];
   return lens ? lens + " · " + d[0] : d[0];
@@ -335,9 +346,25 @@ const deptDest = (D, key, opts = {}) => ({ kind: "category", key, label: deptLab
   ...(opts.t ? { t: opts.t } : {}), ...(opts.q ? { q: opts.q } : {}), ...(opts.ver && opts.ver !== VER_TYPES ? { ver: opts.ver } : {}), ...(opts.pt ? { pt: opts.pt } : {}) });
 /* A product type's page: { dest, alternatives } (its siblings and its
    department -- never a brand or a store guess against the word). */
-function typeDest(D, id) {
+function typeDest(D, id, u = "") {
   const t = PRODUCT_TYPES[id];
-  return deptDest(D, t.dept, { ver: t.ver, q: t.q || "", pt: t.pt || "" });
+  const dest = deptDest(D, t.dept, { ver: t.ver, q: t.q || "", pt: t.pt || "", u });
+  return u ? { ...dest, label: dest.label + " · " + AUDIENCE_LABEL[u] } : dest;
+}
+/* «botas mujer», «botas de hombre»: the Botas type (#443 c.6693598650 §3)
+   opened on that audience (departamento.html ?para=), never the
+   audience's whole shoe department («botas mujer» opened every women's
+   shoe, sneakers first). Only where the audience's own department has no
+   lens of the type: «poleras mujer» and «shorts niños» keep Moda Mujer's
+   and Moda Niños' lenses, which reach more than the audience filter
+   (most rows say who they are for only through their department). */
+const AUDIENCE_TYPES = new Set(["botas"]);
+const AUDIENCE_LABEL = { women: "Mujer", men: "Hombre", kids: "Niños" };
+export function productTypeWithAudience(D, q) {
+  const all = wordsOf(q), aud = all.filter((w) => AUDIENCE[w]);
+  if (!aud.length || !aud.every((w) => AUDIENCE[w] === AUDIENCE[aud[0]])) return null;
+  const id = productTypeOf(D, all.filter((w) => !AUDIENCE[w]).join(" "));
+  return id && AUDIENCE_TYPES.has(id) ? { id, u: AUDIENCE[aud[0]] } : null;
 }
 function typeAlternatives(D, id) {
   const t = PRODUCT_TYPES[id], out = [];
@@ -718,6 +745,10 @@ export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) 
   const D = destinations(ctx, read);
   const typed = String(q == null ? "" : q).trim().replace(/\s+/g, " ").slice(0, 120);
   /* The router reads the route key: every variant of a name is one query. */
+  /* A shelf the catalogue does not have (HONEST_EMPTY): said plainly,
+     with the real shelves nearest to it, each named for what it is. */
+  const he = honestEmptyOf(ctx, typed) || honestEmptyOf(ctx, routeKey(ctx, D, typed));
+  if (he) return honestAnswer(ctx, D, typed, he, fx);
   /* A store's or brand's whole name, exactly (case, accents and
      punctuation aside), is that page -- before any folding. */
   const exact = exactName(D, typed);
@@ -767,7 +798,7 @@ export function sectionOf(D, typed) {
     const a = AUDIENCE[aud[0]];
     if (aud.every((w) => AUDIENCE[w] === a) && D.depts[a]) return deptDest(D, a);
   }
-  if (productTypeOf(D, typed) || productTypePhrase(D, typed)) return null;
+  if (productTypeOf(D, typed) || productTypePhrase(D, typed) || productTypeWithAudience(D, typed)) return null;
   const cat = categoryOfQuery(D, typed);
   if (!cat || cat.rest.length) return null;
   const key = nameKey(typed);
@@ -866,6 +897,8 @@ function resolveDirect(D, query, words) {
      the console, "celular" the Celulares page. */
   const pt = productTypeOf(D, query);
   if (pt) return { ...typeDest(D, pt), ptype: pt };
+  const pa = productTypeWithAudience(D, query);
+  if (pa) return { ...typeDest(D, pa.id, pa.u), ptype: pa.id };
   const s = storeOf(D, query);
   if (s) return storeDest(D, s);
   /* A store's name, then what to look for there ("gap hoodie"). */
@@ -978,6 +1011,33 @@ function withAlternatives(ctx, D, query, dest, hits, extra = []) {
 export function hrefWith(url, alternatives) {
   if (!alternatives || !alternatives.length) return url;
   return url + "&tp=" + enc(JSON.stringify(alternatives.map((a) => [a.kind, a.label, a.url])));
+}
+
+/* ---------- the honest empty (#443 c.6693598650 §3) ----------
+   «zapatillas de voley», «pesas»: the catalogue has none. The page says
+   so in its heading, and the rails below are only real shelves, each
+   titled with what its products are («Zapatillas de tenis y pádel») --
+   never the swim shorts the word "volley" also matches, never a door
+   that claims to be the thing asked for. No count on a door: the rail
+   is a sample, its landing counts. */
+export function honestAnswer(ctx, D, typed, he, fx) {
+  const rails = [];
+  for (const id of he.near || []) {
+    const w = typeWorldById(id);
+    if (!w || !w.pool || !D.depts[w.pool[0]]) continue;
+    const items = ctx.products.filter((p) => { try { return p.image && w.test(p); } catch { return false; } })
+      .sort((x, y) => (onSale(y) - onSale(x)) || ((y.reviews || 0) - (x.reviews || 0)));
+    if (!items.length) continue;
+    const dest = { ...deptDest(D, w.pool[0], { pt: id }), label: w.label };
+    rails.push(railOf(ctx, D, dest, items, fx, "category", "Ver todo", 0));
+  }
+  return {
+    q: typed,
+    /* one url for every spelling of it («PESAS», «peass») */
+    destination: { kind: "chooser", key: "honest", label: he.title, url: "search.html?q=" + enc(he.canonical) },
+    alternatives: [],
+    chooser: { reason: "honest", honest: he.id, title: he.title, sub: he.sub, rails },
+  };
 }
 
 /* ---------- the chooser ----------
