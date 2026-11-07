@@ -63,6 +63,7 @@ const BF = await import(ROOT + "scripts/lib/buyer-fee.js");
 const SS = await import(ROOT + "scripts/lib/store-shipping.js");
 const W = await import(ROOT + "weight-data.js");
 const C = await import(ROOT + "couriers.js");
+const LD = await import(ROOT + "scripts/lib/lima-delivery.js");
 const M = await import(ROOT + "netlify/functions/_checkout-model.js");
 const { resolveCartWeights } = await import(ROOT + "netlify/functions/_weight-resolve.js");
 const { handler: createOrder } = await import(ROOT + "netlify/functions/orders-create.js");
@@ -151,7 +152,7 @@ async function post(body) {
 function orderBody(items, extra = {}) {
   return {
     customer: { name: "Ana Prueba", email: "ana@correo.test", idNumber: "45678912" },
-    shipping: { destCity: "Lima" },
+    shipping: { destCity: "Lima", addrDistrict: "Surco" },
     items,
     quote: { total_usd: 100, flete_usd: 26, source: "avi" },
     shippingMode: "consolidated",
@@ -167,7 +168,8 @@ function totalBeforeRulingPen(items, { freight = 26, destCity = "Lima", mode = "
   const ship = SS.cartShipping(items).totalUsd;
   const usd = r2(goods + freight + tax + ship);
   const base = r2((goods + freight) * FX);
-  return r2(usd * FX + W.smallOrderFeePen(base) + C.provinciaFeePen(destCity) + M.expressFeePen(mode, FX));
+  /* Entrega en Lima (#443 c.6709315389 item 7): Surco is zona 1. */
+  return r2(usd * FX + W.smallOrderFeePen(base) + C.provinciaFeePen(destCity) + M.expressFeePen(mode, FX) + LD.limaDeliveryFeePen(destCity, "Surco", goods));
 }
 const orderOf = (id) => JSON.parse(globalThis.__blobs.get("orders").get(id));
 
@@ -175,12 +177,12 @@ async function charged(items, opts = {}) {
   const before = totalBeforeRulingPen(items, opts);
   const n = BF.storeCheckoutCount(items);
   /* The old figure is refused: the server's total moved by exactly the fee. */
-  const stale = await post(orderBody(items, { shownTotalPen: before, shipping: { destCity: opts.destCity || "Lima" }, shippingMode: opts.mode || "consolidated" }));
+  const stale = await post(orderBody(items, { shownTotalPen: before, shipping: { destCity: opts.destCity || "Lima", addrDistrict: "Surco" }, shippingMode: opts.mode || "consolidated" }));
   assert.equal(stale.status, 409, "the pre-ruling total was accepted: " + JSON.stringify(stale.data));
   assert.equal(stale.data.totalPen, r2(before + n), "server total is not the old total + S/ 1 per store");
   assert.equal(stale.data.buyerFeePen, n);
   stripeCalls = [];
-  const ok = await post(orderBody(items, { shownTotalPen: r2(before + n), shipping: { destCity: opts.destCity || "Lima" }, shippingMode: opts.mode || "consolidated" }));
+  const ok = await post(orderBody(items, { shownTotalPen: r2(before + n), shipping: { destCity: opts.destCity || "Lima", addrDistrict: "Surco" }, shippingMode: opts.mode || "consolidated" }));
   assert.equal(ok.status, 200, JSON.stringify(ok.data));
   assert.equal(Number(stripeCalls.at(-1).form["line_items[0][price_data][unit_amount]"]), Math.round(r2(before + n) * 100), "Stripe was asked for another amount");
   return { order: orderOf(ok.data.orderId), before, n };
