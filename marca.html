@@ -125,7 +125,7 @@ footer a{color:#fff;}
 .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
-<script src="/import-tax.js?v=27e656ae98fa697f"></script>
+<script src="/import-tax.js?v=8856ca559e259c40"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -501,13 +501,22 @@ function tieredMarginUsd(rawUsd){
    TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
    the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
    This page used to stop at the margin, 7% under the SPA's price. */
-var TAX_EXEMPT = {"walmart": 1};
+/* SALES TAX, TWO SIDES (#443 c.6684452115, Danny 2026-11-06; addendum
+   c.6684509088). PRICE: every store is shelf x 1.07 x tier, Walmart
+   included -- no store is exempt here, so TAX_EXEMPT stays empty.
+   COST: where Aria really pays no tax at the register (verified:
+   Walmart, CCS, Venum) the goods' true value -- the dutiable base,
+   raw x costTaxRate -- carries no 7%. One rule: /import-tax.js;
+   scripts/test/sales-parity-tests.mjs pins every copy to it. */
+var TAX_EXEMPT = {};
+var COST_TAX_EXEMPT = {"ccs": 1, "venum": 1, "walmart": 1};
 /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
    price -- no margin, no Miami tax on top; the value is the factor that
    takes it back to the goods' true value (the import-tax base). One list,
    mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
-var PRE_PRICED = {"ariaperfumes": 1.18};
+var PRE_PRICED = {"ariaperfumes": 1.2626};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function costTaxRate(retailer){ return COST_TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
 function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100; return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100; }
 function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }

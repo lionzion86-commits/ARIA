@@ -117,7 +117,10 @@ for (const [retailer, list] of Object.entries(perStore)){
         retailer, title: it.title, price: it.price, originalPrice: it.originalPrice,
         image: it.image || (it.images && it.images[0]) || null, images: (it.images || []).slice(0, 3),
         weightKg: it.weightKg, catalogWeightKg: it.catalogWeightKg, weightEstimated: it.weightEstimated,
-        dutiableUsd: it.dutiableUsd, rating: it.rating, reviewCount: it.reviewCount,
+        /* A pre-priced store's dutiable value is the supplier's wholesale
+           cost (Aria Perfumes), never served publicly (#443): left out,
+           and worked out from the price and the factor where it is needed. */
+        dutiableUsd: PRE_PRICED[String(retailer).toLowerCase()] ? undefined : it.dutiableUsd, rating: it.rating, reviewCount: it.reviewCount,
         sizes: it.sizes, brand: it.brand, onSale: true,
       });
     }

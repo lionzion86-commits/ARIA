@@ -51,12 +51,12 @@ const OVER = { name: "Durazno Playa One piece", retailer: "aguabendita", raw: 38
 const UNDER = { name: "Olmo Petalo Bikini Top", retailer: "aguabendita", raw: 60 };
 
 const pdpSrc = readFileSync(ROOT + "producto.html", "utf8").replace(/\r\n/g, "\n");
-const PDP = liftDeclarations(pdpSrc, ["tieredMarginUsd", "TAX_EXEMPT", "PRE_PRICED", "salesTaxRate", "finalUsd", "TAX_ESTIMATE_THRESHOLD_USD", "TAX_ESTIMATE_RATE", "importTaxEstimateUsd", "dutiableUsd", "PDP_LINE_KG", "CHARGE_PER_KG"]);
+const PDP = liftDeclarations(pdpSrc, ["tieredMarginUsd", "TAX_EXEMPT", "COST_TAX_EXEMPT", "PRE_PRICED", "salesTaxRate", "costTaxRate", "finalUsd", "TAX_ESTIMATE_THRESHOLD_USD", "TAX_ESTIMATE_RATE", "importTaxEstimateUsd", "dutiableUsd", "PDP_LINE_KG", "CHARGE_PER_KG"]);
 
 /* What every figure should be, from the shared definitions. */
 function expected(item) {
   const P = PDP.finalUsd(item.raw, item.retailer);
-  const d = r2(item.raw * PDP.salesTaxRate(item.retailer));
+  const d = r2(item.raw * PDP.costTaxRate(item.retailer));
   const line = { title: item.name, retailer: item.retailer, priceUsd: P, weightKg: PDP.PDP_LINE_KG, weightEstimated: true, qty: 1 };
   const kg = resolveCartWeights([line]).totalKg;
   const freight = r2(kg * CHARGE_PER_KG);
@@ -117,8 +117,10 @@ await check("producto.html's tax rule is weight-data.js's, on the same base the 
     assert.equal(PDP.importTaxEstimateUsd(fob, f), importTaxEstimateUsd(fob, f), `fob ${fob} freight ${f}`);
   }
   /* The tax base is the same dutiableUsd the add-to-cart line carries. */
-  assert.match(pdpSrc, /dutiableUsd: Math\.round\(Number\(p\.price\) \* salesTaxRate\(p\.retailer\) \* 100\) \/ 100/);
+  /* #443 c.6684452115: the base is the COST side (no 7% where Aria pays none). */
+  assert.match(pdpSrc, /dutiableUsd: Math\.round\(Number\(p\.price\) \* costTaxRate\(p\.retailer\) \* 100\) \/ 100/);
   assert.equal(PDP.dutiableUsd(380, "aguabendita"), r2(380 * 1.07));
+  assert.equal(PDP.dutiableUsd(380, "walmart"), 380);
 });
 
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});

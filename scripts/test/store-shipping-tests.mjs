@@ -13,7 +13,7 @@ import {
   STORE_SHIPPING, SHIPPING_SALES_TAX_EXEMPT, shippingRuleText, cartShipping,
   shippingMeterText, shippingStandingText,
 } from "../lib/store-shipping.js";
-import { TAX_EXEMPT } from "../../netlify/functions/_search-core.js";
+import { COST_TAX_EXEMPT } from "../../netlify/functions/_search-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -115,8 +115,10 @@ check("the meter is per store, on the store's own prices; a store that calculate
 });
 
 check("the sales-tax rule matches the one the search core and the product page use", () => {
-  assert.deepEqual(SHIPPING_SALES_TAX_EXEMPT, TAX_EXEMPT);
-  assert.match(read("producto.html"), /var TAX_EXEMPT = \{"walmart": 1\};/);
+  /* The meter backs the store's price out of the dutiable base, which is
+     the COST side (#443 c.6684452115): Walmart, CCS, Venum pay no tax. */
+  assert.deepEqual({ ...SHIPPING_SALES_TAX_EXEMPT }, { ...COST_TAX_EXEMPT });
+  assert.match(read("producto.html"), /var COST_TAX_EXEMPT = \{"ccs": 1, "venum": 1, "walmart": 1\};/);
 });
 
 check("the product page: the store's box FIRST, above Impuestos and Peso, with its meter; re-drawn on add", () => {

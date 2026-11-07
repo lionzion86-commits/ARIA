@@ -6,7 +6,7 @@
 <title>Ropa Interior y Medias | Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
-<script src="/import-tax.js?v=27e656ae98fa697f"></script>
+<script src="/import-tax.js?v=8856ca559e259c40"></script>
 <meta name="description" content="Ropa interior y medias de mujer y de hombre de las mejores marcas de Estados Unidos: SKIMS, Stance, PSD, Calvin Klein y más, con envío a Perú.">
 <meta name="theme-color" content="#0B0F17">
 <style>
@@ -484,13 +484,22 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
      TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
      the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
      This page used to stop at the margin, 7% under the SPA's price. */
-  var TAX_EXEMPT = {"walmart": 1};
+  /* SALES TAX, TWO SIDES (#443 c.6684452115, Danny 2026-11-06; addendum
+     c.6684509088). PRICE: every store is shelf x 1.07 x tier, Walmart
+     included -- no store is exempt here, so TAX_EXEMPT stays empty.
+     COST: where Aria really pays no tax at the register (verified:
+     Walmart, CCS, Venum) the goods' true value -- the dutiable base,
+     raw x costTaxRate -- carries no 7%. One rule: /import-tax.js;
+     scripts/test/sales-parity-tests.mjs pins every copy to it. */
+  var TAX_EXEMPT = {};
+  var COST_TAX_EXEMPT = {"ccs": 1, "venum": 1, "walmart": 1};
   /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
      price -- no margin, no Miami tax on top; the value is the factor that
      takes it back to the goods' true value (the import-tax base). One list,
      mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
-  var PRE_PRICED = {"ariaperfumes": 1.18};
+  var PRE_PRICED = {"ariaperfumes": 1.2626};
   function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+  function costTaxRate(retailer){ return COST_TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
   function finalUsd(r, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(r) * 100) / 100; r = Number(r); return r > 0 ? Math.round((r + marginUsd(r)) * salesTaxRate(retailer) * 100) / 100 : NaN; }
   function usd(n){ return isFinite(n) ? 'US$ ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx;   /* undefined: asking; null: unavailable; number: S/ per US$ */

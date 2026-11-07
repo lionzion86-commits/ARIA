@@ -2,8 +2,8 @@
    ARIA PERFUMES -- the Perfumes department from the FragranceX feed
    (#443 item 32, 2026-10-24).
 
-   The rules: Aria's price is cost x 1.18 for the launch promo (tiered
-   after 90 days); the supplier's cost never reaches a public file; the
+   The rules: Aria's price is true cost x 1.07 x 1.18 for the launch
+   promo, (cost + tiered margin) x 1.07 after 90 days (#443 c.6684758084); the supplier's cost never reaches a public file; the
    import-tax base is the goods' true value, never the margin; testers,
    minis, sets and body care are their own classes, never merged; the
    four-per-order perfume cap counts them.
@@ -13,7 +13,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import * as B from "../build-perfumes-catalog.mjs";
-import { PRE_PRICED, LAUNCH_PRICED, LAUNCH_LABEL, tieredMarginUsd } from "../../weight-data.js";
+import { PRE_PRICED, LAUNCH_PRICED, LAUNCH_LABEL, tieredMarginUsd, SALES_TAX_RATE } from "../../weight-data.js";
 import { buildPerfumeSections, perfumeClassOf, isDesignerHouse } from "../../netlify/functions/_department-core.js";
 import { isFragranceItem } from "../lib/fragrance.js";
 import { loadDept, typeKeyOf, explore, axisRails, answer } from "../../netlify/functions/_department-core.js";
@@ -33,15 +33,20 @@ const fixture = (over = {}) => ({
   classes: [], primary_class: "retail_spray", adjacent_subtype: null, sellable: true, exclude_reason: null, dup_group: null, data_needs: ["weight_kg", "upc"], ...over,
 });
 
-await check("Aria's price is cost x 1.18 during the promo, the tiered margin after it", () => {
-  assert.equal(B.ariaPrice(150, true), 177);
-  assert.equal(B.ariaPrice(397, true), 468.46);
-  assert.equal(B.ariaPrice(23.10, true), 27.26);
-  assert.equal(B.ariaPrice(150, false), Math.round((150 + tieredMarginUsd(150)) * 100) / 100);
+await check("the perfume stack: cost x 1.07 x 1.18 during the promo, (cost + tiered margin) x 1.07 after it (c.6684758084)", () => {
+  /* Danny's worked checks. */
+  assert.equal(B.ariaPrice(150, true), 189.39, "Dior Sauvage EDT 100 ml, FX cost $150.00");
+  assert.equal(B.ariaPrice(54.84, true), 69.24, "Paco Rabanne 1 Million, FX cost $54.84");
+  assert.equal(B.ariaPrice(397, true), 501.25);
+  assert.equal(B.ariaPrice(23.10, true), 29.17);
+  assert.equal(B.ariaPrice(150, false), Math.round((150 + tieredMarginUsd(150)) * 1.07 * 100) / 100);
+  assert.equal(B.ariaPrice(150, false), 199.02);
   assert.equal(B.promoActive(new Date("2027-01-01"), null), true, "no launch date yet: the promo has not started counting");
   assert.equal(B.promoActive(new Date("2026-11-20"), "2026-11-01"), true);
   assert.equal(B.promoActive(new Date("2027-02-01"), "2026-11-01"), false, "90 days after launch the promo ends");
-  assert.equal(PRE_PRICED.ariaperfumes, 1 + B.PROMO_MARGIN, "the pages' factor is the builder's margin");
+  assert.equal(PRE_PRICED.ariaperfumes, Math.round(SALES_TAX_RATE * (1 + B.PROMO_MARGIN) * 1e4) / 1e4, "the pages' factor is the builder's stack, 1.07 x 1.18");
+  /* price / factor is the true cost again, to the cent -- the import-tax base. */
+  for (const c of [150, 54.84, 397, 23.10, 9.99, 1234.56]) assert.equal(Math.round(B.ariaPrice(c, true) / PRE_PRICED.ariaperfumes * 100) / 100, c, "cost " + c);
 });
 
 await check("launch pricing is one switch: the label shows exactly while the promo prices the lane", () => {
@@ -94,7 +99,7 @@ await check("ONE Aria Perfumes block (Danny's revision, 2026-10-25): store-photo
 await check("a public row carries no cost, no supplier link, no stock count", () => {
   const r = B.rowOf(fixture({ low_stock_signal: true, qty_feed: 7 }));
   const s = JSON.stringify(r);
-  assert.equal(r.price, 59);
+  assert.equal(r.price, 63.13);
   for (const bad of ["wholesale", "msrp", "product_url", "supplier.example.test", "qty", "\"url\""]) assert.ok(!s.includes(bad), bad + " leaked: " + s);
   assert.equal(r.lowStock, true);
   assert.equal(r.weightEstimated, true, "a size-class weight is never presented as verified");
@@ -141,8 +146,9 @@ await check("the committed catalogue is the builder's output and holds no cost",
   /* Spot-check the audit's anchors. */
   const items = Object.values(committed.retailers.ariaperfumes.departments).flatMap((d) => d.items);
   const find = (re) => items.find((i) => re.test(i.title));
-  assert.equal(find(/^Sauvage — Eau de Toilette en spray 100 ml \(3\.4 oz\) para hombre$/).price, 177);
-  assert.equal(find(/^Aventus — Eau de Parfum en spray 100 ml \(3\.3 oz\) para hombre$/).price, 468.46);
+  assert.equal(find(/^Sauvage — Eau de Toilette en spray 100 ml \(3\.4 oz\) para hombre$/).price, 189.39);
+  assert.equal(find(/^1 Million — Eau de Toilette en spray 100 ml \(3\.4 oz\) para hombre$/).price, 69.24);
+  assert.equal(find(/^Aventus — Eau de Parfum en spray 100 ml \(3\.3 oz\) para hombre$/).price, 501.25);
 });
 
 await check("the supplier file and checkout's price list are never served", () => {
@@ -155,8 +161,9 @@ await check("the supplier file and checkout's price list are never served", () =
 await check("checkout charges Aria's price and taxes the goods' true value, never the margin", () => {
   const idx = JSON.parse(readFileSync(ROOT + "price-index.json", "utf8")).prices;
   const vals = Object.values(idx);
-  assert.ok(vals.some(([p, d]) => p === 177 && d === 150), "Sauvage 100 ml: US$177, dutiable US$150");
-  assert.ok(vals.some(([p, d]) => p === 468.46 && d === 397), "Aventus 100 ml: US$468.46, dutiable US$397 (over the US$200 line)");
+  assert.ok(vals.some(([p, d]) => p === 189.39 && d === 150), "Sauvage 100 ml: US$189.39, dutiable US$150");
+  assert.ok(vals.some(([p, d]) => p === 69.24 && d === 54.84), "1 Million 100 ml: US$69.24, dutiable US$54.84");
+  assert.ok(vals.some(([p, d]) => p === 501.25 && d === 397), "Aventus 100 ml: US$501.25, dutiable US$397 (over the US$200 line)");
 });
 
 await check("the department, the universal format (#443 c.6532666653): Ofertas first, a rail per known brand biggest first, «Más marcas» last; inside a brand, its types", () => {

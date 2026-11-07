@@ -42,6 +42,7 @@ import { getStore, connectLambda } from "@netlify/blobs";
 import { corsHeaders, getSessionEmail, isAdmin } from "./_auth-helpers.js";
 import { timingSafeEqual } from "node:crypto";
 import { isOffSaleItem } from "../../scripts/lib/off-sale.js";
+import { TAX_ESTIMATE_THRESHOLD_USD, TAX_ESTIMATE_RATE } from "../../weight-data.js";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
@@ -71,8 +72,11 @@ const FREIGHT_FEATURE_CEILING = 1.00;
    Dividing by the raw scraped price here and by the displayed price on
    the page would let the cache and the card disagree about the same
    item. */
-const IMPORT_TAX_THRESHOLD_USD = 200;
-const IMPORT_TAX_RATE = 0.23;
+/* The threshold and rate are /import-tax.js's (the one definition checkout
+   charges, via weight-data.js), never typed here: this read 0.23 while
+   checkout billed 0.25 (#443 c.6675535499). */
+const IMPORT_TAX_THRESHOLD_USD = TAX_ESTIMATE_THRESHOLD_USD;
+const IMPORT_TAX_RATE = TAX_ESTIMATE_RATE;
 const shownPriceUsd = (usd) => (usd > IMPORT_TAX_THRESHOLD_USD
   ? Math.round(usd * (1 + IMPORT_TAX_RATE) * 100) / 100
   : usd);

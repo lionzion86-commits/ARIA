@@ -22238,10 +22238,23 @@ function absurdCeilingUsd(retailer, title){
                   ToS needs reconciling first -- do NOT strip it yet.)
 
    Anything not listed here falls through to 'unknown' (keeps the 7%),
-   so newly added retailers are safe by default. */
+   so newly added retailers are safe by default.
+
+   REVERSED ON THE PRICE SIDE (#443 c.6684452115, Danny 2026-11-06):
+   'exempt' no longer lowers any CUSTOMER price. Every store's price is
+   shelf x 1.07 x tier, Walmart included (salesTaxRateFor is 1.07 for
+   all): the customer pays what a US shopper pays at that register.
+   'exempt' now speaks only to Aria's COST (costTaxRateFor): the stores
+   where Aria really pays no tax -- Walmart, CCS and Venum, verified
+   (addendum c.6684509088) -- carry no 7% in the goods' true value (the
+   dutiable base, the Familia price); the 7% inside their prices is
+   margin Aria keeps. Mirrors /import-tax.js COST_TAX_EXEMPT
+   (scripts/test/sales-parity-tests.mjs). */
 const TAX_EXEMPT_STATUS = {
-  // CONFIRMED EXEMPT -- flip more retailers here as enrollments confirm:
+  // CONFIRMED EXEMPT AT THE REGISTER (cost side only):
   walmart: 'exempt',
+  ccs: 'exempt',
+  venum: 'exempt',
   // REFUSE RESALE -- 7% stays permanently, no enrollment to attempt:
   macys: 'taxable',
   kohls: 'taxable',
@@ -22303,16 +22316,19 @@ const TAX_EXEMPT_STATUS = {
   surfstation: 'unknown',
   mainland: 'unknown',
   parrot: 'unknown',
-  ccs: 'unknown',
   valsurf: 'unknown',
 };
 /* The acquisition-cost multiplier for one retailer's goods: the Miami
    shelf price plus whatever sales tax Aria really pays at that
    retailer's register. Exempt retailers are x1.0; everyone else stays
    x1.07. Unknown/missing keys are 'unknown' by default -- the 7% stays. */
-function salesTaxRateFor(retailer){
+function costTaxRateFor(retailer){
   const s = TAX_EXEMPT_STATUS[String(retailer || '').toLowerCase()];
   return s === 'exempt' ? 1.0 : SALES_TAX_RATE;
+}
+/* The PRICE-side rate: x1.07 at every store (#443 c.6684452115). */
+function salesTaxRateFor(retailer){
+  return SALES_TAX_RATE;
 }
 function round2(n){ return Math.round(n * 100) / 100; }
 
@@ -24792,7 +24808,7 @@ function productDedupeKey(retailer, title){
 /* PRE-PRICED STORES (#443 item 32): mirrored from weight-data.js PRE_PRICED.
    The row's price is Aria's already; the factor takes it to the goods'
    true value for the import-tax base. */
-const PRE_PRICED = { ariaperfumes: 1.18 };
+const PRE_PRICED = { ariaperfumes: 1.2626 };
 /* LAUNCH PRICING (#443 item 32): "Precio de lanzamiento" on every card of
    a store in its launch promo. Mirrored from weight-data.js LAUNCH_PRICED. */
 const LAUNCH_PRICED = { ariaperfumes: true };
@@ -24832,7 +24848,7 @@ function normalizeLiveItem(item, hints){
      Stamped here because every product path (catalog + live) normalizes
      through this function, so the base travels with the item to the
      card, the product page, the cart, checkout and the order record. */
-  const dutiableUsd = Number.isFinite(rawPrice) ? round2(__pre ? rawPrice / __pre : rawPrice * taxRate) : null;
+  const dutiableUsd = Number.isFinite(rawPrice) ? round2(__pre ? rawPrice / __pre : rawPrice * costTaxRateFor(__rkey)) : null;
   // The whole gallery, not just the first frame — spec §6 wants a
   // thumbnail strip "when the retailer supplies multiple images", so the
   // rest can no longer be thrown away here. Deduped and cleaned; an empty

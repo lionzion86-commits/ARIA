@@ -157,23 +157,27 @@ await check("one definition: the helper's exempt and pre-priced stores are the s
   const html = pageHtml(ROOT);
   const block = /const TAX_EXEMPT_STATUS = \{([\s\S]*?)\n\};/.exec(html.replace(/\r\n/g, "\n"))[1];
   const exempt = [...block.matchAll(/^\s*([a-z0-9_]+):\s*'exempt'/gm)].map((m) => m[1]).sort();
-  assert.deepEqual(Object.keys(T.TAX_EXEMPT).sort(), exempt);
+  /* #443 c.6684452115: 'exempt' is the cost side only; no price is exempt. */
+  assert.deepEqual(Object.keys(T.COST_TAX_EXEMPT).sort(), exempt);
+  assert.deepEqual(Object.keys(T.TAX_EXEMPT), []);
   for (const p of ["departamento.html", "tienda.html", "marca.html", "producto.html"]) {
     const src = readFileSync(join(ROOT, p), "utf8");
     assert.deepEqual(JSON.parse(/var PRE_PRICED = (\{[^}]*\});/.exec(src)[1]), { ...T.PRE_PRICED }, p);
-    assert.deepEqual(Object.keys(JSON.parse(/var TAX_EXEMPT = (\{[^}]*\});/.exec(src)[1])).sort(), exempt, p);
+    assert.deepEqual(Object.keys(JSON.parse(/var TAX_EXEMPT = (\{[^}]*\});/.exec(src)[1])), [], p);
+    assert.deepEqual(Object.keys(JSON.parse(/var COST_TAX_EXEMPT = (\{[^}]*\});/.exec(src)[1])).sort(), exempt, p);
   }
 });
 
 await check("the dutiable value of a card is the cart line's stamp -- from the raw price, or the exact inversion of the shown price", () => {
   const P = new Function(readFileSync(join(ROOT, "departamento.html"), "utf8").match(/function tieredMarginUsd\(raw\)\{[\s\S]*?\n  \}/)[0]
-    + "\nvar TAX_EXEMPT = {walmart:1}; var PRE_PRICED = {ariaperfumes:1.18};"
+    + "\nvar TAX_EXEMPT = {}; var COST_TAX_EXEMPT = {ccs:1, venum:1, walmart:1}; var PRE_PRICED = {ariaperfumes:1.2626};"
     + "\nfunction salesTaxRate(r){ return TAX_EXEMPT[String(r||'').toLowerCase()] ? 1 : 1.07; }"
+    + "\nfunction costTaxRate(r){ return COST_TAX_EXEMPT[String(r||'').toLowerCase()] ? 1 : 1.07; }"
     + "\nfunction finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer||'').toLowerCase()]) return Math.round(Number(raw)*100)/100; var r = Number(raw); return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100; }"
-    + "\nreturn { finalUsd: finalUsd, salesTaxRate: salesTaxRate };")();
+    + "\nreturn { finalUsd: finalUsd, salesTaxRate: salesTaxRate, costTaxRate: costTaxRate };")();
   for (const retailer of ["walmart", "bhphoto", "ssense", "ariaperfumes", "aguabendita"]) {
     for (const raw of [19.99, 150, 186.92, 187, 199.99, 200, 356.49, 499.99, 500, 750, 1158, 2000, 2600, 5000, 7400]) {
-      const stamp = retailer === "ariaperfumes" ? r2(raw / 1.18) : r2(raw * P.salesTaxRate(retailer));
+      const stamp = retailer === "ariaperfumes" ? r2(raw / 1.2626) : r2(raw * P.costTaxRate(retailer));
       assert.equal(T.dutiableOf({ raw, retailer }), stamp, `${retailer} raw ${raw}`);
       const inv = T.dutiableOf({ usd: P.finalUsd(raw, retailer), retailer });
       assert.ok(Math.abs(inv - stamp) <= 0.011, `${retailer} raw ${raw}: inversion ${inv} vs stamp ${stamp}`);

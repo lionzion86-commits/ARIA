@@ -15,10 +15,24 @@
    weight-data.js imports this file for its side effect and re-exports
    every name; nothing else may do this arithmetic.
 
+   THE SALES TAX, TWO SIDES -- ONE RULE FOR THE WHOLE SITE (#443
+   c.6684452115, Danny 2026-11-06; addendum c.6684509088):
+     PRICE  every store's price is shelf x SALES_TAX_RATE (1.07) x tier,
+            Walmart included: the customer pays what a US shopper pays at
+            the register. salesTaxRate() is 1.07 for every store
+            (TAX_EXEMPT, the price-side exemption list, is empty).
+     COST   where Aria really pays no tax at the register (COST_TAX_EXEMPT:
+            Walmart, CCS, Venum, verified), the goods' true value carries
+            no 7% -- costTaxRate() is 1.00 there, 1.07 everywhere else; the
+            7% inside those stores' prices is margin Aria keeps.
+   Every pricing copy (the bundle's normalizeLiveItem and TAX_EXEMPT_STATUS,
+   the pages' var TAX_EXEMPT / COST_TAX_EXEMPT / PRE_PRICED, _search-core,
+   store-shipping.js, scripts/lib/sales-sources.js) mirrors these lists;
+   scripts/test/sales-parity-tests.mjs pins them all to this file.
+
    THE DUTIABLE BASE OF A CARD is the one every cart line is stamped with
    (normalizeLiveItem in the bundle, producto.html's tax line): the raw US
-   price times the store's Miami sales tax (1.07; 1.00 where Aria is
-   exempt -- TAX_EXEMPT mirrors index.html TAX_EXEMPT_STATUS), or, for a
+   price times the store's COST-side rate (costTaxRate), or, for a
    pre-priced store (PRE_PRICED, Aria Perfumes), the price divided by its
    factor. A card that carries only the final price gets the exact
    inversion of finalUsd().
@@ -50,8 +64,13 @@
   var RATE = 0.25;           // applied to CIF (goods + freight)
   var CHARGE_PER_KG = 13;    // the freight rate charged to and shown to the customer
   var LINE_KG = 0.2;         // the cart line's placeholder before the resolver answers
-  var PRE_PRICED = Object.freeze({ ariaperfumes: 1.18 });
-  var TAX_EXEMPT = Object.freeze({ walmart: 1 });
+  var SALES_TAX_RATE = 1.07;
+  /* PERFUME STACK (#443 c.6684758084, Danny 2026-11-06): Aria Perfumes'
+     price is true cost x 1.07 x 1.18 during the 90-day launch promo
+     (scripts/build-perfumes-catalog.mjs); price / 1.2626 is the cost. */
+  var PRE_PRICED = Object.freeze({ ariaperfumes: 1.2626 });
+  var TAX_EXEMPT = Object.freeze({});
+  var COST_TAX_EXEMPT = Object.freeze({ ccs: 1, venum: 1, walmart: 1 });
 
   function r2(n) { return Math.round(n * 100) / 100; }
 
@@ -79,7 +98,25 @@
   }
 
   function storeKey(r) { return String(r == null ? '' : r).trim().toLowerCase(); }
-  function salesTaxRate(retailer) { return TAX_EXEMPT[storeKey(retailer)] ? 1 : 1.07; }
+  /* PRICE side: 1.07 at every store. */
+  function salesTaxRate(retailer) { return TAX_EXEMPT[storeKey(retailer)] ? 1 : SALES_TAX_RATE; }
+  /* COST side: 1.00 where Aria pays no tax at the register. */
+  function costTaxRate(retailer) { return COST_TAX_EXEMPT[storeKey(retailer)] ? 1 : SALES_TAX_RATE; }
+  /** The price every card shows for a raw shelf price: shelf x 1.07 x tier. */
+  function finalUsd(raw, retailer) {
+    var r = Number(raw);
+    if (!(r > 0)) return NaN;
+    if (PRE_PRICED[storeKey(retailer)]) return r2(r);
+    return r2((r + tieredMarginUsd(r)) * salesTaxRate(retailer));
+  }
+  function tieredMarginUsd(rawUsd) {
+    var r = Number(rawUsd);
+    if (!(r > 0)) return 0;
+    return Math.min(r, 500) * 0.24
+      + Math.min(Math.max(r - 500, 0), 1500) * 0.18
+      + Math.min(Math.max(r - 2000, 0), 3000) * 0.12
+      + Math.max(r - 5000, 0) * 0.08;
+  }
 
   /**
    * A card's dutiable value, in USD: { raw, usd, retailer }.
@@ -93,12 +130,11 @@
     var key = storeKey(it.retailer);
     var pre = PRE_PRICED[key];
     var raw = Number(it.raw);
-    if (isFinite(raw) && raw > 0) return r2(pre ? raw / pre : raw * salesTaxRate(key));
+    if (isFinite(raw) && raw > 0) return r2(pre ? raw / pre : raw * costTaxRate(key));
     var usd = Number(it.usd);
     if (!(isFinite(usd) && usd > 0)) return NaN;
     if (pre) return r2(usd / pre);
-    var rate = salesTaxRate(key);
-    return r2(rawFromTieredMarked(usd / rate) * rate);
+    return r2(rawFromTieredMarked(usd / salesTaxRate(key)) * costTaxRate(key));
   }
 
   /** The tax this item alone would pay at `kg` (0.2 kg when unknown). 0 under the threshold. */
@@ -337,9 +373,10 @@
 
   root.AriaImportTax = Object.freeze({
     THRESHOLD_USD: THRESHOLD_USD, RATE: RATE, CHARGE_PER_KG: CHARGE_PER_KG, LINE_KG: LINE_KG,
-    PRE_PRICED: PRE_PRICED, TAX_EXEMPT: TAX_EXEMPT,
+    PRE_PRICED: PRE_PRICED, TAX_EXEMPT: TAX_EXEMPT, COST_TAX_EXEMPT: COST_TAX_EXEMPT, SALES_TAX_RATE: SALES_TAX_RATE,
     importTaxEstimateUsd: importTaxEstimateUsd, rawFromTieredMarked: rawFromTieredMarked,
-    salesTaxRate: salesTaxRate, dutiableOf: dutiableOf, cardImpUsd: cardImpUsd,
+    salesTaxRate: salesTaxRate, costTaxRate: costTaxRate, finalUsd: finalUsd, tieredMarginUsd: tieredMarginUsd,
+    dutiableOf: dutiableOf, cardImpUsd: cardImpUsd,
     lineHTML: lineHTML, refresh: function () { if (root.document) { ensureRuntime(); schedule(); } },
     /* The page's rate (see "the rate" above): fx.get() -> Promise<number>,
        fx.now() -> number or 0, fx.on(cb) -> cb(rate) on every later rate,

@@ -77,15 +77,24 @@ function tieredMarginUsd(rawUsd){
        + Math.min(Math.max(r-2000,0),3000)*0.12
        + Math.max(r-5000,0)*0.08;
 }
-var TAX_EXEMPT = {"walmart": 1};
+/* SALES TAX, TWO SIDES (#443 c.6684452115, Danny 2026-11-06; addendum
+   c.6684509088). PRICE: every store is shelf x 1.07 x tier, Walmart
+   included -- no store is exempt here, so TAX_EXEMPT stays empty.
+   COST: where Aria really pays no tax at the register (verified:
+   Walmart, CCS, Venum) the goods' true value -- the dutiable base,
+   raw x costTaxRate -- carries no 7%. One rule: /import-tax.js;
+   scripts/test/sales-parity-tests.mjs pins every copy to it. */
+var TAX_EXEMPT = {};
+var COST_TAX_EXEMPT = {"ccs": 1, "venum": 1, "walmart": 1};
 /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
    price -- no margin, no Miami tax on top; the value is the factor that
    takes it back to the goods' true value (the import-tax base). One list,
    mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
-var PRE_PRICED = {"ariaperfumes": 1.18};
+var PRE_PRICED = {"ariaperfumes": 1.2626};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function costTaxRate(retailer){ return COST_TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
 function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100; return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100; }
-export { tieredMarginUsd, salesTaxRate, finalUsd, TAX_EXEMPT };
+export { tieredMarginUsd, salesTaxRate, costTaxRate, finalUsd, TAX_EXEMPT, COST_TAX_EXEMPT, PRE_PRICED };
 
 /* ---------- the engine, in its own realm ---------- */
 export function loadEngine(read = readRepoFile) {
@@ -2461,7 +2470,7 @@ function chartFor(ctx, members, fx) {
     const card = cardOf(p, fx, ctx.labels);
     const ship = shippingOf(cartLineFor({
       retailer: p.retailer, title: p.title, brand: p.brand, cardUsd: card.usd,
-      rawUsd: p.finalPrice ? null : p.price, taxRate: salesTaxRate(p.retailer),
+      rawUsd: p.finalPrice ? null : p.price, taxRate: costTaxRate(p.retailer),
     }));
     const d = deliveryFor(p.retailer);
     return {

@@ -40,6 +40,7 @@ import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, rmSync, r
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
+import { PRE_PRICED } from "../weight-data.js";
 import { FIGHT_GEAR_CLASSES, buildCategoryPills, defaultRails } from "./build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -50,9 +51,17 @@ export const SHELVES_DIR = "assets/home/shelves";
 const CARD_FIELDS = ["title", "brand", "price", "originalPrice", "regularPrice", "wasPrice", "was_price", "compareAt",
   "onSale", "image", "retailer", "departments", "dutiableUsd", "weightKg", "catalogWeightKg", "rating", "sizes", "type",
   "joyasStyle", "finalPrice", "url"];
+/* A PRE-PRICED store's dutiable value IS the supplier's wholesale cost
+   (Aria Perfumes: price / 1.2626), and wholesale costs are never served
+   publicly (#443 c.6684758084): its cards ship without it. The pages work
+   the import-tax line out from the price and the factor, as checkout does. */
 export function cardOf(p) {
   const out = {};
-  for (const k of CARD_FIELDS) if (p && p[k] !== undefined && p[k] !== null && p[k] !== "") out[k] = p[k];
+  const pre = p && PRE_PRICED[String(p.retailer || "").toLowerCase()];
+  for (const k of CARD_FIELDS) {
+    if (pre && k === "dutiableUsd") continue;
+    if (p && p[k] !== undefined && p[k] !== null && p[k] !== "") out[k] = p[k];
+  }
   return out;
 }
 
