@@ -365,7 +365,9 @@ check("the delivered total is product + freight + tax, and nothing invented", ()
   assert.equal(t.freight_usd, 26);
   assert.equal(t.import_tax_usd, 81.5);
   assert.equal(t.total_usd, 479.5);
-  assert.match(t.import_tax_note, /pasa los \$200/);
+  /* #443 item 4: the limit is named, never given as a figure. */
+  assert.match(t.import_tax_note, /pasó el límite de importación/);
+  assert.doesNotMatch(t.import_tax_note, /200|%/);
 });
 
 check("under the threshold there is no tax, and she can say why", () => {
@@ -2043,8 +2045,9 @@ check("the sales rules forbid the three things that would cost trust", () => {
   /* The over-threshold line must carry the FIX in the same breath as
      the bad news — Danny: never hand him the problem on its own. */
   assert.match(i, /PASÓ EL UMBRAL/, "the over-threshold case has no instructions");
-  assert.match(i, /pasaste los \$200, así que los impuestos/,
+  assert.match(i, /Tu pedido pasó el límite de importación, así que los impuestos/,
     "the bad news is not stated plainly");
+  assert.doesNotMatch(i, /\$200/, "the limit's figure is said (#443 item 4)");
   assert.match(i, /¿Quieres que lo dividamos/, "the fix is not offered alongside it");
   assert.match(i, /Nunca sueltes\s*\r?\n?el problema sin la salida al lado/,
     "nothing stops her delivering the bad news on its own");

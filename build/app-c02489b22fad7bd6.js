@@ -347,7 +347,7 @@ function sweepFounderPhoto(){
 const PRECIO_HONESTO_CARDS = [
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="#F4C463"/></svg>',
     title: 'Lo que ves es lo que pagas',
-    body: 'Si tu pedido pasa de $200 en productos, los impuestos de importación (~23%) aparecen en su propia línea, como estimado, en el producto y en el checkout. Nada extra al recibir.' },
+    body: 'El precio que ves es el final. Si tu pedido pasa el límite de importación, los impuestos de importación aparecen en su propia línea, como estimado, en el producto y en el checkout. Nada extra al recibir.' },
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>',
     title: 'Flete honesto, siempre',
     body: 'Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria.' },
@@ -33717,10 +33717,12 @@ const CHAT_OFF_DOMAIN_RE = /\b(?:(?:haz|hace|has|resu[eé]lve|resolver|ay[uú]da
 /* ...unless it is a shopping ask about those things ("útiles para la tarea"). */
 const CHAT_OFF_DOMAIN_SHOPPING_RE = /\b(?:compra[rn]?|precio|cu[aá]nto\s+cuesta|busco|necesito\s+(?:un|una|unos|unas)|[uú]tiles|mochila|calculadora|cuaderno|laptop|libro)\b/i;
 function chatTaxPct(){ return Math.round(IMPORT_TAX_RATE * 100); }
+/* #443 c.6709315389 item 4: the limit is named, never given as a figure
+   or a rate -- the same words as the bar, and the same split tip. */
 function chatTaxLineEs(){
-  return 'Sobre los impuestos: solo se pagan si los productos de tu pedido pasan de $' + IMPORT_TAX_THRESHOLD_USD
-    + ' (~' + chatTaxPct() + '%), y los ves aparte, en su propia línea como estimado, en la página del producto y en el checkout. Si tus productos suman $'
-    + IMPORT_TAX_THRESHOLD_USD + ' o menos, no pagas impuestos. Todo se paga en el checkout; nada al recibir.';
+  return 'Sobre los impuestos: mientras los productos de tu pedido no pasen el límite de importación, no pagas impuestos de importación. '
+    + 'Si lo pasan, los ves aparte, en su propia línea como estimado, en la página del producto y en el checkout. '
+    + IMPORT_LIMIT_TIP + ' Todo se paga en el checkout; nada al recibir.';
 }
 /* devoluciones.html, in one breath. Change one, change the other. */
 function chatReturnsLineEs(){
@@ -33763,7 +33765,7 @@ function chatPolicyRoute(text){
   if (CHAT_PRICE_WHY_RE.test(t)){
     return { kind: 'price',
       line: 'Buena pregunta. El precio de la tienda en Estados Unidos es solo el producto allá; el nuestro es el producto traído hasta Perú: lo compramos por ti, pagamos el impuesto de venta de la tienda cuando lo cobra, lo recibimos en nuestro almacén de Miami, hacemos el trámite de aduana y cobramos nuestro servicio. '
-        + 'Si el producto pasa de $' + IMPORT_TAX_THRESHOLD_USD + ', los impuestos de importación (~' + chatTaxPct() + '%) van en su propia línea, como estimado. El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
+        + 'Si tu pedido pasa el límite de importación, los impuestos de importación van en su propia línea, como estimado. El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
         + 'No puedo quitar el margen, pero sí puedo mostrarte las ofertas de hoy.',
       door: () => addAssistantSectionOffer('Ofertas', 'Las mejores ofertas y liquidaciones de hoy', 'department', 'sale') };
   }
@@ -35708,7 +35710,7 @@ let ariaRTGreetRetrying = false;
 /* First audio of the call, which for a fresh call is the greeting.
    Logged so "she was silent" can be told from "she never spoke". */
 let ariaRTHeardAudio = false;
-/* The $200 tip is a one-per-call thing. Enforced by the tool rather
+/* The import-limit tip is a one-per-call thing. Enforced by the tool rather
    than asked of the model: "only say this once" is not a promise a
    language model keeps over ten minutes. */
 let ariaRTThresholdTold = false;
@@ -38036,9 +38038,12 @@ async function executeRealtimeTool(name, args){
     let hint = null;
     if (!applies && !ariaRTThresholdTold && cart.length && shelfRoom >= 10){
       ariaRTThresholdTold = true;
-      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que todavía no ' +
-             'le aplican impuestos de importación y que le caben como $' + shelfRoom +
-             ' más en productos antes de que apliquen.';
+      /* No figure (#443 item 4): the limit is named, never its amount
+         or the room left under it. */
+      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que su pedido ' +
+             'todavía está bajo el límite de importación' +
+             (shelfRoom < 60 ? ' y que ya se acerca a él; si quiere más, puede dividir la compra en pedidos separados para que cada uno se quede bajo el límite' : '') +
+             '. Nunca digas la cifra del límite ni cuánto le falta en dólares.';
     }
     return {
       cart_usd: cartUsd,
@@ -38048,7 +38053,7 @@ async function executeRealtimeTool(name, args){
       /* Said in words so she never has to explain the mechanism
          herself, and never quotes the margin. */
       explanation: applies
-        ? 'Ya le aplican impuestos de importación porque el valor de la mercadería pasó los $' + IMPORT_TAX_THRESHOLD_USD + '.'
+        ? 'Ya le aplican impuestos de importación porque la mercadería pasó el límite de importación.'
         : 'Todavía no le aplican impuestos de importación.',
       threshold_hint: hint,
       split_hint: splitHint,
