@@ -18,7 +18,9 @@
                                     what is in and what is missing
      <every page>                   the tab row (between <!-- nm:start -->
                                     and <!-- nm:end -->, before </header>),
-                                    <style id="nm-css"> and the script tag
+                                    <style id="nm-css"> and the script tags
+                                    (nav-menu.js, and scroll-hint.js: the
+                                    right-edge cue on rows that scroll)
 
    WHERE THE DATA COMES FROM. The tabs group the site's own section
    registry -- departamento.html's DEPTS (every department) and the
@@ -552,6 +554,8 @@ export const NM_CSS = [
   "@media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}",
 ].join("\n");
 
+export const HINT_TAG = `<script src="/assets/js/scroll-hint.js" defer></script>`;
+
 export function nmMarkup(menu, { dark = false } = {}) {
   /* A tab with no columns is a plain link (data-nm-direct): no sheet. */
   return `<nav class="nm${dark ? " nm-dark" : ""}" data-nm aria-label="Categorías"><div class="nm-in">`
@@ -578,6 +582,9 @@ export function syncPages(menu, { write = false, root = ROOT } = {}) {
     const tag = `<script src="/assets/js/nav-menu.js" defer></script>`;
     if (/<style id="nm-css">[\s\S]*?<\/style>/.test(out)) out = out.replace(/<style id="nm-css">[\s\S]*?<\/style>/, () => css);
     else out = out.replace("</head>", () => css + eol + tag + eol + "</head>");
+    /* The scroll hint (#443 c.6685183073): one shared script, next to the
+       menu's, gives every row that overflows sideways its right-edge cue. */
+    if (!out.includes(HINT_TAG) && out.includes(tag)) out = out.replace(tag, () => tag + eol + HINT_TAG);
     if (out !== src) { stale.push(f); if (write) writeFileSync(p, out); }
   }
   return stale;
