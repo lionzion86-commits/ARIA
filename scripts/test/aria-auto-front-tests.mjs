@@ -152,7 +152,7 @@ async function open(path) {
   return { pg, errs };
 }
 
-await check("phone width: autos-led by default -- its own header, the garage photo, Autos left and Motos right, the basics in the first screen, soles big", async () => {
+await check("phone width: autos-led by default -- its own header, the garage photo, Autos left and Motos right, the part lookup first (above every carousel), soles big", async () => {
   seen.length = 0;
   const { pg, errs } = await open(PAGE);
   await pg.waitForFunction(() => document.querySelectorAll("#aaBasics .aa-basic").length >= 4 && /S\//.test((document.querySelector("#aaAutoRails .price .pen") || {}).textContent || ""), null, { timeout: 15000 });
@@ -170,7 +170,9 @@ await check("phone width: autos-led by default -- its own header, the garage pho
       ctas: [...document.querySelectorAll(".aa-ctas a")].map((a) => a.childNodes[0].textContent.trim()),
       autosShown: !document.getElementById("autos").hidden,
       motosHidden: document.getElementById("motos").hidden,
-      basicsOnScreen: [...document.querySelectorAll("#aaBasics .aa-basic")].filter(onScreen).length,
+      /* the lookup leads the car section (#443 c.6684803533): its heading in the first screen, above the first carousel */
+      lookupOnScreen: onScreen(document.getElementById("buscarH")),
+      lookupAbove: (() => { const f = document.getElementById("autoYear").getBoundingClientRect().top; const rails = [...document.querySelectorAll("#autos .rail")]; return rails.length > 0 && rails.every((r) => f < r.getBoundingClientRect().top); })(),
       basicCall: (document.querySelector("#aaBasics .aa-basic .go") || {}).textContent,
       order: [...document.querySelectorAll("#autos > section, #autos > div > section")].map((x) => x.id || x.querySelector("h2").id),
       railTitles: [...document.querySelectorAll("#aaAutoRails h2")].map((h) => h.childNodes[0].textContent.trim()),
@@ -196,9 +198,10 @@ await check("phone width: autos-led by default -- its own header, the garage pho
   assert.deepEqual(first.ctas, ["Autos", "Motos"], "Autos is not the left tile");
   assert.equal(first.autosShown, true, "the address does not land on the car section");
   assert.equal(first.motosHidden, true);
-  assert.ok(first.basicsOnScreen >= 2, "no part categories in the first screen: " + first.basicsOnScreen);
+  assert.equal(first.lookupOnScreen, true, "the part lookup is not in the first screen");
+  assert.equal(first.lookupAbove, true, "the part lookup sits below a carousel");
   assert.equal(first.basicCall, "ELIGE TU AÑO, MARCA Y MODELO");
-  assert.deepEqual(first.order, ["basicsH", "advance-repuestos", "autozone-repuestos", "buscar"], "the car section's order: " + first.order.join(", "));
+  assert.deepEqual(first.order, ["buscar", "basicsH", "advance-repuestos", "autozone-repuestos"], "the car section's order: " + first.order.join(", "));
   assert.deepEqual(first.railTitles, ["Advance Auto Parts — Repuestos", "AutoZone — Repuestos"]);
   assert.equal(first.finder, true, "the part lookup is not inside the store");
   assert.ok(first.overflow <= 0, "the page scrolls sideways on a phone: " + first.overflow + "px");

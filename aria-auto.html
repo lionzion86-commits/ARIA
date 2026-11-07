@@ -322,15 +322,10 @@ html body .aa-sec h2 a{color:#8A4B00}
 </section>
 
 <main class="wrap">
-  <!-- THE CAR SECTION, the default view (#443 c.6441061103): the basics
-       of every car first, then each store's shelves, then the part
-       lookup. -->
+  <!-- THE CAR SECTION, the default view: the part lookup first (year,
+       make and model, #443 c.6684803533), then the basics of every car
+       (c.6441061103), then each store's shelves. -->
   <div id="autos" data-sec="autos">
-    <section class="aa-sec" aria-labelledby="basicsH">
-      <h2 id="basicsH">Lo básico para tu auto</h2>
-      <div class="rail" id="aaBasics"></div>
-    </section>
-    <div id="aaAutoRails"></div>
     <section class="aa-sec" id="buscar" aria-labelledby="buscarH">
       <h2 id="buscarH">Busca tu repuesto</h2>
       <p class="aa-sub">Elige año, marca y modelo, y escribe la pieza o su número de parte: te mostramos lo que le calza a tu auto.</p>
@@ -388,6 +383,11 @@ html body .aa-sec h2 a{color:#8A4B00}
 <div id="toast" role="status" aria-live="polite"></div>
 <!--/ARIA-AUTO-FINDER--></div>
     </section>
+    <section class="aa-sec" aria-labelledby="basicsH">
+      <h2 id="basicsH">Lo básico para tu auto</h2>
+      <div class="rail" id="aaBasics"></div>
+    </section>
+    <div id="aaAutoRails"></div>
   </div>
 
   <!-- THE MOTORCYCLE SECTION: the motos store inside Aria Auto, Ofertas
