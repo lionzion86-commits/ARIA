@@ -330,6 +330,19 @@ html{scroll-padding-top:76px}
               </span>
               <span id="sumAriaDelivery" class="tabular font-semibold whitespace-nowrap flex-shrink-0" style="color:var(--navy)">—</span>
             </div>
+            <!-- ENTREGA EN LIMA (#443 c.6709315389 item 7): the Lima zone's
+                 door-to-door fee, or GRATIS with «Entrega en Lima gratis»
+                 from the zone's threshold in products. Rendered only when
+                 the destination is Lima; set by renderLimaDeliveryRow from
+                 scripts/lib/lima-delivery.js, the module orders-create.js
+                 charges it from. -->
+            <div id="sumLimaDeliveryRow" class="flex items-start justify-between gap-2" data-lima-delivery hidden>
+              <span class="flex flex-col">
+                <span id="sumLimaDeliveryLabel">Entrega en Lima</span>
+                <span id="sumLimaDeliveryNote" class="text-[11px]" style="color:#8A93A8"></span>
+              </span>
+              <span id="sumLimaDelivery" class="tabular font-semibold whitespace-nowrap flex-shrink-0" style="color:var(--navy)">—</span>
+            </div>
             <!-- PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province
                  leg, rendered only when the destination is outside Lima.
                  Soles-denominated, like the small-order fee. -->
@@ -895,6 +908,9 @@ html{scroll-padding-top:76px}
   /* ENVÍO ARIA (#443 c.6560848572): the buyer's S/ 1 per store checkout,
      inside Aria's own delivery fee line only. Same module as the server. */
   import { buyerFeePen, storeCheckoutCount, ariaDeliveryNote, ARIA_DELIVERY_LABEL } from './scripts/lib/buyer-fee.js';
+  /* ENTREGA EN LIMA (#443 c.6709315389 item 7): the Lima door-to-door fee
+     by zone, free from the zone's threshold. Same module as the server. */
+  import { limaDelivery, limaDeliveryNote, LIMA_DELIVERY_LABEL } from './scripts/lib/lima-delivery.js';
 
   /* Support addresses come from one constant, here as on index.html. The
      href authored in the footer markup is the no-JS fallback; this keeps
@@ -1465,7 +1481,7 @@ function cardImgAttrs(url, sizes){
   function orderTotalPenNow(){
     if (!fxRates || !latestQuote) return 0;
     return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen()
-      + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen());
+      + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen() + currentLimaDeliveryFeePen());
   }
 
   /* The dollar figure on screen for the same order. The soles fees
@@ -1772,6 +1788,29 @@ function cardImgAttrs(url, sizes){
   function currentAriaDeliveryFeePen(){
     return Array.isArray(cart) ? buyerFeePen(cart) : 0;
   }
+  /* ENTREGA EN LIMA. Only when the destination is Lima: the zone's fee
+     from the address's district, S/ 0 at or over the zone's threshold in
+     products. Soles as it is, like the provincia leg; orders-create.js
+     charges the same figure from the same module. */
+  function currentLimaDelivery(){
+    return limaDelivery(destCitySel.value, document.getElementById('addrDistrict').value, currentGoodsUsd());
+  }
+  function currentLimaDeliveryFeePen(){
+    const d = currentLimaDelivery();
+    return d ? d.feePen : 0;
+  }
+  function renderLimaDeliveryRow(){
+    const d = currentLimaDelivery();
+    const row = document.getElementById('sumLimaDeliveryRow');
+    row.hidden = !d || !(currentGoodsUsd() > 0);
+    if (!d) return;
+    document.getElementById('sumLimaDeliveryLabel').textContent = LIMA_DELIVERY_LABEL;
+    document.getElementById('sumLimaDeliveryNote').textContent = limaDeliveryNote(d, fxRates ? fxRates.venta : 0);
+    const val = document.getElementById('sumLimaDelivery');
+    val.textContent = d.free ? 'GRATIS' : fmtWalletPen(d.feePen);
+    val.style.color = d.free ? 'var(--green, #16A34A)' : 'var(--navy)';
+  }
+  document.getElementById('addrDistrict').addEventListener('input', () => renderSummary());
   function renderAriaDeliveryRow(fee){
     document.getElementById('sumAriaDeliveryLabel').textContent = ARIA_DELIVERY_LABEL;
     document.getElementById('sumAriaDeliveryNote').textContent = ariaDeliveryNote(Array.isArray(cart) ? storeCheckoutCount(cart) : 0);
@@ -2197,10 +2236,12 @@ function cardImgAttrs(url, sizes){
     const provFee = currentProvinciaFeePen();
     const expressFee = currentExpressFeePen();
     const ariaFee = currentAriaDeliveryFeePen();
+    const limaFee = currentLimaDeliveryFeePen();
     renderSmallOrderRow(smallOrderFee);
     renderProvinciaRow(provFee);
     renderExpressRow(expressFee);
     renderAriaDeliveryRow(ariaFee);
+    renderLimaDeliveryRow();
     renderTaxTracker();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
 
@@ -2212,7 +2253,7 @@ function cardImgAttrs(url, sizes){
        quote; only the numbers on screen are filled in. */
     const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
     const totals = orderTotalsUsd();
-    const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee + ariaFee);
+    const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee + ariaFee + limaFee);
     setMoney(sumProducts, totals.goods, '', pens ? pens.products : NaN);
     renderTaxRow(totals.tax, pens ? pens.tax : NaN);
     renderStoreShipping(totals, pens);
@@ -2221,8 +2262,8 @@ function cardImgAttrs(url, sizes){
       const q = latestQuote || provisional;
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)', pens ? pens.freight : NaN);
-        sumTotal.innerHTML = penLead(fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee) : NaN,
-          orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee), ' (estimado)');
+        sumTotal.innerHTML = penLead(fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee + limaFee) : NaN,
+          orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee + limaFee), ' (estimado)');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -2244,8 +2285,8 @@ function cardImgAttrs(url, sizes){
     // The small-order fee is part of the order total, so saldo applies
     // against it too and it is inside every figure below. The provincia
     // leg is treated the same way.
-    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee) : 0;
-    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee);
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee + limaFee) : 0;
+    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee + limaFee);
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -2905,6 +2946,9 @@ function cardImgAttrs(url, sizes){
           // Envío Aria as shown (S/ 1 per store checkout). Not trusted: the
           // server recounts the stores and charges its own figure.
           buyerFeePen: currentAriaDeliveryFeePen(),
+          // Entrega en Lima as shown. Not trusted: the server re-derives
+          // it from destCity, the district and the verified products.
+          limaDeliveryFeePen: currentLimaDeliveryFeePen(),
           // The soles total on screen. The server charges its own figure
           // and refuses (409) when the two disagree, so the customer never
           // pays a number they did not see.
@@ -2969,7 +3013,7 @@ function cardImgAttrs(url, sizes){
       document.getElementById('orderTotal').textContent = data.chargedPen != null
         ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
         : fmtPrimary(orderTotalUsdShown(orderTotalsUsd().totalUsd,
-            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
+            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen() + currentLimaDeliveryFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;

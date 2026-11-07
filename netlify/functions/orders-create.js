@@ -42,6 +42,10 @@ import { buyerFeePen, storeCheckoutCount, BUYER_FEE_PEN_PER_STORE } from "../../
    browser sends what it showed, but the charge is decided here from
    destCity — a tampered request must not be able to zero it. */
 import { provinciaFeePen as provinciaFeeFor } from "../../couriers.js";
+/* ENTREGA EN LIMA (#443 c.6709315389 item 7): the Lima zone's
+   door-to-door fee, free from the zone's threshold in products. The page
+   imports the same module, so the charged fee is the one shown. */
+import { limaDelivery } from "../../scripts/lib/lima-delivery.js";
 import { CHARGE_PER_KG } from "../../weight-data.js";
 import { resolveCartWeights } from "./_weight-resolve.js";
 import { loadPriceIndex } from "./_price-index.js";
@@ -402,9 +406,15 @@ async function createOrderHandler(event) {
        shipping above, the freight and the provincia leg are untouched. */
     const storeCheckouts = storeCheckoutCount(items);
     const buyerFeePenCharged = buyerFeePen(items);
+    /* ENTREGA EN LIMA: recomputed from the destination, the address's
+       district and the verified products (priceUsdTotal, the cards'
+       prices) -- never read from the request. 0 outside Lima and at or
+       over the zone's threshold. */
+    const limaDeliveryLine = limaDelivery(destCity, body.shipping && body.shipping.addrDistrict, priceUsdTotal);
+    const limaDeliveryFeePenCharged = limaDeliveryLine ? limaDeliveryLine.feePen : 0;
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
-      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged + buyerFeePenCharged) * 100) / 100
+      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged + buyerFeePenCharged + limaDeliveryFeePenCharged) * 100) / 100
       : null;
 
     /* THE PRICE YOU SEE IS THE PRICE YOU PAY. The page sends the soles
@@ -418,6 +428,7 @@ async function createOrderHandler(event) {
         /* What the page needs to redraw the summary on the server's
            figures, so the next tap charges exactly what is shown. */
         freightUsd: freightUsdQuoted, expressFeePen: expressFeePenCharged, buyerFeePen: buyerFeePenCharged,
+        limaDeliveryFeePen: limaDeliveryFeePenCharged,
       }) };
     }
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
@@ -572,6 +583,10 @@ async function createOrderHandler(event) {
       smallOrderFeePen: smallOrderFeePenCharged,
       // The Lima → province courier leg, itemised the same way.
       provinciaFeePen: provinciaFeePenCharged,
+      /* ENTREGA EN LIMA, itemised: the zone, its fee, and whether the
+         order crossed the zone's free-delivery threshold. null outside Lima. */
+      limaDeliveryFeePen: limaDeliveryFeePenCharged,
+      limaDelivery: limaDeliveryLine,
       /* ARIA'S OWN DELIVERY FEE ("Envío Aria"), itemised for
          reconciliation and the ledger: the buyer's sol per store checkout
          (#443 c.6560848572). Buyer pay is the dispatch side's ladder, not
