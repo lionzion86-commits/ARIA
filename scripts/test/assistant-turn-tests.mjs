@@ -254,10 +254,11 @@ await check("F3: a price question gets the honest-price answer, not a catalogue"
 await check("F9: returns and taxes come from the published policy and the published tax figure", async () => {
   const { col } = await ask("si no me queda, ¿puedo devolverlo? ¿y los impuestos?");
   const bot = col.find((m) => m.who === "bot").text;
-  for (const must of [/14 días/, /fotos/, /100% de los impuestos/, /crédito Aria/, /tarjeta/, /~23%/]) assert.match(bot, must);
-  assert.ok(!/25\s*%|depende de la tienda/.test(bot), "a second tax figure or a deflection: " + bot);
-  const tax = Math.round(await R.page.evaluate(() => IMPORT_TAX_RATE) * 100);
-  assert.ok(bot.includes("~" + tax + "%"), "the tax figure is not IMPORT_TAX_RATE");
+  /* #443 c.6709315389 item 4: the import limit is named in the bar's words,
+     never given as a dollar figure or a tax percentage, and the split tip rides along. */
+  for (const must of [/14 días/, /fotos/, /100% de los impuestos/, /crédito Aria/, /tarjeta/, /límite de importación/, /divide tu compra en pedidos separados/]) assert.match(bot, must);
+  assert.ok(!/depende de la tienda/.test(bot), "a deflection: " + bot);
+  assert.ok(!/\b200\b|~\s*\d+\s*%|\b2[35]\s*%/.test(bot), "the limit figure or a tax rate is said: " + bot);
   const page = readFileSync(ROOT + "devoluciones.html", "utf8");
   for (const fact of ["14 días", "100% de los impuestos", "créditos Aria"]) assert.ok(page.includes(fact), `devoluciones.html no longer says "${fact}" — re-sync chatReturnsLineEs`);
 });
