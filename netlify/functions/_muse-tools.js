@@ -588,8 +588,10 @@ export async function getProduct(args, env) {
     dutiable_usd: dutiable,
     import_tax_estimate_usd: taxUsd,
     import_tax: prePriced
-      ? "Import tax, if any, is estimated at checkout. Aria's estimate: 0 when the goods' value is $200 or less; above that, 25% of goods + freight. If the real tax is lower, the difference is credited as saldo Aria; if higher, Aria absorbs it."
-      : `Peru's import tax applies only when the dutiable value (dutiable_usd: the US store price plus Miami sales tax, before Aria's margin) is over $${TAX_ESTIMATE_THRESHOLD_USD}; Aria then estimates 25% of dutiable value + freight and charges it at checkout. If the real tax is lower, the difference is credited as saldo Aria; if higher, Aria absorbs it.`,
+      /* #443 item 4: the limit is named to the shopper, never given as a
+         figure or a rate -- say "el límite de importación". */
+      ? "Import tax, if any, is estimated at checkout: none while the order's goods stay under Peru's import limit, an estimate on goods + freight once they pass it. Never tell the shopper the limit's dollar figure or a tax percentage: say the order is under / approaching / past «el límite de importación», and from approaching on suggest splitting into separate orders. If the real tax is lower, the difference is credited as saldo Aria; if higher, Aria absorbs it."
+      : "Peru's import tax applies only when the order's dutiable value (dutiable_usd: the US store price plus Miami sales tax, before Aria's margin) passes the import limit; import_tax_estimate_usd is Aria's estimate for this item alone, charged at checkout. Never tell the shopper the limit's dollar figure or a tax percentage: say the order is under / approaching / past «el límite de importación», and from approaching on suggest splitting into separate orders. If the real tax is lower, the difference is credited as saldo Aria; if higher, Aria absorbs it.",
     store_shipping_usd: ship.state === "fee" || ship.state === "free" ? ship.usd : null,
     ...(ship.state === "calc" ? { store_shipping_note: "The store calculates its shipping to Aria's Miami warehouse at payment." } : {}),
     buyable: !notBuyable,

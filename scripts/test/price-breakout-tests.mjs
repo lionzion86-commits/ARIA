@@ -185,7 +185,8 @@ for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDE
     } else {
       assert.match(box.tax, /Impuestos de importación/);
       assert.ok(box.tax.includes("S/ 0.00"), "under the threshold the line does not read S/ 0");
-      assert.match(box.tax, /hasta US\$ 200/, "the franquicia is not stated");
+      assert.match(box.tax, /no pase el límite de importación/, "the franquicia is not stated");
+      assert.doesNotMatch(box.tax, /\$ ?200|%/, "the limit figure is printed (#443 item 4)");
     }
     assert.doesNotMatch(box.block, FORBIDDEN_LABEL, "the buy box names the margin / 7% / declared value");
     assertNoMarginTrail(box.block, e, "PDP " + label);
@@ -235,7 +236,7 @@ for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDE
     assert.doesNotMatch(out.text, /incl\. impuestos/);
     const taxSoles = penFmt(solesOf(e.tax));
     assert.ok(out.text.includes(taxSoles), `the product view's tax line is not ${taxSoles}: ${JSON.stringify(out.text)}`);
-    assert.match(out.text, e.tax > 0 ? /Impuestos de importación \(estimado\)/ : /hasta US\$ 200/);
+    assert.match(out.text, e.tax > 0 ? /Impuestos de importación \(estimado\)/ : /no pase el límite de importación/);
     assert.doesNotMatch(out.text, FORBIDDEN_LABEL);
     assertNoMarginTrail(out.text, e, "product view " + label);
     await page.context().close();
@@ -272,7 +273,8 @@ for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDE
     } else {
       assert.match(s.taxLabel, /Impuestos de importación/);
       assert.equal(firstSoles(s.tax), 0, "under the threshold the line does not read S/ 0");
-      assert.match(s.taxNote, /hasta US\$ 200/);
+      assert.match(s.taxNote, /bajo el límite de importación/);
+      assert.doesNotMatch(s.taxNote, /\$ ?200|%/, "the limit figure is printed (#443 item 4)");
     }
     assert.doesNotMatch(s.summary, FORBIDDEN_LABEL, "the checkout summary names the margin / 7% / declared value");
     assert.doesNotMatch(s.summary, new RegExp(`~?${Math.round(TAX_ESTIMATE_RATE * 100)}\\s?%`), "the summary prints the tax rate beside the tax figure");

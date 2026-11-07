@@ -223,6 +223,19 @@ function fmtPriceLabel(usd){
 const IMPORT_TAX_THRESHOLD_USD = 200;
 const IMPORT_TAX_RATE = 0.23;
 
+/* THE IMPORT LIMIT, IN WORDS ONLY (#443 c.6709315389 item 4, Danny,
+   2026-11-07). The bar and every note about it say only WHERE the order
+   stands -- under, approaching, past "el límite de importación" -- never
+   the dollar figure and never a percentage. The threshold above still
+   decides which words show; it is never printed. The tip to split a
+   purchase into separate orders reverses the earlier "never coach
+   splitting" note (Danny's standing pitch: "the tax-threshold coaching
+   -- split the order, pay less, legally", c.6617353798). The price shown
+   stays final: any import tax is its own line before payment, never at
+   the door. scripts/test/tax-bar-tests.mjs pins all of it. */
+const IMPORT_LIMIT_TIP = 'Consejo: divide tu compra en pedidos separados para que cada uno se quede bajo el límite de importación.';
+const IMPORT_LIMIT_UNDER_NOTE = 'Sin impuestos de importación mientras tu pedido no pase el límite de importación.';
+
 /* Resolve the dutiable base for a price. Prefer the stamped dutiableUsd
    that normalizeLiveItem() puts on every item; otherwise back the tiered
    margin out the way the price was built (rawFromTieredMarked), which
@@ -261,7 +274,7 @@ function productTaxLineHTML(usd, dutiableUsd, weightKg){
     : escapeHtml(fmtUSD(tax));
   const note = owes
     ? 'Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.'
-    : `Sin recargo en pedidos de hasta US$ ${IMPORT_TAX_THRESHOLD_USD} en productos.`;
+    : IMPORT_LIMIT_UNDER_NOTE;
   return `<div data-tax-line class="rounded-xl px-3 py-2.5 mt-3 text-[13.5px] font-semibold" style="background:#F7F8FB; border:1px solid var(--line)">
     <div class="flex items-baseline justify-between gap-3"><span>${owes ? 'Impuestos de importación (estimado)' : 'Impuestos de importación'}</span><span class="text-right tabular" style="white-space:nowrap">${money}</span></div>
     <div class="text-[11.5px] font-normal mt-1 leading-snug" style="color:#6B7487">${escapeHtml(note)}</div>
@@ -307,7 +320,7 @@ function impuestosBadgeHTML(usd, dutiableUsd){
    adding the attribute and nothing else. */
 const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-2px"><path d="M12 20.3C7.2 16.6 3.4 13.5 3.4 9.6c0-2.7 2-4.6 4.4-4.6 1.6 0 3.1.8 4.2 2.3 1.1-1.5 2.6-2.3 4.2-2.3 2.4 0 4.4 1.9 4.4 4.6 0 3.9-3.8 7-8.6 10.7z"/></svg> Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; por encima, los ves aparte, como estimado (~${Math.round(IMPORT_TAX_RATE * 100)}%), antes de pagar. Lo que ves es lo que pagas.
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-2px"><path d="M12 20.3C7.2 16.6 3.4 13.5 3.4 9.6c0-2.7 2-4.6 4.4-4.6 1.6 0 3.1.8 4.2 2.3 1.1-1.5 2.6-2.3 4.2-2.3 2.4 0 4.4 1.9 4.4 4.6 0 3.9-3.8 7-8.6 10.7z"/></svg> Precios honestos: el precio que ves es el final. Si un pedido pasa el límite de importación, sus impuestos se ven aparte antes de pagar, nunca al recibir. Consejo: divide tu compra en pedidos separados para quedarte bajo el límite.
   </div>`;
 
 /* The founder's photo is a real asset the founder supplies. Until the
@@ -334,7 +347,7 @@ function sweepFounderPhoto(){
 const PRECIO_HONESTO_CARDS = [
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="#F4C463"/></svg>',
     title: 'Lo que ves es lo que pagas',
-    body: 'Si tu pedido pasa de $200 en productos, los impuestos de importación (~23%) aparecen en su propia línea, como estimado, en el producto y en el checkout. Nada extra al recibir.' },
+    body: 'El precio que ves es el final. Si tu pedido pasa el límite de importación, los impuestos de importación aparecen en su propia línea, como estimado, en el producto y en el checkout. Nada extra al recibir.' },
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>',
     title: 'Flete honesto, siempre',
     body: 'Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria.' },
@@ -28468,29 +28481,31 @@ function renderTaxZoneBar(usdSubtotal){
   if (!wrap) return;
   if (!(usdSubtotal > 0)){ wrap.innerHTML = ''; return; }
 
-  const pct = Math.min(100, Math.round((usdSubtotal / TAX_ZONE_THRESHOLD_USD) * 100));
-  const dutyPct = Math.round(TAX_ZONE_RATE * 100);
-  let color, copy;
+  /* 10% steps (#439, like checkout's tracker): an exact width is the
+     declared value in disguise. No figure and no percentage is printed
+     (#443 item 4): the words say only which side of the limit. */
+  const pct = Math.max(0, Math.min(100, Math.floor((usdSubtotal / TAX_ZONE_THRESHOLD_USD) * 10) * 10));
+  let color, copy, tip = '';
   if (usdSubtotal > TAX_ZONE_THRESHOLD_USD){
     color = '#C0392B';
-    copy = `Este pedido supera los $${TAX_ZONE_THRESHOLD_USD} y entrará en zona de impuestos (~${dutyPct}% adicional).`;
+    copy = 'Tu pedido pasó el límite de importación: paga impuestos de importación, que ves en su propia línea antes de pagar.';
+    tip = IMPORT_LIMIT_TIP;
   } else if (usdSubtotal >= TAX_ZONE_AMBER_START_USD){
     color = 'var(--yellow-dark)';
-    copy = `Te acercas a la zona de impuestos ($${TAX_ZONE_THRESHOLD_USD}). Si pasas de $${TAX_ZONE_THRESHOLD_USD}, este pedido paga ~${dutyPct}% en impuestos de importación. Recuerda: los pedidos menores a $${TAX_ZONE_THRESHOLD_USD} no pagan impuestos.`;
+    copy = 'Tu pedido se acerca al límite de importación. Mientras no lo pase, no paga impuestos de importación.';
+    tip = IMPORT_LIMIT_TIP;
   } else {
     color = 'var(--green)';
-    /* No dollar figure (2026-10-18, finding #9): usdSubtotal is the
-       declared, margin-free value -- next to the cart total it reads
-       Aria's margin. The bar shows the position. */
-    copy = `Tu pedido está por debajo de los $${TAX_ZONE_THRESHOLD_USD} — sin impuestos.`;
+    copy = 'Tu pedido está bajo el límite de importación: sin impuestos de importación.';
   }
 
   wrap.innerHTML = `
-    <div class="rounded-2xl border p-4" style="border-color:var(--line)">
-      <div class="h-2 rounded-full overflow-hidden mb-2.5" style="background:var(--line)">
+    <div class="rounded-2xl border p-4" data-import-limit-bar style="border-color:var(--line)">
+      <div class="h-2 rounded-full overflow-hidden mb-2.5" style="background:var(--line)" aria-hidden="true">
         <div class="h-full rounded-full" style="width:${pct}%; background:${color}; transition:width 0.3s ease"></div>
       </div>
       <p class="text-[12.5px] font-semibold leading-snug" style="color:var(--navy)">${escapeHtml(copy)}</p>
+      ${tip ? `<p class="text-[12px] leading-snug mt-1.5" style="color:var(--navy)">${escapeHtml(tip)}</p>` : ''}
     </div>`;
 }
 /* PROACTIVE $200 CUSTOMS DISCLOSURE (2026-09-18)
@@ -28548,16 +28563,16 @@ function renderCustomsDisclosure(usdSubtotal){
   if (!wrap) return;
   if (!(usdSubtotal > 0) || usdSubtotal < TAX_ZONE_AMBER_START_USD){ wrap.innerHTML = ''; return; }
 
-  const dutyPct = Math.round(TAX_ZONE_RATE * 100);
   const closing = `<p class="text-[12px] font-bold mt-3" style="color:var(--navy)">${escapeHtml(CUSTOMS_CLOSING_LINE)}</p>`;
 
   if (usdSubtotal <= TAX_ZONE_THRESHOLD_USD){
-    // Approaching: disclosure only. No suggestion to do anything about it.
+    /* Approaching (#443 item 4): words only -- no figure, no rate. The
+       bar above carries the split-orders tip. */
     wrap.innerHTML = `
       <div class="rounded-2xl border p-4" style="border-color:var(--line); background:var(--sky)">
         <p class="text-[12.5px] leading-relaxed" style="color:var(--navy)">
-          Para que lo tengas claro: los pedidos que superan los $${TAX_ZONE_THRESHOLD_USD} de valor declarado pagan
-          aproximadamente <b>${dutyPct}% en aranceles e impuestos</b> al Estado peruano. Tu pedido se acerca a ese monto.
+          El precio que ves es el final. Si tu pedido pasa el límite de importación, los impuestos de importación
+          se muestran en su propia línea en el checkout, antes de pagar.
         </p>
         ${closing}
       </div>`;
@@ -28571,7 +28586,7 @@ function renderCustomsDisclosure(usdSubtotal){
   wrap.innerHTML = `
     <div class="rounded-2xl border p-4" style="border-color:#E3B7B1; background:#FFF5F5">
       <p class="text-[12.5px] leading-relaxed mb-3" style="color:var(--navy)">
-        Tu pedido supera los $${TAX_ZONE_THRESHOLD_USD} de valor declarado, así que paga
+        Tu pedido pasó el límite de importación, así que paga
         aranceles e impuestos de importación al Estado peruano.
       </p>
       <p class="text-[12.5px] font-bold" style="color:var(--navy)">
@@ -33702,10 +33717,12 @@ const CHAT_OFF_DOMAIN_RE = /\b(?:(?:haz|hace|has|resu[eé]lve|resolver|ay[uú]da
 /* ...unless it is a shopping ask about those things ("útiles para la tarea"). */
 const CHAT_OFF_DOMAIN_SHOPPING_RE = /\b(?:compra[rn]?|precio|cu[aá]nto\s+cuesta|busco|necesito\s+(?:un|una|unos|unas)|[uú]tiles|mochila|calculadora|cuaderno|laptop|libro)\b/i;
 function chatTaxPct(){ return Math.round(IMPORT_TAX_RATE * 100); }
+/* #443 c.6709315389 item 4: the limit is named, never given as a figure
+   or a rate -- the same words as the bar, and the same split tip. */
 function chatTaxLineEs(){
-  return 'Sobre los impuestos: solo se pagan si los productos de tu pedido pasan de $' + IMPORT_TAX_THRESHOLD_USD
-    + ' (~' + chatTaxPct() + '%), y los ves aparte, en su propia línea como estimado, en la página del producto y en el checkout. Si tus productos suman $'
-    + IMPORT_TAX_THRESHOLD_USD + ' o menos, no pagas impuestos. Todo se paga en el checkout; nada al recibir.';
+  return 'Sobre los impuestos: mientras los productos de tu pedido no pasen el límite de importación, no pagas impuestos de importación. '
+    + 'Si lo pasan, los ves aparte, en su propia línea como estimado, en la página del producto y en el checkout. '
+    + IMPORT_LIMIT_TIP + ' Todo se paga en el checkout; nada al recibir.';
 }
 /* devoluciones.html, in one breath. Change one, change the other. */
 function chatReturnsLineEs(){
@@ -33748,7 +33765,7 @@ function chatPolicyRoute(text){
   if (CHAT_PRICE_WHY_RE.test(t)){
     return { kind: 'price',
       line: 'Buena pregunta. El precio de la tienda en Estados Unidos es solo el producto allá; el nuestro es el producto traído hasta Perú: lo compramos por ti, pagamos el impuesto de venta de la tienda cuando lo cobra, lo recibimos en nuestro almacén de Miami, hacemos el trámite de aduana y cobramos nuestro servicio. '
-        + 'Si el producto pasa de $' + IMPORT_TAX_THRESHOLD_USD + ', los impuestos de importación (~' + chatTaxPct() + '%) van en su propia línea, como estimado. El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
+        + 'Si tu pedido pasa el límite de importación, los impuestos de importación van en su propia línea, como estimado. El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
         + 'No puedo quitar el margen, pero sí puedo mostrarte las ofertas de hoy.',
       door: () => addAssistantSectionOffer('Ofertas', 'Las mejores ofertas y liquidaciones de hoy', 'department', 'sale') };
   }
@@ -35693,7 +35710,7 @@ let ariaRTGreetRetrying = false;
 /* First audio of the call, which for a fresh call is the greeting.
    Logged so "she was silent" can be told from "she never spoke". */
 let ariaRTHeardAudio = false;
-/* The $200 tip is a one-per-call thing. Enforced by the tool rather
+/* The import-limit tip is a one-per-call thing. Enforced by the tool rather
    than asked of the model: "only say this once" is not a promise a
    language model keeps over ten minutes. */
 let ariaRTThresholdTold = false;
@@ -38021,9 +38038,12 @@ async function executeRealtimeTool(name, args){
     let hint = null;
     if (!applies && !ariaRTThresholdTold && cart.length && shelfRoom >= 10){
       ariaRTThresholdTold = true;
-      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que todavía no ' +
-             'le aplican impuestos de importación y que le caben como $' + shelfRoom +
-             ' más en productos antes de que apliquen.';
+      /* No figure (#443 item 4): the limit is named, never its amount
+         or the room left under it. */
+      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que su pedido ' +
+             'todavía está bajo el límite de importación' +
+             (shelfRoom < 60 ? ' y que ya se acerca a él; si quiere más, puede dividir la compra en pedidos separados para que cada uno se quede bajo el límite' : '') +
+             '. Nunca digas la cifra del límite ni cuánto le falta en dólares.';
     }
     return {
       cart_usd: cartUsd,
@@ -38033,7 +38053,7 @@ async function executeRealtimeTool(name, args){
       /* Said in words so she never has to explain the mechanism
          herself, and never quotes the margin. */
       explanation: applies
-        ? 'Ya le aplican impuestos de importación porque el valor de la mercadería pasó los $' + IMPORT_TAX_THRESHOLD_USD + '.'
+        ? 'Ya le aplican impuestos de importación porque la mercadería pasó el límite de importación.'
         : 'Todavía no le aplican impuestos de importación.',
       threshold_hint: hint,
       split_hint: splitHint,

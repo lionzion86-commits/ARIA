@@ -106,8 +106,9 @@ export function deliveredTotal({ priceUsd, dutiableUsd, weightKg, quantity = 1 }
       /* No percentage here (2026-10-13, battery F9): the only tax figure
          Aria may say is the one the site publishes (Precio Honesto,
          ~23%); the amount above is what the checkout estimates. */
-      ? `aplica porque el valor de la mercadería pasa los $${TAX_ESTIMATE_THRESHOLD_USD} (estimado; el monto exacto sale en el checkout)`
-      : `no aplica: la mercadería no llega a $${TAX_ESTIMATE_THRESHOLD_USD}`,
+      /* #443 item 4: the limit is named, never given as a figure. */
+      ? "aplica porque la mercadería pasó el límite de importación (estimado; el monto exacto sale en el checkout). Consejo: divide tu compra en pedidos separados para que cada uno se quede bajo el límite de importación."
+      : "no aplica: la mercadería está bajo el límite de importación",
     total_usd: totalUsd,
   };
 }
