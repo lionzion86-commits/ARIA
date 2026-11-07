@@ -746,8 +746,124 @@ export const TYPE_WORLDS = [
   { id: "laptops", only: true, label: "Laptops", q: /(laptops?|lap ?tops?|notebooks?|portatil(?:es)?|computadoras? portatil(?:es)?|laptop computers?)/, test: isLaptop },
   { id: "consolas", only: true, label: "Consolas", q: /(consolas?|consolas? de videojuegos?|videoconsolas?|consoles?|game consoles?|video game consoles?)/, test: isGameConsole },
 ];
+/* ---------- A SHELF IS EVERY DEPARTMENT THAT CARRIES IT (#443 c.6693598650 §3) ----------
+   The Nov 6 search audit: the Spanish word reached its own department's
+   aisle and nothing else. «poleras» opened Moda Hombre's 1,025 of a
+   hoodie and sweatshirt shelf filed across Ropa, Mujer, Niños, Tallas
+   Plus, Gym Rat and Diseñador; «chort» Ropa's 1,238 shorts; «champú»
+   Cabello's 181 of a shampoo shelf Aria Beauty also carries; «botas» the
+   whole Zapatos department, sneakers first. Each type below is read off
+   the product's own name and the store's own type (the department rows'
+   typeLabel and type), from every department in `pool` -- the landing
+   page asks for one department and gets the shelf (_department-core.js
+   answer: a rule with a pool reads them all, each product once).
+   Landing rules only: the search's own answer (typeWorldOf) never reads
+   them, so the results page is unchanged. */
+const FASHION_POOL = ["clothing", "women", "men", "kids", "curvy", "gym_rat", "combat_sports", "surf_skate", "luxury", "soccer"];
+const rawType = (p) => String((p && p.type) || "").trim().toLowerCase();
+const NOT_A_GARMENT_RX = /\b(dolls?|plush|toys?|figures?|ornaments?|stickers?|decals?|keychains?|mugs?|tumblers?|cups?|posters?|prints?|blankets?|throws?|pillows?|cushions?|pet|dogs?|cats?|gift cards?|patterns?|hangers?)\b/i;
+export function isHoodieSweatshirt(p) {
+  const t = TP_TITLE(p), head = tpHead(t);
+  if (NOT_A_GARMENT_RX.test(t) || /\b(sweatpants|sweat ?shorts|joggers?|pants|shorts|leggings|skirts?|dress(es)?|socks?|beanies?|hats?|caps?|bags?|backpacks?|bras?|bikinis?|towels?|sets?|\d+[- ]?(?:pc|pcs|piece))\b/i.test(head)) return false;
+  return /\b(hoodies?|hoody|hoodie dress|hooded sweatshirts?|hooded pullovers?|zip[- ]?up hood(ie)?s?|full[- ]zip hood(ie)?s?|sweatshirts?|sweat shirts?|crew ?neck sweatshirts?|fleece (crew|pullover|hoodie)s?|polerones?|poleras?|sudaderas?)\b/i.test(t) ||
+    /* the store's own type, when the name names no other garment (SSENSE
+       files track jackets and cardigans under HOODIES & ZIPUPS) */
+    (/^(hoodies?|hoodie|sweatshirts?|hoodies & zipups|sweat_shirts|jackets_hoodies|unisex fleece hoodie)$/.test(rawType(p)) &&
+      !/\b(jackets?|cardigans?|t-?shirts?|tees?|sweaters?|knits?|vests?|coats?|blazers?|shirts?|tops?|polos?|bombers?|parkas?|anoraks?|windbreakers?|shells?|tanks?)\b/i.test(t));
+}
+export function isShorts(p) {
+  const t = TP_TITLE(p);
+  if (NOT_A_GARMENT_RX.test(t) || /\b(short[- ]sleeves?d?|s\/s|ss|sst|shortbread|short ?cake|shortening|short (hair|wigs?|story|film|length|socks?|dress(es)?|sets?)|pajamas?|pj|sleep\w*|lounge sets?|boxers?|boxer briefs?|briefs?|panty|panties|tees?|t-?shirts?|shirts?|tops?|dress(es)?|minidress(es)?|rompers?|jumpsuits?|bodysuits?|swimsuits?|one-?piece|crew|sweatshirts?|hoodies?)\b/i.test(t)) return false;
+  /* The name says it (a store's "Shorts" type alone is not enough: Island
+     Water Sports files T-shirts there, SSENSE its short dresses). */
+  return /\b(shorts|boardshorts?|walkshorts?|bermudas?)\b/i.test(t) || /\b(board|bike|biker|running|athletic|cargo|denim|jean|chino|swim|gym|training|sweat|mesh|volley|walk|hybrid|fleece|cotton|linen|basketball|soccer|tennis|golf|lifting|compression|booty|elastic|utility|\d+(?:\.\d+)?(?:in|"|”|''|-inch| inch)) short\b/i.test(t) ||
+    ((/\bshorts?\b/.test(rawType(p)) || (p && p.typeLabel === "Shorts")) && /\bshort\b/i.test(t));
+}
+export function isHandbag(p) {
+  const t = TP_TITLE(p), head = tpHead(t);
+  if (NOT_A_GARMENT_RX.test(t) || /\b(wallets?|card (holders?|cases?)|coin purses?|bag (charms?|straps?|inserts?|organi[sz]ers?)|charms?|straps? only|inserts?|laptop|diaper|lunch|cooler|garment|toiletry|cosmetic|makeup|duffel|gym bags?|backpacks?|luggage|suitcases?|tees?|t-?shirts?|hoodies?|dress(es)?|shoes?|sneakers?|sandals?|boots?|perfumes?|eau de|parfum|fragrance|candles?)\b/i.test(head)) return false;
+  return /\b(handbags?|purses?|crossbody|cross-body|shoulder bags?|tote bags?|totes?|clutch(es)?|satchels?|hobo( bags?)?|bucket bags?|top[- ]handle( bags?)?|wristlets?|baguette bags?|mini bags?|camera bags?|saddle bags?|belt bags?|sling bags?|evening bags?|carteras?|bolsos? de mano)\b/i.test(t) ||
+    /* a bag the store files as a handbag (its Carteras type), never a sports, travel or utility bag */
+    (/^(carteras?|handbags?|purses?|shoulder bags?|tote bags?|totes|crossbody( bags?)?|clutch(es)?|top handle( bags?)?|satchels?|hobo bags?|bucket bags?|evening bags?|mini bags?)$/.test(rawType(p)) && /\bbags?\b/i.test(t) && !/\b(tennis|pickleball|racquet|duffle|duffel|cinch|drawstring|wet\/dry|dry bags?|market|drink|smell proof|travel|utility|hip bags?|waist|fanny|bikini|beach|gym|sports?|shoe bags?|boot bags?|stash|camp|trick-or-treat|treat bags?|wash bags?|laundry|lingerie)\b/i.test(t));
+}
+export function isShampoo(p) {
+  const t = TP_TITLE(p);
+  return /\b(shampoos?|conditioners?|co-?wash|cleansing conditioner|champ[uú]s?|acondicionador(es)?)\b/i.test(t) &&
+    !/\b(dogs?|pets?|cats?|puppy|horses?|carpets?|car wash|upholstery|brush(es)?|scalp massagers?|towels?|empty|dispensers?|travel bottles?|refillable bottles?|shower caps?|rinse cups?|trays?|racks?|caddies?|bars? holders?|holders?|air conditioners?|fabric conditioners?|leather conditioners?|wood conditioners?|tees?|t-?shirts?|toys?)\b/i.test(t);
+}
+export function isBoot(p) {
+  const t = TP_TITLE(p);
+  if (NOT_A_GARMENT_RX.test(t) || /\b(boot ?cut|bootcut|booty|boot (socks?|liners?|trees?|shapers?|cleaners?|care|polish|wax|laces?|trays?|racks?|covers?|bags?|jacks?|dryers?|cuffs?)|shoe trees?|socks?|tees?|t-?shirts?|hoodies?|pants|jeans|leggings|shorts|dress(es)?|skirts?|charms?|pins?|cakes?)\b/i.test(t)) return false;
+  if (/\b(boots?|booties|bootie|botas?|botines?|wellies|wellingtons?)\b/i.test(t)) return true;
+  /* the store's own boot type, when the name names no other shoe or thing */
+  return (/\bboots?\b/.test(rawType(p)) || (p && p.typeLabel === "Botas y botines")) && /\b(chelsea|chukka|hik(er|ing)|winter|snow|rain|waterproof|lug|combat|western|knee[- ]high|over[- ]the[- ]knee|mid[- ]calf|lace[- ]up)\b/i.test(t) &&
+    !/\b(shoes?|sneakers?|flats?|sandals?|slides?|loafers?|mules?|pucks?|fleece|jackets?|zip)\b/i.test(t);
+}
+/* Court shoes, as the tennis and padel stores sell them: what Aria has
+   for a shopper who asked for a court sport's shoes it does not carry. */
+const COURT_STORES = new Set(["tennisexpress", "tenniswarehouse", "dicks"]);
+export function isCourtShoe(p) {
+  const t = TP_TITLE(p);
+  if (!/\b(shoes?|sneakers?|zapatillas?)\b/i.test(t) || NOT_SNEAKER_RX.test(t)) return false;
+  return /\b(padel|p[aá]del|pickleball|clay court|all court|hard court)\b/i.test(t) || (COURT_STORES.has(p && p.retailer) && /\b(tennis|court)\b/i.test(t));
+}
+/* Gloves, belts, straps and wraps for lifting weights: what Aria has for
+   a shopper who asked for weights it does not carry. */
+export function isLiftingGear(p) {
+  const t = TP_TITLE(p);
+  return /\b(weight ?lifting (gloves?|belts?|straps?|wraps?|grips?)|weightlifting (gloves?|belts?|straps?|wraps?|grips?)|lifting (gloves?|belts?|straps?|wraps?|grips?)|wrist wraps?|gym gloves?|workout gloves?|training gloves?|lever belts?|power ?lifting belts?)\b/i.test(t) &&
+    !/\b(boxing|kickboxing|mma|muay|ringside|hand wraps?|laced|bag gloves|sparring|tees?|t-?shirts?|hoodies?|toys?)\b/i.test(t) && !/boxing|mma/.test(rawType(p));
+}
+export const LANDING_TYPES = [
+  { id: "polerones", label: "Polerones", pool: FASHION_POOL, test: isHoodieSweatshirt },
+  { id: "shorts", label: "Shorts", pool: FASHION_POOL, test: isShorts },
+  { id: "carteras", label: "Carteras", pool: ["purses", "women", "men", "luxury", "joyas_accesorios", "clothing", "kids", "curvy"], test: isHandbag },
+  { id: "champu", label: "Champú y acondicionador", pool: ["cabello", "beauty"], test: isShampoo },
+  { id: "botas", label: "Botas y botines", pool: ["shoes", "shoes_women", "shoes_men", "women", "men", "kids", "luxury", "curvy"], test: isBoot },
+  { id: "zapatillas-cancha", label: "Zapatillas de tenis y pádel", pool: ["tennis", "sporting_goods", "shoes"], test: isCourtShoe },
+  { id: "accesorios-pesas", label: "Accesorios para levantar pesas", pool: ["sporting_goods", "gym_rat", "combat_sports"], test: isLiftingGear },
+];
 /** The type with this id (the landing pages' ?pt=), or null. */
-export function typeWorldById(id) { return TYPE_WORLDS.find((t) => t.id === id) || null; }
+export function typeWorldById(id) { return TYPE_WORLDS.find((t) => t.id === id) || LANDING_TYPES.find((t) => t.id === id) || null; }
+
+/* ---------- HONEST EMPTY (#443 c.6693598650 §3) ----------
+   A shelf the catalogue does not have is said plainly, and nothing is
+   dressed up as it. «zapatillas de voley»: no store of Aria's sells
+   volleyball shoes, and the word "volley" is all over Nike's Volley
+   SWIM SHORTS -- a search that matches the word shows swim shorts as
+   volleyball shoes. «pesas», «mancuernas»: no dumbbell, kettlebell or
+   plate in any catalogue (the "Pesas y cinturones" type is divers' lead
+   and heavyweight tees). Each entry: the queries it answers (`q`, whole,
+   accents folded), what would truly be the thing (`test`, read over the
+   whole catalogue -- the day a store carries it, the word lands on it
+   again), what the page says, and the real shelves nearest to it, each
+   named for what it is (`near`: LANDING_TYPES ids). */
+export const HONEST_EMPTY = [
+  { id: "voley", canonical: "zapatillas de voley", sense: "zapatillas de vóley",
+    q: /^(?:(?:zapatillas?|zapatos?|calzado|tenis|shoes?|sneakers?)(?: (?:de|para))? (?:voley|volley|voleibol|voley ?ball|volley ?ball|volleyball)|(?:volleyball|voleibol|voley) (?:shoes?|sneakers?|zapatillas?))$/,
+    test: (p) => /^(?:[\w'’&.-]+ ){0,4}(?:volleyball|voleibol|v[oó]ley) (?:shoes?|sneakers?|zapatillas?)\b/i.test(TP_TITLE(p)),
+    title: "No tenemos zapatillas de vóley por ahora",
+    sub: "Ninguna tienda de Aria vende zapatillas de vóley en este momento. Lo más cercano que sí tenemos son zapatillas de cancha para tenis y pádel:",
+    near: ["zapatillas-cancha"] },
+  { id: "pesas", canonical: "pesas", sense: "pesas ni mancuernas",
+    q: /^(?:pesas?|pesas? (?:de gimnasio|para (?:el )?gimnasio|rusas?)|mancuernas?|juegos? de (?:pesas|mancuernas)|set de (?:pesas|mancuernas)|discos? de pesas?|dumbbells?|kettle ?bells?|barbells?|weight plates?|free weights?|hand weights?)$/,
+    /* the Pesas type's own rule: a weight, never a heavyweight tee */
+    test: (p) => typeWorldById("pesas").test(p),
+    title: "No tenemos pesas ni mancuernas por ahora",
+    sub: "Ninguna tienda de Aria vende pesas de gimnasio en este momento. Lo que sí tenemos para entrenar con pesas: guantes, cinturones y straps.",
+    /* never the divers' lead belts (search-daily-watch: «pesas» is never diving belts) */
+    near: ["accesorios-pesas"] },
+];
+/** The honest-empty entry a whole query names, when the catalogue truly has none of it; else null. */
+export function honestEmptyOf(ctx, q) {
+  const k = deaccent(q).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!k) return null;
+  const e = HONEST_EMPTY.find((x) => x.q.test(k));
+  if (!e) return null;
+  const memo = ctx._honest || (ctx._honest = new Map());
+  if (!memo.has(e.id)) memo.set(e.id, (ctx.products || []).some((p) => { try { return p.image && e.test(p); } catch { return false; } }));
+  return memo.get(e.id) ? null : e;
+}
 /** The type a whole query names, with its qualifiers, or null. */
 export function typeWorldOf(q) {
   const k = deaccent(q).replace(/[^a-z0-9" ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -998,6 +1114,10 @@ const EQ_NAMED_SHARE = 0.3;
 export function equivalentQuery(ctx, q) {
   const key = "~eq:" + cacheKey(q);
   if (ctx.cache.has(key)) return ctx.cache.get(key);
+  /* A shelf the catalogue does not have answers honestly: nothing found,
+     said plainly («Por ahora no tenemos …»), never a lookalike. */
+  const he = honestEmptyOf(ctx, q);
+  if (he) { const none = { state: "none", q, hits: [], sense: he.sense, honest: he.id }; ctx.cache.set(key, none); return none; }
   const own = runQuery(ctx, q);
   /* The same name, not a lookalike: a product carries the name when its
      title holds the joined word ("allstar") or the two words side by side

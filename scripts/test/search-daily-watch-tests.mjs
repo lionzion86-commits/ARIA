@@ -119,13 +119,21 @@ await check("«pesas» is gym weights or an honest none -- never heavyweight tee
   const stocked = core.loadSearch().products.filter((p) => p.image && core.isWeight(p) && !/\b(sweatpants|hoodies?|tees?|t-?shirts?|shorts|joggers?)\b/i.test(p.title));
   for (const q of ["pesas", "mancuernas", "pesa"]) {
     const L = await landing(q);
-    assert.equal(L.d.kind, "category", q);
     if (!stocked.length) {
       /* The catalogue sells no gym weight today (2026-11-04: its barbell and
-         plate words are apparel prints, dinner plates and license plates). */
-      assert.equal(L.count, 0, `${q}: ${L.url} shows ${L.count} cards with no gym weight in stock: ${list(L.cards)}`);
-      assert.ok(L.head && L.head.pt === "pesas" && L.head.ptl, `${q}: the page cannot say what it does not carry`);
-    } else pure(L, GYM, /\b(heavyweight|belts?|dive|diving|tees?|shirts?|hoodies?)\b/i, 1);
+         plate words are apparel prints, dinner plates and license plates).
+         The search says so on its own page -- never an empty page
+         (#443 c.6687338498, c.6693598650 §3) -- and its rails are only
+         lifting gear, named as what it is: no tee, no diving belt. */
+      assert.equal(L.d.kind, "chooser", q);
+      const r = await call({ q, route: "1" });
+      assert.equal(r.chooser.reason, "honest", q);
+      assert.match(r.chooser.title, /^No tenemos pesas/, q);
+      const cards = r.chooser.rails.flatMap((x) => x.items.map((i) => i.title));
+      assert.ok(cards.length, `${q}: nothing real beside the honest no`);
+      const bad = cards.filter((t) => /\b(heavyweight|dive|diving|weight ?belts? for|spear|tees?|t-?shirts?|hoodies?|sweatpants)\b/i.test(t) || !/\b(gloves?|belts?|straps?|wraps?|grips?)\b/i.test(t));
+      assert.deepEqual(bad, [], `${q}: ${bad.join(" | ")}`);
+    } else { assert.equal(L.d.kind, "category", q); pure(L, GYM, /\b(heavyweight|belts?|dive|diving|tees?|shirts?|hoodies?)\b/i, 1); }
   }
 });
 

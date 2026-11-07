@@ -911,7 +911,8 @@ function renderChooser(query, data){
   if (!grid) return;
   grid.innerHTML = chooserHTML(data.chooser || {});
   watchPhotos(grid);
-  nfSearch(query);
+  /* An honest empty (#443 c.6693598650 §3) has nothing to filter. */
+  if (!(data.chooser && data.chooser.reason === "honest")) nfSearch(query);
 }
 
 async function doSearch(){

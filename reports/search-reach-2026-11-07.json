@@ -1,0 +1,1069 @@
+{
+  "generated": "2026-11-07",
+  "how": "scripts/search-reach-audit.mjs: /api/search?route=1 -> the landing's own endpoint (department.js / tienda.js), in process; before = main, after = this branch",
+  "rows": [
+    {
+      "term": "perfumes",
+      "shelf": "Fragancia, 11,217",
+      "before": {
+        "term": "perfumes",
+        "landing": "category",
+        "label": "Perfumes",
+        "url": "departamento.html?dept=perfumes&ver=tipos",
+        "count": 11067,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Minotaure — Afeitado 154 ml (5.2 oz) para hombre",
+          "Glow — Gel de ducha 75 ml (2.5 oz) para mujer",
+          "Cuba Gold — Desodorante 200 ml (6.7 oz) (Sin caja) para hombre",
+          "Wild Musk — Eau de Cologne en spray 44 ml (1.5 oz) para mujer"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "Fragancia, 11,217"
+      },
+      "after": {
+        "term": "perfumes",
+        "landing": "category",
+        "label": "Perfumes",
+        "url": "departamento.html?dept=perfumes&ver=tipos",
+        "count": 11067,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Minotaure — Afeitado 154 ml (5.2 oz) para hombre",
+          "Glow — Gel de ducha 75 ml (2.5 oz) para mujer",
+          "Cuba Gold — Desodorante 200 ml (6.7 oz) (Sin caja) para hombre",
+          "Wild Musk — Eau de Cologne en spray 44 ml (1.5 oz) para mujer"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "Fragancia, 11,217"
+      }
+    },
+    {
+      "term": "carteras",
+      "shelf": "Carteras, 3,805",
+      "before": {
+        "term": "carteras",
+        "landing": "category",
+        "label": "Carteras",
+        "url": "departamento.html?dept=purses&ver=tipos",
+        "count": 2394,
+        "sampled": 36,
+        "foreign": [
+          "Herschel Supply Classic XL Backpack - Varsity Burgundy",
+          "Herschel Supply Classic XL Backpack - Varsity Grey Crosshatch",
+          "madden girl Nylon Dome Print Backpack",
+          "Quiet Storm Compass Backpack",
+          "The Card Holder - Red",
+          "The Card Holder - Claret",
+          "The Card Holder - Black",
+          "The Card Holder - Ice Croc",
+          "The Card Holder - Brown Croc",
+          "The Card Holder - Ivory Croc",
+          "Maeve Dachshund Metal Emblem Card Holder - Chocolate",
+          "Woven Texture Card Holder - Cocoa Brown",
+          "Woven Texture Card Holder - Dark Brown Green",
+          "Woven Texture Card Holder - Black",
+          "Isla Gradient Chain Strap - Orange",
+          "Isla Gradient Chain Strap - Purple",
+          "Hart Ivory Vegan Leather Card Holder",
+          "Hart Silver Vegan Leather Card Holder",
+          "Hart Blue Vegan Leather Card Holder",
+          "Hart Lilac Vegan Leather Card Holder",
+          "Hart Red Vegan Leather Card Holder",
+          "Hart Black Vegan Leather Card Holder"
+        ],
+        "lead": [
+          "Mesh Tote Bag - White",
+          "Herschel Supply Classic Hip Bag - Vapor Diamond/Charcoal Gray",
+          "Herschel Supply Kaine Hip Bag - Varsity Burgundy",
+          "Herschel Supply Kaine Hip Bag - Varsity Woodland Camo"
+        ],
+        "results": {
+          "state": "results",
+          "total": 234,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Carteras, 3,805"
+      },
+      "after": {
+        "term": "carteras",
+        "landing": "category",
+        "label": "Carteras",
+        "url": "departamento.html?dept=purses&ver=tipos&pt=carteras",
+        "count": 3116,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Mesh Tote Bag - White",
+          "Nine West Kiersten Chain Phone Clutch Crossbody Bag",
+          "Nine West Marly Shoulder Bag",
+          "MICHAEL Bryant Medium Double Zip Chain Camera Crossbody Handbag"
+        ],
+        "results": {
+          "state": "results",
+          "total": 234,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Carteras, 3,805"
+      }
+    },
+    {
+      "term": "poleras",
+      "shelf": "hoodie/sweatshirt, 2,136",
+      "before": {
+        "term": "poleras",
+        "landing": "category",
+        "label": "Chompas y polerones · Moda Hombre",
+        "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+        "count": 1025,
+        "sampled": 36,
+        "foreign": [
+          "Black Moon Logo Knit Turtleneck",
+          "Black Moon Logo Knit Turtleneck"
+        ],
+        "lead": [
+          "Men's Hoodrich OG Ritual Full-Zip Hoodie",
+          "Black Moon Logo Knit Slit Sweater",
+          "Black Merino Wool Knit LS Sweater",
+          "Beige Wild Fluffy Knit Crewneck Sweater"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie/sweatshirt, 2,136"
+      },
+      "after": {
+        "term": "poleras",
+        "landing": "category",
+        "label": "Polerones · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipos&pt=polerones",
+        "count": 3226,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Baker World Crusher Hoodie - Black",
+          "HUF x Nightmare Before Christmas Jack Skellington Hoodie - Black",
+          "Welcome Brevity Hoodie - Black/Purple",
+          "Welcome Coupled Sun Fade Hoodie - Black Fade"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie/sweatshirt, 2,136"
+      }
+    },
+    {
+      "term": "polera",
+      "shelf": "hoodie/sweatshirt, 2,136",
+      "before": {
+        "term": "polera",
+        "landing": "category",
+        "label": "Chompas y polerones · Moda Hombre",
+        "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+        "count": 1025,
+        "sampled": 36,
+        "foreign": [
+          "Black Moon Logo Knit Turtleneck",
+          "Black Moon Logo Knit Turtleneck"
+        ],
+        "lead": [
+          "Men's Hoodrich OG Ritual Full-Zip Hoodie",
+          "Black Moon Logo Knit Slit Sweater",
+          "Black Merino Wool Knit LS Sweater",
+          "Beige Wild Fluffy Knit Crewneck Sweater"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie/sweatshirt, 2,136"
+      },
+      "after": {
+        "term": "polera",
+        "landing": "category",
+        "label": "Polerones · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipos&pt=polerones",
+        "count": 3226,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Baker World Crusher Hoodie - Black",
+          "HUF x Nightmare Before Christmas Jack Skellington Hoodie - Black",
+          "Welcome Brevity Hoodie - Black/Purple",
+          "Welcome Coupled Sun Fade Hoodie - Black Fade"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie/sweatshirt, 2,136"
+      }
+    },
+    {
+      "term": "champú",
+      "shelf": "shampoo, 383",
+      "before": {
+        "term": "champú",
+        "landing": "category",
+        "label": "Champú y acondicionador · Cabello",
+        "url": "departamento.html?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador",
+        "count": 181,
+        "sampled": 36,
+        "foreign": [
+          "L'Oreal Professionnel Metal Detox Anti-Deposit Protector"
+        ],
+        "lead": [
+          "Shower Gift Set ft. Shampoo, Conditioner, & Cleanser",
+          "L'Oreal SerieExpert Gold Quinoa+Protein Absolut Repair Resurfacing Shampoo",
+          "Sun Bum Revitalizing 10oz Shampoo",
+          "Joico Defy Damage Protective Shampoo"
+        ],
+        "results": {
+          "state": "results",
+          "total": 385,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "shampoo, 383"
+      },
+      "after": {
+        "term": "champú",
+        "landing": "category",
+        "label": "Champú y acondicionador · Cabello",
+        "url": "departamento.html?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador&pt=champu",
+        "count": 375,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Shower Gift Set ft. Shampoo, Conditioner, & Cleanser",
+          "L'Oreal SerieExpert Gold Quinoa+Protein Absolut Repair Resurfacing Shampoo",
+          "Sun Bum Revitalizing 10oz Shampoo",
+          "Nioxin Scalp Relief Cleanser For Sensitive Scalp Shampoo"
+        ],
+        "results": {
+          "state": "results",
+          "total": 385,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "shampoo, 383"
+      }
+    },
+    {
+      "term": "keratina",
+      "shelf": "keratin, 81",
+      "before": {
+        "term": "keratina",
+        "landing": "category",
+        "label": "Keratina · Cabello",
+        "url": "departamento.html?dept=cabello&ver=tipo%3Akeratina%20y%20alisados&pt=keratina",
+        "count": 77,
+        "sampled": 28,
+        "foreign": [],
+        "lead": [
+          "Keratin Complex KCTEXTURE",
+          "Keratin Complex Intense RX Repair Serum",
+          "Keratin Complex NKST Natural Keratin Smoothing Treatment System",
+          "Keratin Complex PBO Personalized Blow Out Smoothing System"
+        ],
+        "results": {
+          "state": "results",
+          "total": 80,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "keratin, 81"
+      },
+      "after": {
+        "term": "keratina",
+        "landing": "category",
+        "label": "Keratina · Cabello",
+        "url": "departamento.html?dept=cabello&ver=tipo%3Akeratina%20y%20alisados&pt=keratina",
+        "count": 77,
+        "sampled": 28,
+        "foreign": [],
+        "lead": [
+          "Keratin Complex KCTEXTURE",
+          "Keratin Complex Intense RX Repair Serum",
+          "Keratin Complex NKST Natural Keratin Smoothing Treatment System",
+          "Keratin Complex PBO Personalized Blow Out Smoothing System"
+        ],
+        "results": {
+          "state": "results",
+          "total": 80,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "keratin, 81"
+      }
+    },
+    {
+      "term": "lencería",
+      "shelf": "Ropa interior family, 4,941",
+      "before": {
+        "term": "lencería",
+        "landing": "category",
+        "label": "Ropa Interior Mujer",
+        "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+        "page": "ropa-interior.html#mujer",
+        "count": 3045,
+        "underwear": 2783,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Reserva Gardenia Corset",
+          "C-Section Recovery Briefs",
+          "Maternity & Postpartum Nursing & Sleep Bra",
+          "Mother Tucker® Postpartum Corset"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "Ropa interior family, 4,941"
+      },
+      "after": {
+        "term": "lencería",
+        "landing": "category",
+        "label": "Ropa Interior Mujer",
+        "url": "departamento.html?dept=ropa_interior_mujer&ver=tipos",
+        "page": "ropa-interior.html#mujer",
+        "count": 3045,
+        "underwear": 2783,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Reserva Gardenia Corset",
+          "C-Section Recovery Briefs",
+          "Maternity & Postpartum Nursing & Sleep Bra",
+          "Mother Tucker® Postpartum Corset"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "Ropa interior family, 4,941"
+      }
+    },
+    {
+      "term": "zapatos",
+      "shelf": "footwear, 11,903",
+      "before": {
+        "term": "zapatos",
+        "landing": "category",
+        "label": "Zapatos",
+        "url": "departamento.html?dept=shoes&ver=tipos",
+        "count": 11072,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Sonoma Goods For Life® Favio EVA Kids' Slides",
+          "adidas Kids' F50 Club Messi FxG Soccer Cleats",
+          "New Balance Women's 796v4 Pickleball Shoes",
+          "Ipath Grasshopper Black Croc Skate Shoes"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "footwear, 11,903"
+      },
+      "after": {
+        "term": "zapatos",
+        "landing": "category",
+        "label": "Zapatos",
+        "url": "departamento.html?dept=shoes&ver=tipos",
+        "count": 11072,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Sonoma Goods For Life® Favio EVA Kids' Slides",
+          "adidas Kids' F50 Club Messi FxG Soccer Cleats",
+          "New Balance Women's 796v4 Pickleball Shoes",
+          "Ipath Grasshopper Black Croc Skate Shoes"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "footwear, 11,903"
+      }
+    },
+    {
+      "term": "botas",
+      "shelf": "boots, 949",
+      "before": {
+        "term": "botas",
+        "landing": "category",
+        "label": "Zapatos",
+        "url": "departamento.html?dept=shoes&ver=tipos",
+        "count": 11072,
+        "sampled": 36,
+        "foreign": [
+          "Sonoma Goods For Life® Favio EVA Kids' Slides",
+          "adidas Kids' F50 Club Messi FxG Soccer Cleats",
+          "New Balance Women's 796v4 Pickleball Shoes",
+          "Ipath Grasshopper Black Croc Skate Shoes",
+          "PUMA FUTURE Z 1.3",
+          "PUMA ULTRA ULTIMATE",
+          "PUMA FUTURE 7 ULTIMATE",
+          "Black Tee Strappy Flat Sandals",
+          "New Balance 600 V2 Dark Mushroom & Grey Sandals",
+          "New Balance Lifestyle 327 Kids Indigo & Nightwatch Shoes",
+          "New Balance Lifestyle 327 Maroon & White Shoes",
+          "Reebok Classic Nylon & Canvas White & Yellow Shoes",
+          "Gray Jungle Trek RMT Mule Sneakers",
+          "Black Yumi Flip-Flops",
+          "Gray Jungle Trek Moc Sneakers",
+          "Yellow Essentials Los Feliz Slides",
+          "White & Silver GT-2160 Sneakers",
+          "Gray Cham Redux Sieve Sneakers",
+          "Gray Essentials Los Feliz Slides",
+          "Beige & Green Relay Fly Vent Sneakers",
+          "Black Jungle Trek Moc Sneakers",
+          "Red & Khaki Agility Peak 6 Sneakers",
+          "Khaki Essentials Los Feliz Slides",
+          "Tan Essentials Los Feliz Slides",
+          "Vans Nexpa Synthetic MTE Sandals - Black/Black/Pewter",
+          "Vans Nexpa Synthetic MTE Sandals - Dachshund/Black/Rasta",
+          "Vans Womens La Costa Slide-On Sandals - Marshmallow",
+          "Opus Court Hi Shoes - Black/Cream",
+          "Vans Skate Slip-on Shoes - Navy",
+          "Opus Honey Slip Shoes - Black/White Suede",
+          "Vans Seabrook Sandals - Black/Marshmallow",
+          "Vans Seabrook Sandals - Blackout",
+          "Vans Seabrook Sandals - Walnut",
+          "Opus Standard Low Shoes - Black/Cream",
+          "Reebok Club C Grounds UK Shoes - Campus Brown/Vector Red/Gum",
+          "C1rca AL 50 Slim Shoes - Black/Red/White"
+        ],
+        "lead": [
+          "Sonoma Goods For Life® Favio EVA Kids' Slides",
+          "adidas Kids' F50 Club Messi FxG Soccer Cleats",
+          "New Balance Women's 796v4 Pickleball Shoes",
+          "Ipath Grasshopper Black Croc Skate Shoes"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "boots, 949"
+      },
+      "after": {
+        "term": "botas",
+        "landing": "category",
+        "label": "Botas y botines · Zapatos",
+        "url": "departamento.html?dept=shoes&ver=tipos&pt=botas",
+        "count": 926,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Dr. Scholl's Reverie Women's Zip Short Boots",
+          "Mens Riker Lace Up Boots",
+          "Dr. Scholl's Bianca Women's Wedge Boots",
+          "crystal-embellished cowboy boots"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "boots, 949"
+      }
+    },
+    {
+      "term": "consola",
+      "shelf": "consolas, 632 (word count)",
+      "before": {
+        "term": "consola",
+        "landing": "category",
+        "label": "Consolas · Electrónica",
+        "url": "departamento.html?dept=electronics&ver=consolas&pt=consolas",
+        "count": 6,
+        "sampled": 6,
+        "foreign": [],
+        "lead": [
+          "Nintendo Switch™ 2 System",
+          "Nintendo Switch™ 2 + Nintendo Switch Sports Resort™ Bundle",
+          "Nintendo Switch 2 + Mario Kart World Bundle",
+          "Nintendo Switch™ 2: Choose Your Game Bundle"
+        ],
+        "results": {
+          "state": "results",
+          "total": 7,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "consolas, 632 (word count)"
+      },
+      "after": {
+        "term": "consola",
+        "landing": "category",
+        "label": "Consolas · Electrónica",
+        "url": "departamento.html?dept=electronics&ver=consolas&pt=consolas",
+        "count": 6,
+        "sampled": 6,
+        "foreign": [],
+        "lead": [
+          "Nintendo Switch™ 2 System",
+          "Nintendo Switch™ 2 + Nintendo Switch Sports Resort™ Bundle",
+          "Nintendo Switch 2 + Mario Kart World Bundle",
+          "Nintendo Switch™ 2: Choose Your Game Bundle"
+        ],
+        "results": {
+          "state": "results",
+          "total": 7,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "consolas, 632 (word count)"
+      }
+    },
+    {
+      "term": "celular",
+      "shelf": "celulares, 734 (word count)",
+      "before": {
+        "term": "celular",
+        "landing": "category",
+        "label": "Celulares · Electrónica",
+        "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_celulares",
+        "count": 87,
+        "sampled": 31,
+        "foreign": [],
+        "lead": [
+          "BlackBerry KEY2 LE (Lite) Dual-SIM (64GB, BBE100-4, QWERTY Keypad) (GSM Only, No CDMA) Factory Unlocked 4G Smartphone (Champagne/Gold) - International Version",
+          "SAMSUNG Galaxy A54 5G (128GB, 6GB) 6.4\" Fully Unlocked, US 5G, Global 4G A546U1",
+          "A56 5G Unlocked Smartphone, Android Phone with 7.3\" HD Display, 8000mAh Long Battery Life, 1TB Storage, 108MP Camera, Dual SIM, Face Unlock",
+          "Samsung Galaxy S20 FE 5G 128GB Smartphone (Unlocked), Cloud Navy"
+        ],
+        "results": {
+          "state": "results",
+          "total": 447,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "celulares, 734 (word count)"
+      },
+      "after": {
+        "term": "celular",
+        "landing": "category",
+        "label": "Celulares · Electrónica",
+        "url": "departamento.html?dept=electronics&ver=pasillo%3Atech_celulares",
+        "count": 87,
+        "sampled": 31,
+        "foreign": [],
+        "lead": [
+          "BlackBerry KEY2 LE (Lite) Dual-SIM (64GB, BBE100-4, QWERTY Keypad) (GSM Only, No CDMA) Factory Unlocked 4G Smartphone (Champagne/Gold) - International Version",
+          "SAMSUNG Galaxy A54 5G (128GB, 6GB) 6.4\" Fully Unlocked, US 5G, Global 4G A546U1",
+          "A56 5G Unlocked Smartphone, Android Phone with 7.3\" HD Display, 8000mAh Long Battery Life, 1TB Storage, 108MP Camera, Dual SIM, Face Unlock",
+          "Samsung Galaxy S20 FE 5G 128GB Smartphone (Unlocked), Cloud Navy"
+        ],
+        "results": {
+          "state": "results",
+          "total": 447,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "celulares, 734 (word count)"
+      }
+    },
+    {
+      "term": "pesas",
+      "shelf": "Pesas type, ~366",
+      "before": {
+        "term": "pesas",
+        "landing": "category",
+        "label": "Pesas · Deportes",
+        "url": "departamento.html?dept=sporting_goods&ver=tipo%3Apesas-y-cinturones&pt=pesas",
+        "count": 0,
+        "sampled": 0,
+        "foreign": [],
+        "lead": [],
+        "results": {
+          "state": "none",
+          "total": 0,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Pesas type, ~366"
+      },
+      "after": {
+        "term": "pesas",
+        "landing": "chooser",
+        "label": "No tenemos pesas ni mancuernas por ahora",
+        "url": "search.html?q=pesas",
+        "chooser": {
+          "reason": "honest",
+          "title": "No tenemos pesas ni mancuernas por ahora",
+          "sub": "Ninguna tienda de Aria vende pesas de gimnasio en este momento. Lo que sí tenemos para entrenar con pesas: guantes, cinturones y straps.",
+          "rails": [
+            {
+              "label": "Accesorios para levantar pesas",
+              "url": "departamento.html?dept=sporting_goods&ver=tipos&pt=accesorios-pesas",
+              "items": [
+                "ETHOS Light Wrist Wrap",
+                "ETHOS 18\" Wrist Wraps",
+                "Lace Graphic Tapered Lifting Belt — Impact Burgundy/Calm Pink",
+                "Weightlifting Belt - Green Stealth"
+              ]
+            }
+          ]
+        },
+        "count": 0,
+        "results": {
+          "state": "none",
+          "total": 0,
+          "capped": false,
+          "sense": "pesas ni mancuernas"
+        },
+        "shelf": "Pesas type, ~366"
+      }
+    },
+    {
+      "term": "mancuernas",
+      "shelf": "Pesas type, ~366",
+      "before": {
+        "term": "mancuernas",
+        "landing": "category",
+        "label": "Pesas · Deportes",
+        "url": "departamento.html?dept=sporting_goods&ver=tipo%3Apesas-y-cinturones&pt=pesas",
+        "count": 0,
+        "sampled": 0,
+        "foreign": [],
+        "lead": [],
+        "results": {
+          "state": "none",
+          "total": 0,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Pesas type, ~366"
+      },
+      "after": {
+        "term": "mancuernas",
+        "landing": "chooser",
+        "label": "No tenemos pesas ni mancuernas por ahora",
+        "url": "search.html?q=pesas",
+        "chooser": {
+          "reason": "honest",
+          "title": "No tenemos pesas ni mancuernas por ahora",
+          "sub": "Ninguna tienda de Aria vende pesas de gimnasio en este momento. Lo que sí tenemos para entrenar con pesas: guantes, cinturones y straps.",
+          "rails": [
+            {
+              "label": "Accesorios para levantar pesas",
+              "url": "departamento.html?dept=sporting_goods&ver=tipos&pt=accesorios-pesas",
+              "items": [
+                "ETHOS Light Wrist Wrap",
+                "ETHOS 18\" Wrist Wraps",
+                "Lace Graphic Tapered Lifting Belt — Impact Burgundy/Calm Pink",
+                "Weightlifting Belt - Green Stealth"
+              ]
+            }
+          ]
+        },
+        "count": 0,
+        "results": {
+          "state": "none",
+          "total": 0,
+          "capped": false,
+          "sense": "pesas ni mancuernas"
+        },
+        "shelf": "Pesas type, ~366"
+      }
+    },
+    {
+      "term": "chort",
+      "shelf": "shorts, 7,267",
+      "before": {
+        "term": "chort",
+        "landing": "category",
+        "label": "Shorts · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts",
+        "count": 1238,
+        "sampled": 36,
+        "foreign": [
+          "Costa Del Mar Prado Shirt",
+          "Stance Bones 3",
+          "Brixton Highview S/S",
+          "Costa Del Mar Emblem Marlin Shirt",
+          "Costa Del Mar Flag Crew",
+          "Costa Del Mar Species Shield Shirt",
+          "IWS Script Stroke Comfort Colors SS Shirt"
+        ],
+        "lead": [
+          "Big & Tall Pigment Hybrid Shorts",
+          "Pigment Hybrid Shorts",
+          "Quiet Storm Pigment Dyed Volley Shorts",
+          "Quiet Storm All In Printed Short"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "shorts, 7,267"
+      },
+      "after": {
+        "term": "chort",
+        "landing": "category",
+        "label": "Shorts · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts&pt=shorts",
+        "count": 4519,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Women's Mid-Rise Comfort-Waist Cargo Shorts",
+          "Women's Mid-Rise Raw-Edge Bermuda Jean Shorts",
+          "Women's New Balance Accelerate Biker Shorts",
+          "Women's Cotton-Eyelet Shorts"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "shorts, 7,267"
+      }
+    },
+    {
+      "term": "shor",
+      "shelf": "shorts, 7,267",
+      "before": {
+        "term": "shor",
+        "landing": "category",
+        "label": "Shorts · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts",
+        "count": 1238,
+        "sampled": 36,
+        "foreign": [
+          "Costa Del Mar Prado Shirt",
+          "Stance Bones 3",
+          "Brixton Highview S/S",
+          "Costa Del Mar Emblem Marlin Shirt",
+          "Costa Del Mar Flag Crew",
+          "Costa Del Mar Species Shield Shirt",
+          "IWS Script Stroke Comfort Colors SS Shirt"
+        ],
+        "lead": [
+          "Big & Tall Pigment Hybrid Shorts",
+          "Pigment Hybrid Shorts",
+          "Quiet Storm Pigment Dyed Volley Shorts",
+          "Quiet Storm All In Printed Short"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "shorts, 7,267"
+      },
+      "after": {
+        "term": "shor",
+        "landing": "category",
+        "label": "Shorts · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipo%3Ashorts&pt=shorts",
+        "count": 4519,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Women's Mid-Rise Comfort-Waist Cargo Shorts",
+          "Women's Mid-Rise Raw-Edge Bermuda Jean Shorts",
+          "Women's New Balance Accelerate Biker Shorts",
+          "Women's Cotton-Eyelet Shorts"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "shorts, 7,267"
+      }
+    },
+    {
+      "term": "swetshert",
+      "shelf": "sweatshirt",
+      "before": {
+        "term": "swetshert",
+        "landing": "category",
+        "label": "Chompas y polerones · Moda Hombre",
+        "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+        "count": 1025,
+        "sampled": 36,
+        "foreign": [
+          "Black Moon Logo Knit Turtleneck",
+          "Black Moon Logo Knit Turtleneck"
+        ],
+        "lead": [
+          "Men's Hoodrich OG Ritual Full-Zip Hoodie",
+          "Black Moon Logo Knit Slit Sweater",
+          "Black Merino Wool Knit LS Sweater",
+          "Beige Wild Fluffy Knit Crewneck Sweater"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "sweatshirt"
+      },
+      "after": {
+        "term": "swetshert",
+        "landing": "category",
+        "label": "Polerones · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipos&pt=polerones",
+        "count": 3226,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Baker World Crusher Hoodie - Black",
+          "HUF x Nightmare Before Christmas Jack Skellington Hoodie - Black",
+          "Welcome Brevity Hoodie - Black/Purple",
+          "Welcome Coupled Sun Fade Hoodie - Black Fade"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "sweatshirt"
+      }
+    },
+    {
+      "term": "hudi",
+      "shelf": "hoodie, 3,884",
+      "before": {
+        "term": "hudi",
+        "landing": "category",
+        "label": "Chompas y polerones · Moda Hombre",
+        "url": "departamento.html?dept=men&ver=tipo%3Achompas-y-polerones",
+        "count": 1025,
+        "sampled": 36,
+        "foreign": [
+          "Black Moon Logo Knit Turtleneck",
+          "Black Moon Logo Knit Turtleneck"
+        ],
+        "lead": [
+          "Men's Hoodrich OG Ritual Full-Zip Hoodie",
+          "Black Moon Logo Knit Slit Sweater",
+          "Black Merino Wool Knit LS Sweater",
+          "Beige Wild Fluffy Knit Crewneck Sweater"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie, 3,884"
+      },
+      "after": {
+        "term": "hudi",
+        "landing": "category",
+        "label": "Polerones · Ropa",
+        "url": "departamento.html?dept=clothing&ver=tipos&pt=polerones",
+        "count": 3226,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Baker World Crusher Hoodie - Black",
+          "HUF x Nightmare Before Christmas Jack Skellington Hoodie - Black",
+          "Welcome Brevity Hoodie - Black/Purple",
+          "Welcome Coupled Sun Fade Hoodie - Black Fade"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "hoodie, 3,884"
+      }
+    },
+    {
+      "term": "youg la",
+      "shelf": "YoungLA, 800",
+      "before": {
+        "term": "youg la",
+        "landing": "store",
+        "label": "YoungLA",
+        "url": "tienda.html?tienda=youngla",
+        "count": 800,
+        "lead": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "results": {
+          "state": "results",
+          "total": 800,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "YoungLA, 800"
+      },
+      "after": {
+        "term": "youg la",
+        "landing": "store",
+        "label": "YoungLA",
+        "url": "tienda.html?tienda=youngla",
+        "count": 800,
+        "lead": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "results": {
+          "state": "results",
+          "total": 800,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "YoungLA, 800"
+      }
+    },
+    {
+      "term": "victoria secret sales",
+      "shelf": "Victoria's Secret, 934",
+      "before": {
+        "term": "victoria secret sales",
+        "landing": "store",
+        "label": "Victoria's Secret",
+        "url": "tienda.html?tienda=victoriassecret&q=sale",
+        "count": 605,
+        "lead": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "results": {
+          "state": "results",
+          "total": 646,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Victoria's Secret, 934"
+      },
+      "after": {
+        "term": "victoria secret sales",
+        "landing": "store",
+        "label": "Victoria's Secret",
+        "url": "tienda.html?tienda=victoriassecret&q=sale",
+        "count": 605,
+        "lead": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "results": {
+          "state": "results",
+          "total": 646,
+          "capped": false,
+          "sense": null
+        },
+        "shelf": "Victoria's Secret, 934"
+      }
+    },
+    {
+      "term": "zapatillas de voley",
+      "shelf": "volleyball shoes, 0",
+      "before": {
+        "term": "zapatillas de voley",
+        "landing": "category",
+        "label": "Zapatos",
+        "url": "departamento.html?dept=shoes&ver=tipos",
+        "count": 11072,
+        "sampled": 36,
+        "foreign": [],
+        "lead": [
+          "Sonoma Goods For Life® Favio EVA Kids' Slides",
+          "adidas Kids' F50 Club Messi FxG Soccer Cleats",
+          "New Balance Women's 796v4 Pickleball Shoes",
+          "Ipath Grasshopper Black Croc Skate Shoes"
+        ],
+        "results": {
+          "state": "results",
+          "total": 2000,
+          "capped": true,
+          "sense": null
+        },
+        "shelf": "volleyball shoes, 0"
+      },
+      "after": {
+        "term": "zapatillas de voley",
+        "landing": "chooser",
+        "label": "No tenemos zapatillas de vóley por ahora",
+        "url": "search.html?q=zapatillas%20de%20voley",
+        "chooser": {
+          "reason": "honest",
+          "title": "No tenemos zapatillas de vóley por ahora",
+          "sub": "Ninguna tienda de Aria vende zapatillas de vóley en este momento. Lo más cercano que sí tenemos son zapatillas de cancha para tenis y pádel:",
+          "rails": [
+            {
+              "label": "Zapatillas de tenis y pádel",
+              "url": "departamento.html?dept=tennis&ver=tipos&pt=zapatillas-cancha",
+              "items": [
+                "Nike Court Lite 4 White/Orewood Brown Men's Shoes",
+                "Nike Court Lite 4 White/Smokey Blue Men's Shoes",
+                "Mizuno Wave Enforce Court White/Black Men's Shoes",
+                "Nike Court Lite 4 Black/White Women's Shoe"
+              ]
+            }
+          ]
+        },
+        "count": 0,
+        "results": {
+          "state": "none",
+          "total": 0,
+          "capped": false,
+          "sense": "zapatillas de vóley"
+        },
+        "shelf": "volleyball shoes, 0"
+      }
+    }
+  ]
+}
