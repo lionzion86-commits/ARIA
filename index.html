@@ -6600,7 +6600,7 @@ html{scroll-padding-top:76px}
 <script src="/store-shipping.js" defer></script>
 <script src="/fragrance.js" defer></script>
 <script src="/import-tax.js?v=27e656ae98fa697f" defer></script>
-<script src="/build/app-9016c24595e95d83.js" defer></script>
+<script src="/build/app-ec00e02f48840587.js" defer></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 
@@ -6627,14 +6627,35 @@ document.addEventListener('DOMContentLoaded', function(){
    from the master with sharp if the mascot art ever changes. The old
    faceless orb (orb.png/orb-320.png/orb-64.png) is retired. */
 (function(){
-  const AC = new (window.AudioContext || window.webkitAudioContext)();
-  function pop(){
+  /* OPENED ON THE FIRST TAP, AND NEVER ALLOWED TO THROW (#443 P0
+     c.6692638975). This ran `new AudioContext()` at boot, bare: an
+     in-app WebView that refuses one (Instagram's can) threw here, and
+     the throw skipped everything after it in this handler -- the orb,
+     the logos and initRouter(). It also held a second audio context
+     open on every page load next to the voice's own. The chime is a
+     nicety; a page that cannot make it simply stays quiet. */
+  let ctx = null, failed = false;
+  function audio(){
+    if (ctx || failed) return ctx;
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      ctx = C ? new C() : null;
+    } catch (e) { ctx = null; }
+    if (!ctx) failed = true;
+    return ctx;
+  }
+  function chime(fn){
+    const AC = audio();
+    if (!AC) return;
+    try { if (AC.state === 'suspended') AC.resume().catch(function(){}); fn(AC); } catch (e) {}
+  }
+  function pop(AC){
     const o=AC.createOscillator(), g=AC.createGain();
     o.type='sine'; o.frequency.setValueAtTime(800,AC.currentTime); o.frequency.exponentialRampToValueAtTime(180,AC.currentTime+0.22);
     g.gain.setValueAtTime(0.9,AC.currentTime); g.gain.exponentialRampToValueAtTime(0.01,AC.currentTime+0.25);
     o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+0.26);
   }
-  function twinkle(){
+  function twinkle(AC){
     [1200,1600,2400].forEach((f,i)=>{
       const o=AC.createOscillator(), g=AC.createGain();
       o.type='sine'; o.frequency.value=f;
@@ -6643,8 +6664,9 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   const btn = document.getElementById('assistantBtn');
-  btn.addEventListener('mouseenter', () => { if (AC.state==='suspended') AC.resume(); twinkle(); });
-  btn.addEventListener('click', () => { if (AC.state==='suspended') AC.resume(); pop(); setTimeout(twinkle,120); });
+  /* Hover never opens a context: only a tap may (iOS also refuses one outside a gesture). */
+  btn.addEventListener('mouseenter', () => { if (ctx) chime(twinkle); });
+  btn.addEventListener('click', () => { chime(pop); setTimeout(() => chime(twinkle), 120); });
 })();
 startOrbSwim();
 sweepStoreLogos();
