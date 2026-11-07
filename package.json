@@ -15,6 +15,7 @@
     "build:vuelve-pronto": "node scripts/build-vuelve-pronto.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
     "test:owned-voice": "node scripts/test/owned-voice-tests.mjs",
+    "test:instagram-webview": "node scripts/test/instagram-webview-tests.mjs",
     "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",
     "test:price-parity": "node scripts/test/price-parity-tests.mjs",
     "test:usps-carrier": "node scripts/test/usps-carrier-tests.mjs",

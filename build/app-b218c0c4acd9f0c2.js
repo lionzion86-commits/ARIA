@@ -30,8 +30,19 @@ const FX_CACHE_KEY = 'aria_fx_rate_v1';
 const FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 let fxRate = null;
 let fxRatePromise = null;
+/* A MISSED RATE IS ASKED FOR AGAIN (#443 P0 c.6692638975). The promise
+   used to keep a failed fetch forever: one dropped request on 4G at boot
+   and every soles budget for the rest of the visit came back
+   "unconverted", so the voice tool told her to ask for the ceiling again
+   -- the shopper heard the budget question twice. A miss is retried
+   after FX_RETRY_AFTER_MS; a rate that arrived some other way
+   (/import-tax.js, the search server) answers at once. */
+const FX_RETRY_AFTER_MS = 15000;
+let fxRateMissedAt = 0;
 function loadFxRate(){
-  if (fxRatePromise) return fxRatePromise;
+  if (typeof fxRate === 'number' && fxRate > 0 && fxRateMissedAt) return Promise.resolve(fxRate);
+  if (fxRatePromise && !(fxRateMissedAt && Date.now() - fxRateMissedAt > FX_RETRY_AFTER_MS)) return fxRatePromise;
+  fxRateMissedAt = 0;
   fxRatePromise = (async () => {
     try {
       const cachedRaw = localStorage.getItem(FX_CACHE_KEY);
@@ -61,7 +72,24 @@ function loadFxRate(){
     }
     return fxRate;
   })();
+  fxRatePromise.then((v) => { if (!(v > 0)) fxRateMissedAt = Date.now(); }, () => { fxRateMissedAt = Date.now(); });
   return fxRatePromise;
+}
+/* The rate, from wherever it can be had: the site's endpoint (retried),
+   then /import-tax.js's own copy. Never rejects; resolves null when
+   there is truly none. */
+async function ensureFxRate(){
+  if (typeof fxRate === 'number' && fxRate > 0) return fxRate;
+  try { await loadFxRate(); } catch (e) {}
+  if (typeof fxRate === 'number' && fxRate > 0) return fxRate;
+  try {
+    const F = typeof window !== 'undefined' && window.AriaImportTax && window.AriaImportTax.fx;
+    if (F && typeof F.get === 'function'){
+      const v = await Promise.race([F.get(), new Promise((r) => setTimeout(() => r(null), 3000))]);
+      if (v > 0) fxRate = v;
+    }
+  } catch (e) {}
+  return (typeof fxRate === 'number' && fxRate > 0) ? fxRate : null;
 }
 /* A rate that only lands later -- past this fetch's deadline, or from
    /import-tax.js's own retries -- fills the cards in place (P0, #443
@@ -6276,7 +6304,74 @@ function catalogResultsAreThin(res){
    the in-category bar). The catalogue's titles are English, so a
    catalogue search that skipped this would return nothing for
    "pantalones" -- which is most of the bug being fixed. */
+/* ============================================================
+   A PHONE NEVER DOWNLOADS THE CATALOGUE TO ANSWER A QUESTION
+   (#443 P0 c.6692638975, Instagram in-app browser, Nov 6).
+
+   A shopper in Instagram's browser on an iPhone (4G, 20% battery) asked
+   Aria by voice for "MacBooks rosadas"; two questions in, the whole page
+   reloaded and the search never finished. Nothing navigated. The call's
+   own warm-up called relatedPool(): all 80 catalogue files, ~296 MB of
+   JSON, 169k products with per-item word sets -- 457 MB of live heap
+   after GC on desktop Chromium (measured), more at the parse peak.
+   iOS kills a WebView's content process far below that, and Instagram
+   reloads the page when it does. The search box has not done this since
+   #409 (/api/search answers on the server); the assistant still did.
+
+   So on a phone, an in-app browser or a low-memory device, and only
+   while the full pool is not already in memory, catalogSearch() asks
+   the same search server search.html uses: one ranked page of cards,
+   a few KB, with the day's sell rate. Desktop keeps the in-page pool.
+   ============================================================ */
+const SERVER_SEARCH_URL = '/.netlify/functions/search';
+const SERVER_SEARCH_TIMEOUT_MS = 9000;
+const IN_APP_BROWSER_RE = /\b(?:Instagram|FBAN|FBAV|FB_IAB|FBIOS|Messenger|WhatsApp|Line\/|TikTok|musical_ly|BytedanceWebview|Snapchat|Twitter|LinkedInApp|Pinterest)\b/i;
+function ariaLowMemoryBrowser(){
+  try {
+    const nav = typeof navigator !== 'undefined' ? navigator : null;
+    if (!nav) return false;
+    const ua = String(nav.userAgent || '');
+    if (IN_APP_BROWSER_RE.test(ua)) return true;
+    if (/\b(?:iPhone|iPad|iPod|Android)\b|\bMobile\b/.test(ua)) return true;
+    /* iPadOS asks for the desktop site and says Macintosh. */
+    if (/Macintosh/.test(ua) && Number(nav.maxTouchPoints) > 1) return true;
+    const mem = Number(nav.deviceMemory);
+    return Number.isFinite(mem) && mem > 0 && mem <= 4;
+  } catch (e) { return false; }
+}
+/** True when a search must go to the server: a light device, and no full pool in hand. */
+function ariaSearchOnServer(){
+  if (typeof relatedPoolCache !== 'undefined' && relatedPoolCache) return false;
+  return ariaLowMemoryBrowser();
+}
+/** The server's page of cards, as catalogue items (prices are the same final dollars). */
+async function catalogSearchOnServer(query, opts){
+  const q = String(query || '').trim().slice(0, 120);
+  if (!q) return { items: [], exact: 0, total: 0, asked: query, translated: '', changed: false, server: true };
+  const res = await fetchWithTimeout(SERVER_SEARCH_URL + '?q=' + encodeURIComponent(q), SERVER_SEARCH_TIMEOUT_MS);
+  if (!res.ok) throw new Error('search ' + res.status);
+  const out = await res.json();
+  const fx = Number(out && out.fx);
+  if (fx > 0 && !(typeof fxRate === 'number' && fxRate > 0)){ fxRate = fx; try { paintRailPrices(); } catch (e) {} }
+  const items = [];
+  for (const c of (out && Array.isArray(out.items) ? out.items : [])){
+    const price = Number(c && c.usd);
+    /* No name, no price or no photo: no card. */
+    if (!c || !c.title || !(price > 0) || !c.image) continue;
+    const was = Number(c.wasUsd);
+    items.push({ title: String(c.title), brand: c.brand || '', retailer: String(c.store || '').toLowerCase(), price,
+      originalPrice: was > price ? was : null, image: c.image, category: c.category || '',
+      ...(c.condition ? { condition: c.condition } : {}) });
+  }
+  const limit = Number(opts && opts.limit) > 0 ? Number(opts.limit) : items.length;
+  const shown = items.slice(0, limit);
+  return { items: shown, exact: out && out.state === 'results' ? shown.length : 0,
+    total: Number(out && out.total) || shown.length, asked: query, translated: q, changed: false, server: true,
+    fx: fx > 0 ? fx : null, ...(!shown.length && out && out.suggestion ? { suggestion: out.suggestion } : {}) };
+}
+
 async function catalogSearch(query, opts){
+  if (ariaSearchOnServer()) return catalogSearchOnServer(query, opts);
   const pool = await relatedPool();
   /* Unknown words corrected to what they sound like FIRST, then the
      Spanish layer: "chort" -> "short" -> "shorts". */
@@ -32362,6 +32457,8 @@ async function chatQueryLooksLikeTypo(searchQuery){
   if (toks.length !== 1) return false;
   const tok = toks[0];
   if (tok.length < 3) return false;
+  /* On a phone the search server corrects typos itself (see catalogSearchOnServer). */
+  if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()) return false;
   let pool = null;
   try { pool = await relatedPool(); } catch(e){ return false; }
   const windex = pool && pool._windex;
@@ -32519,6 +32616,10 @@ function addAssistantLiveOffer(query){
 let chatBrandIndexCache = null;
 async function chatBrandIndex(){
   if (chatBrandIndexCache) return chatBrandIndexCache;
+  /* On a phone the brand index would need every catalogue file; the
+     search server recognises brands itself. Not cached: a desktop-sized
+     pool loaded later still builds the real index. */
+  if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()) return [];
   await loadDepartmentCache();
   const byKey = new Map();
   for (const data of Object.values(departmentCacheData?.retailers || {})){
@@ -33041,10 +33142,14 @@ async function executeAgentTool(tc){
   let args = {};
   try { args = JSON.parse(tc.arguments || '{}'); } catch(e){ /* model sent junk; search anyway */ }
   const limit = Math.min(Math.max(parseInt(args.limit, 10) || 6, 1), 8);
-  await loadFxRate().catch(() => {});
+  await ensureFxRate();
   /* Same rule as the voice path: a soles ceiling we cannot convert is
      not the same as no ceiling. See budgetToUsd. */
-  const budget = budgetToUsd(args);
+  let budget = budgetToUsd(args);
+  if (budget.unconvertedPen && ariaSearchOnServer()){
+    try { await catalogSearch(String(args.query || args.brand || 'oferta'), { limit: 1 }); } catch (e) {}
+    budget = budgetToUsd(args);
+  }
   if (budget.unconvertedPen){
     return { results: [], count: 0,
       note: 'no pude convertir soles a dólares (sin tipo de cambio) — pídele el tope en dólares' };
@@ -33846,6 +33951,8 @@ function chatBroadCategory(text){
 /* Sales first, one per store and kind, photographed -- a shelf, not a
    wall of one store's leggings. */
 async function chatBroadCategoryPicks(deptKey){
+  /* On a phone: no sample (it needs the whole catalogue); the door to the department still goes up. */
+  if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()) return [];
   await loadDepartmentCache();
   const pool = [];
   for (const [rk, data] of Object.entries(departmentCacheData?.retailers || {})){
@@ -36398,7 +36505,7 @@ async function startRealtimeVoiceOnce(){
      Not awaited: the call must not wait for it either. The load
      happens behind the greeting and the handshake, so by the time
      anyone has said a word the pool is usually there. */
-  try { relatedPool().catch(() => {}); } catch (e) {}
+  ariaWarmVoiceCatalogue();
   /* AND WARM THE TOOL ENDPOINT. The store tools are a round trip to a
      function that may be cold, and the first store question is a
      question she is asked early. A throwaway request opens the
@@ -36689,7 +36796,11 @@ function realtimeEchoOfHer(s){
 function realtimeTranscriptIsNoise(t){
   const s = String(t || '').trim();
   const letters = (s.match(/\p{L}/gu) || []).length;
-  if (letters < 2) return true;
+  /* A NUMBER IS AN ANSWER (#443 P0 c.6692638975). Asked for a budget,
+     a shopper says "cinco mil" and the transcript reads "5000." -- no
+     letters, so it was dropped as noise and DELETED from the
+     conversation, and she asked for the budget again. Digits are words. */
+  if (letters < 2) return !/\d/.test(s);
   const latin = (s.match(/[A-Za-z\u00C0-\u017F]/g) || []).length;
   if (latin / letters < 0.6) return true;
   if (REALTIME_HALLUCINATION_RE.test(s)) return true;
@@ -37157,6 +37268,19 @@ async function onRealtimeEvent(event, turn, send){
 /* The four tools. Two answer from the catalogue already in memory —
    instant, and the same data the cards are built from. Two go to the
    server because the money formula and the order book live there. */
+/* What a call warms behind her greeting. On a phone, the search server
+   (a few KB, and it wakes the function) -- never the whole catalogue,
+   which is what got the Instagram WebView killed mid-call (#443 P0
+   c.6692638975, see catalogSearchOnServer). Desktop keeps the in-page
+   pool warm-up, so its first catalogue tool call is not thirteen seconds. */
+function ariaWarmVoiceCatalogue(){
+  if (typeof ariaLowMemoryBrowser === 'function' && ariaLowMemoryBrowser()){
+    try { fetch(SERVER_SEARCH_URL + '?warm=1').catch(() => {}); } catch (e) {}
+    return;
+  }
+  try { relatedPool().catch(() => {}); } catch (e) {}
+}
+
 async function runRealtimeTool(event, send){
   const T = window.AriaRealtimeTurn;
   const parsed = T.parseToolArguments(event.name, event.arguments);
@@ -37310,8 +37434,15 @@ async function executeRealtimeTool(name, args){
       }
     }
     const limit = Math.min(Math.max(Math.round(args.limit || 4), 1), 8);
-    if (args.max_price_pen) await loadFxRate().catch(() => {});
-    const budget = budgetToUsd(args);
+    if (args.max_price_pen) await (typeof ensureFxRate === 'function' ? ensureFxRate() : loadFxRate()).catch(() => {});
+    let budget = budgetToUsd(args);
+    /* No rate in the page yet: on a phone the search server carries the
+       day's rate with its answer (catalogSearchOnServer keeps it). One
+       throwaway search fetches it rather than asking him again. */
+    if (budget.unconvertedPen && typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()){
+      try { await catalogSearch([args.brand, args.query].filter(Boolean).join(' ') || 'oferta', { limit: 1 }); } catch (e) {}
+      budget = budgetToUsd(args);
+    }
     if (budget.unconvertedPen){
       /* Searching anyway would show him shoes he cannot buy, which is
          the whole bug. One question costs a turn; the wrong products
@@ -37352,6 +37483,8 @@ async function executeRealtimeTool(name, args){
         title: i.title, brand: i.brand || null, store: i.retailer,
         price_usd: i.price, weight_kg: i.weightKg ?? null,
       })),
+      ...(Number(args.max_price_pen) > 0 ? { budget_pen: Number(args.max_price_pen),
+        budget_note: 'Ya filtré por su tope de S/ ' + Number(args.max_price_pen) + '. No le vuelvas a preguntar el presupuesto.' } : {}),
       ...(found.gender ? { for_gender: found.gender } : {}),
       ...(found.broadened ? { broadened: found.broadened,
         note: 'No hay exactamente lo que pidió; estas son las más cercanas (' + found.broadened + '). Díselo así, en una frase, y muéstraselas. NUNCA digas "no tenemos" ni "no encontré" a secas.' } : {}),
@@ -37447,7 +37580,7 @@ async function executeRealtimeTool(name, args){
        flag is O(1) and truthful, so she answers immediately and the
        race below stays only as a backstop for a slow search on a warm
        pool. */
-    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache && !(typeof ariaSearchOnServer === 'function' && ariaSearchOnServer())){
       ariaRTScooped.delete(topicKey);
       return { unavailable: 'todavía estoy cargando las ofertas, pregúntame de nuevo en un momentito' };
     }
@@ -37537,6 +37670,13 @@ async function executeRealtimeTool(name, args){
      of a call, exactly when the catalogue is least likely to be
      warm. */
   if (name === 'get_top_sales'){
+    /* On a phone the department-wide sale sweep would need the whole
+       catalogue in memory (see catalogSearchOnServer): she asks what he
+       is looking for instead, and never invents a discount. */
+    if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()){
+      return { categories: [], deals: [],
+        note: 'No tengo el resumen de ofertas a la mano. No inventes descuentos: pregúntale qué busca y búscalo con search_products.' };
+    }
     if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
       return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
     }
@@ -37865,6 +38005,19 @@ async function executeRealtimeTool(name, args){
   if (name === 'check_brand_exists'){
     const asked = String(args.brand_name || '').trim();
     if (!asked) return { unavailable: 'dime qué marca buscas' };
+    /* On a phone: the search server, by name. A hit is proof; no hit is
+       not proof of absence, so she searches before ever saying no. */
+    if (typeof ariaSearchOnServer === 'function' && ariaSearchOnServer()){
+      const foldB = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+      const wantB = foldB(asked);
+      let got = null;
+      try { got = await catalogSearch(asked, { limit: 48 }); } catch (e) { got = null; }
+      const mine = ((got && got.items) || []).filter(it => wantB && foldB(it.brand) === wantB);
+      if (mine.length) return { brand: String(mine[0].brand).trim(), exists: true, in_stock: mine.length,
+        note: 'Sí la tenemos. Búscale productos con search_products.' };
+      return { brand: asked, exists: null,
+        note: 'No pude confirmarla. Búscala con search_products antes de decir que no la tenemos.' };
+    }
     if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
       return { unavailable: 'dame un segundito que estoy cargando el catálogo' };
     }
@@ -38546,7 +38699,7 @@ async function startOwnedVoice(){
   ariaRTStartedAt = Date.now();
   armRealtimeIdleTimers();
   /* Warm what her first tools reach for, as the Realtime voice does. */
-  try { relatedPool().catch(() => {}); } catch (e) {}
+  ariaWarmVoiceCatalogue();
   try {
     fetch('/.netlify/functions/aria-realtime-tool', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
