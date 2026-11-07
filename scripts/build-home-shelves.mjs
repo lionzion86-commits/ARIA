@@ -28,6 +28,11 @@
    REGENERATE after any catalogue change (with Playwright + Chromium):
      npm i --no-save playwright
      node scripts/build-home-shelves.mjs
+   node scripts/build-home-shelves.mjs --stores rewrites only THE store
+   count (every [data-store-count] slot in index.html, #443
+   c.6693598650 s.5): the stores with
+   products for sale, computed by scripts/build-store-doors.mjs's
+   storeDoors(); the full build ends with the same step.
    node scripts/build-home-shelves.mjs --truth  re-applies only the
    category-truth rails (Deportes) and the pill carousels' «Todas»
    rails (pillDefaults, below) to category.json and joyas.json.
@@ -41,6 +46,7 @@ import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 import { FIGHT_GEAR_CLASSES, buildCategoryPills, defaultRails } from "./build-home-category-pills.mjs";
+import { syncStoreCount } from "./build-store-doors.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SHELVES_DIR = "assets/home/shelves";
@@ -358,7 +364,16 @@ export function shelfFiles(snap) {
   return files;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--truth")) {
+/* THE ONE STORE COUNT on the homepage (see the header). */
+export function writeHomeStoreCount(root = ROOT, opts = {}) {
+  return syncStoreCount(root, opts);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--stores")) {
+  const r = writeHomeStoreCount(ROOT, { check: process.argv.includes("--check") });
+  console.log(`store count: ${r.count} stores with products${r.stale.length ? (process.argv.includes("--check") ? "; STALE: " : "; rewrote ") + r.stale.join(", ") : "; current"}`);
+  if (process.argv.includes("--check") && r.stale.length) process.exit(1);
+} else if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--truth")) {
   console.log("category truth:", JSON.stringify(await applyCategoryTruth()));
 } else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const snap = await snapshotShelves();
@@ -376,4 +391,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes(
   console.log(`${SHELVES_DIR}: ${Object.keys(files).length} files, ${(total / 1024).toFixed(0)}KB raw`);
   /* The cards with 2+ photos carry their count (#443: arrows on the homepage cards). */
   stampHomePhotos(ROOT, [SHELVES_DIR]);
+  const counted = writeHomeStoreCount(ROOT);
+  console.log(`store count: ${counted.count} stores with products`);
 }

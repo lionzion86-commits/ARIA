@@ -57,6 +57,7 @@
     "test:results-lanes": "node scripts/test/results-lanes-tests.mjs",
     "test:pixels": "node scripts/test/pixels-tests.mjs",
     "test:dsw": "node scripts/test/dsw-store-tests.mjs",
+    "test:store-count": "node scripts/test/store-count-tests.mjs",
     "test:tenniswarehouse": "node scripts/test/tenniswarehouse-tests.mjs",
     "test:neimanmarcus-pull": "node scripts/test/neimanmarcus-pull-tests.mjs",
     "build:perfumes-shelf": "node scripts/build-perfumes-shelf.mjs",

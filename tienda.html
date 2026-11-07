@@ -909,13 +909,11 @@ function bindRetry(){
   var b = $('retryBtn');
   if (b) b.addEventListener('click', function(){ boot(true); });
 }
+/* No products: one honest line, no name, no grid. */
+var EMPTY_STORE = '<div class="state" data-empty-store><h2>Esta tienda no tiene productos disponibles por ahora</h2><a class="btn" href="tiendas.html">Ver todas las tiendas</a></div>';
 function renderNoCatalog(){
   var host = $('content');
-  if (!host) return;
-  host.innerHTML = '<div class="state"><h2>Catálogo en preparación</h2>' +
-    '<p>Estamos conectando el catálogo de ' + esc(storeMeta.label) + '. ' +
-    'Compramos por encargo mientras terminamos la integración.</p>' +
-    '<a class="btn" href="search.html">Buscar productos</a></div>';
+  if (host) host.innerHTML = EMPTY_STORE;
 }
 
 /* ---------- rendering: store directory ---------- */
@@ -926,8 +924,7 @@ function renderDirectory(){
   if (!dirWrap) return;
   dirWrap.hidden = false;
   document.title = 'Tiendas en Estados Unidos — Aria Shop';
-  /* A store whose catalogue is still pending (DSW, #443) is not listed:
-     no tile that opens onto nothing. */
+  /* A pending store (no products) is not listed. */
   var keys = Object.keys(STORES).filter(function(k){ return !STORES[k].pendingCatalog; }).sort(function(a,b){
     return STORES[a].label.localeCompare(STORES[b].label, 'es');
   });
@@ -1574,9 +1571,9 @@ function boot(isRetry){
   booted = true;
   var key = (qs('tienda') || '').toLowerCase().trim();
   if (!key || !STORES[key] || STORES[key].pendingCatalog){
-    // No valid store (or one whose catalogue is still pending, DSW #443):
-    // the directory IS the page. Never blank, never an error, never a dead end.
+    // No live store: the directory, never blank; a store's own link says why.
     renderDirectory();
+    if (key && $('dirWrap') && !$('dirWrap').querySelector('[data-empty-store]')) $('dirWrap').insertAdjacentHTML('afterbegin', EMPTY_STORE);
     return;
   }
   storeKey = key;

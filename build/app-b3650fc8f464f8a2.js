@@ -16245,7 +16245,9 @@ function renderHowItWorksStores(){
   if (chips){
     const stores = CATALOG_RETAILERS;
     const shown = stores.slice(0, 2);
-    const hidden = stores.length - shown.length;
+    /* «+N»: the rest of THE store count (storeCountTruth), not of this
+       registry's search list -- the page names one number. */
+    const hidden = (storeCountTruth() || stores.length) - shown.length;
     chips.innerHTML = shown.map(r => retailerBadgeHTML(r, 18)).join('')
       + (hidden > 0
         ? `<span class="inline-flex items-center h-[20px] px-2 rounded-full text-[11px] font-extrabold" style="background:var(--sky); color:var(--navy)">+${hidden}</span>`
@@ -16302,13 +16304,32 @@ function renderStoresGrid(){
             </div>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">${t.stores.map(storeCardHTML).join('')}</div>
           </section>`).join('');
+    /* THE REST OF THE COUNT (#443 c.6693598650 s.5). The heading counts
+       every store with products for sale; this registry tiles the ones the
+       app merchandises. The others (the Latino designers' houses, the moto
+       and fight stores...) are one link away, in tiendas.html's full
+       directory, so the heading never counts a store the page hides. */
+    const more = document.getElementById('storesGridMore');
+    const rest = storeCountTruth() - tiers.reduce((n, t) => n + t.stores.length, 0);
+    if (more) more.innerHTML = rest > 0 ? `<a href="/tiendas.html" class="inline-block mt-6 text-[13.5px] font-bold focus-ring rounded" style="color:var(--blue)">Y ${rest} tienda${rest === 1 ? '' : 's'} más en el directorio completo &#8594;</a>` : '';
   }
-  /* THE HEADING COUNTS, IT DOES NOT REMEMBER. See the comment beside
-     #storesGrid in the markup for why this is not a literal. */
-  const listed = activeRetailers().length;
-  for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
+  /* THE HEADING COUNTS, IT DOES NOT REMEMBER -- and it counts ONCE
+     (#443 c.6693598650 s.5). It said «Ocho» in the markup, then
+     activeRetailers().length here (101), while the results bar said
+     CATALOG_RETAILERS.length (99) and tiendas.html said 120: three
+     numbers on one site. Every [data-store-count] slot now holds the one
+     count, the stores with products for sale, written into the markup by
+     scripts/build-store-doors.mjs, in the words spanishCount() uses.
+     Nothing here rewrites it. */
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
+
+/* THE ONE STORE COUNT, read back from the markup (see renderStoresGrid). */
+function storeCountTruth(){
+  const el = document.querySelector('[data-store-count]');
+  const n = el ? Number(el.getAttribute('data-store-count')) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
 
 /* ============================================================
    "TODAS LAS OTRAS TIENDAS" — the rest of the mall directory as one logo
@@ -19379,7 +19400,9 @@ async function showResults(query, opts = {}){
     : '';
   document.getElementById('prodNameBig').textContent = query;
 
-  document.getElementById('storeCount').textContent = CATALOG_RETAILERS.length;
+  /* «comparando N tiendas»: the slot holds THE store count, written by
+     scripts/build-store-doors.mjs (#443 c.6693598650 s.5). It used to be
+     CATALOG_RETAILERS.length here and «4» in the markup: two numbers. */
   document.getElementById('resultCount').textContent = 'Buscando en nuestro catálogo…';
 
   liveScrapeQuery = query;
