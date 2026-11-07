@@ -49,8 +49,10 @@
 # ariahomeshield.com is a domain alias of this same Netlify site. On that
 # host the root IS the Home Shield landing (a rewrite, never a hop to
 # ariashop.pe), and the short paths /pro, /partners, /admin, /caso serve
-# the same pages. /home-shield/* (the pages' own CSS, JS and images) and
-# /.netlify/* (the hs-* functions) pass straight through. Anything else on
+# the same pages. /home-shield/* (the pages' own CSS, JS and images) passes
+# straight through; /.netlify/* (the hs-* functions) never goes through
+# redirect rules at all -- Netlify rejects a rule with a /.netlify source.
+# Anything else on
 # that host -- a mall page -- shows the Home Shield landing, so the domain
 # never feels like the mall. www.ariahomeshield.com -> the apex (301).
 # These host rules must stay ABOVE every path rule: Netlify takes the first
@@ -59,12 +61,6 @@
   from = "https://www.ariahomeshield.com/*"
   to = "https://ariahomeshield.com/:splat"
   status = 301
-  force = true
-
-[[redirects]]
-  from = "https://ariahomeshield.com/.netlify/*"
-  to = "/.netlify/:splat"
-  status = 200
   force = true
 
 [[redirects]]

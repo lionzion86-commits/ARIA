@@ -22,6 +22,8 @@ const rules = toml.split(/^\[\[/m).filter((b) => b.startsWith("redirects]]")).ma
 
 function match(url) {
   const u = new URL(url);
+  if (u.pathname.startsWith("/.netlify/")) return { from: "(platform)", to: u.pathname, target: u.pathname, status: 200, force: true }; // never redirected
+
   for (const r of rules) {
     if (r.query) continue;
     let host = null, path = r.from;
@@ -66,6 +68,9 @@ test("every host rule sits above every path rule (first match wins)", () => {
   const firstPath = rules.findIndex((r) => r.from && r.from.startsWith("/"));
   const lastHost = rules.map((r) => /ariahomeshield\.com/.test(r.from || "")).lastIndexOf(true);
   assert.ok(lastHost >= 0 && lastHost < firstPath, `last host rule ${lastHost}, first path rule ${firstPath}`);
+});
+test("no rule uses a /.netlify source (Netlify rejects it; functions bypass redirects)", () => {
+  assert.ok(!rules.some((r) => /\/\.netlify\//.test(r.from || "")), "a /.netlify source rule");
 });
 test("every rewrite target exists in the repo", () => {
   for (const r of rules.filter((r) => /ariahomeshield\.com/.test(r.from) && r.status === 200 && !r.to.includes(":splat"))) assert.ok(existsSync(join(ROOT, r.to)), r.to);
