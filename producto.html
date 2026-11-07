@@ -658,7 +658,7 @@ function taxLineHtml(p){
   var fob = dutiableUsd(p.price, p.retailer);
   if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)){
     return '<div class="p-tax-row"><span>Impuestos de importación</span><b>' + moneyHtml(0) + '</b></div>'
-      + '<div class="p-tax-note">Sin recargo en pedidos de hasta US$ ' + TAX_ESTIMATE_THRESHOLD_USD + ' en productos.</div>';
+      + '<div class="p-tax-note">Sin impuestos de importación mientras tu pedido no pase el límite de importación.</div>';
   }
   return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
     + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';

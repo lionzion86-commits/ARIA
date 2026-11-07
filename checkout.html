@@ -412,6 +412,7 @@ html{scroll-padding-top:76px}
               <div class="h-2 rounded-full mt-1.5 mb-2 overflow-hidden" style="background:rgba(10,31,68,.12)">
                 <div id="taxTrackerBar" class="h-full rounded-full" style="width:0%; background:var(--navy)"></div>
               </div>
+              <p id="taxTrackerTip" class="text-[12px] font-bold leading-snug mb-1.5" style="color:var(--navy)" hidden></p>
               <p id="taxPolicyNote" class="text-[12px] font-semibold leading-snug" style="color:var(--navy)"></p>
             </div>
           </div>
@@ -1779,24 +1780,38 @@ function cardImgAttrs(url, sizes){
     document.getElementById('sumAriaDeliveryRow').hidden = !(fee > 0);
   }
 
-  /* DE-MINIMIS TRACKER: the dutiable value (never freight) against $200. */
+  /* "Approaching" starts where the cart's own bar turns amber
+     (TAX_ZONE_AMBER_START_USD in the bundle): the same order reads the
+     same on both pages. */
+  const IMPORT_LIMIT_NEAR_USD = 150;
+  const IMPORT_LIMIT_TIP = 'Consejo: divide tu compra en pedidos separados para que cada uno se quede bajo el límite de importación.';
+  /* DE-MINIMIS TRACKER: the dutiable value (never freight) against the limit. */
   function renderTaxTracker(){
     const fob = currentValor();
     /* 10% steps (#439): an exact width is the declared value in disguise. */
     const pct = Math.max(0, Math.min(100, Math.floor(fob / TAX_ESTIMATE_THRESHOLD_USD * 10) * 10));
     const line = document.getElementById('taxTrackerLine');
     const bar = document.getElementById('taxTrackerBar');
+    const tip = document.getElementById('taxTrackerTip');
     bar.style.width = pct + '%';
-    /* No dollar figure: fob is the declared (margin-free) value, and
-       printing it next to the total discloses the margin (finding #9).
-       The bar shows the position; the words say which side of $200. */
-    if (fob <= TAX_ESTIMATE_THRESHOLD_USD){
-      line.textContent = `Tu pedido está por debajo de los $${TAX_ESTIMATE_THRESHOLD_USD} – sin impuestos`;
+    /* WORDS ONLY (#443 c.6709315389 item 4, Danny, 2026-11-07): no
+       dollar figure and no percentage, ever -- fob is the declared
+       (margin-free) value (finding #9), and the limit itself is not
+       printed either. The bar shows the position; the words say only
+       under / approaching / past "el límite de importación", and from
+       approaching on, the tip to split into separate orders. */
+    if (fob > TAX_ESTIMATE_THRESHOLD_USD){
+      line.textContent = 'Tu pedido pasó el límite de importación: se aplican impuestos de importación';
+      bar.style.background = '#B7791F';
+    } else if (fob >= IMPORT_LIMIT_NEAR_USD){
+      line.textContent = 'Tu pedido se acerca al límite de importación';
       bar.style.background = 'var(--navy)';
     } else {
-      line.textContent = `Pasaste los $${TAX_ESTIMATE_THRESHOLD_USD} – se aplican impuestos de importación`;
-      bar.style.background = '#B7791F';
+      line.textContent = 'Tu pedido está bajo el límite de importación: sin impuestos de importación';
+      bar.style.background = 'var(--navy)';
     }
+    tip.textContent = IMPORT_LIMIT_TIP;
+    tip.hidden = !(fob >= IMPORT_LIMIT_NEAR_USD);
   }
 
   /* EVERY FIGURE THE SUMMARY PRINTS, FROM ONE FUNCTION (2026-09-21).
@@ -1943,8 +1958,8 @@ function cardImgAttrs(url, sizes){
      else on a different base — the copy and the rule have to come from
      the same two constants or they drift apart again. */
   document.getElementById('taxPolicyNote').textContent =
-    `Envíos de hasta $${TAX_ESTIMATE_THRESHOLD_USD} en productos no pagan impuestos de importación. `
-    + `Por encima de $${TAX_ESTIMATE_THRESHOLD_USD} los estimamos sobre los productos más el flete y los ves en su propia línea.`;
+    'El precio que ves es el final. Mientras tu pedido no pase el límite de importación, no paga impuestos de importación; '
+    + 'si lo pasa, los estimamos sobre los productos más el flete y los ves en su propia línea antes de pagar. Nada se paga al recibir.';
 
   /* #439: THE ROW IS ALWAYS THERE once the cart has goods. Over the
      threshold it is the real estimate for this cart; under it, S/ 0 with
@@ -1956,7 +1971,7 @@ function cardImgAttrs(url, sizes){
     document.getElementById('sumTaxLabel').textContent = owes ? TAX_ESTIMATE_LABEL : 'Impuestos de importación';
     document.getElementById('sumTaxNote').textContent = owes
       ? TAX_ESTIMATE_NOTE
-      : `Sin recargo: los pedidos de hasta US$ ${TAX_ESTIMATE_THRESHOLD_USD} en productos no pagan impuestos de importación.`;
+      : 'Sin recargo: tu pedido está bajo el límite de importación.';
     setMoney(sumTax, owes ? taxUsd : 0, '', owes ? taxPen : 0);
     sumTaxRow.hidden = !(currentGoodsUsd() > 0);
   }
