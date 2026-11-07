@@ -45,6 +45,94 @@
   included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/concepts.json", "assets/search/destinations.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json", "assets/sections/nav/_fn/facts.json"]
 
 
+# ARIA HOME SHIELD ON ITS OWN DOMAIN (#443 c.6709587835, Danny 2026-11-07).
+# ariahomeshield.com is a domain alias of this same Netlify site. On that
+# host the root IS the Home Shield landing (a rewrite, never a hop to
+# ariashop.pe), and the short paths /pro, /partners, /admin, /caso serve
+# the same pages. /home-shield/* (the pages' own CSS, JS and images) and
+# /.netlify/* (the hs-* functions) pass straight through. Anything else on
+# that host -- a mall page -- shows the Home Shield landing, so the domain
+# never feels like the mall. www.ariahomeshield.com -> the apex (301).
+# These host rules must stay ABOVE every path rule: Netlify takes the first
+# match. home-shield-domain-tests.mjs pins the order and the routes.
+[[redirects]]
+  from = "https://www.ariahomeshield.com/*"
+  to = "https://ariahomeshield.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/.netlify/*"
+  to = "/.netlify/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/home-shield/*"
+  to = "/home-shield/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/"
+  to = "/home-shield/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/caso"
+  to = "/home-shield/caso.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/caso.html"
+  to = "/home-shield/caso.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/pro"
+  to = "/home-shield/pro/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/pro/*"
+  to = "/home-shield/pro/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/partners"
+  to = "/home-shield/partners/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/partners/admin"
+  to = "/home-shield/partners/admin.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/partners/*"
+  to = "/home-shield/partners/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/admin"
+  to = "/home-shield/admin.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariahomeshield.com/*"
+  to = "/home-shield/index.html"
+  status = 200
+  force = true
+
 # THE HEADER CREATES NOTHING (#443 c.6621544530, c.6621722209). The
 # department views the header's menu once invented (&nav=1 plus its
 # filters) are not pages: each goes to the department's own page with
